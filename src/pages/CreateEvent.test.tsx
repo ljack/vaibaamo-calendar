@@ -1,0 +1,97 @@
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import CreateEvent from '../pages/CreateEvent'
+import { supabase } from '../lib/supabase'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { BrowserRouter } from 'react-router-dom'
+import * as AuthContext from '../contexts/AuthContext'
+
+vi.mock('../lib/supabase', () => ({
+    supabase: {
+        from: vi.fn(() => ({
+            insert: vi.fn()
+        }))
+    }
+}))
+
+// Mock navigate
+const mockedNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom')
+    return {
+        ...actual,
+        useNavigate: () => mockedNavigate
+    }
+})
+
+describe('CreateEvent', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('redirects or shows unauth message if not admin', () => {
+        // Mock useAuth to return non-admin
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: { id: '123' } as any,
+            isAdmin: false,
+            loading: false,
+            signOut: vi.fn()
+        } as any)
+
+        render(
+            <BrowserRouter>
+                <CreateEvent />
+            </BrowserRouter>
+        )
+
+        expect(screen.getByText(/Ei oikeuksia/i)).toBeInTheDocument()
+    })
+
+    it('renders form for admin', () => {
+        // Mock useAuth to return admin
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: { id: 'admin' } as any,
+            isAdmin: true,
+            loading: false,
+            signOut: vi.fn()
+        } as any)
+
+        render(
+            <BrowserRouter>
+                <CreateEvent />
+            </BrowserRouter>
+        )
+
+        expect(screen.getByText(/Luo uusi tapahtuma/i)).toBeInTheDocument()
+    })
+
+    it('submits form successfully', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: { id: 'admin' } as any,
+            isAdmin: true,
+            loading: false,
+            signOut: vi.fn()
+        } as any)
+
+        const insertMock = vi.fn().mockResolvedValue({ error: null })
+        const fromMock = vi.mocked(supabase.from)
+        fromMock.mockReturnValue({ insert: insertMock } as any)
+
+        render(
+            <BrowserRouter>
+                <CreateEvent />
+            </BrowserRouter>
+        )
+
+        fireEvent.change(screen.getByLabelText(/Otsikko/i), { target: { value: 'New Event' } })
+        fireEvent.change(screen.getByLabelText(/Kuvaus/i), { target: { value: 'Description' } })
+        fireEvent.change(screen.getByLabelText(/Alkaa/i), { target: { value: '2025-12-24T12:00' } })
+        fireEvent.change(screen.getByLabelText(/Päättyy/i), { target: { value: '2025-12-24T14:00' } })
+
+        fireEvent.click(screen.getByRole('button', { name: /Luo tapahtuma/i }))
+
+        await waitFor(() => {
+            expect(insertMock).toHaveBeenCalled()
+            expect(mockedNavigate).toHaveBeenCalledWith('/')
+        })
+    })
+})

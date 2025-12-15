@@ -1,0 +1,34 @@
+[
+    {
+        "title": "vaibaamo-mikkeli",
+        "date_literal": "tbd",
+        "start_time_placeholder": "2025-12-31T12:00:00.000Z",
+        "place": "mikkeli",
+        "venue": "TBD",
+        "description": "Venue: TBD. Date: TBD"
+    },
+    {
+        "title": "vaibaamo-oulu",
+        "date_literal": "tbd",
+        "start_time_placeholder": "2025-12-31T12:00:00.000Z",
+        "place": "oulu",
+        "venue": "TBD",
+        "description": "Venue: TBD. Date: TBD"
+    },
+    {
+        "title": "vaibaamo-pääsiäinen",
+        "date_literal": "pääsiäinen",
+        "start_time_placeholder": "2025-04-20T12:00:00.000Z",
+        "place": "lappi",
+        "venue": "TBD",
+        "description": "Easter Event. Venue: TBD"
+    },
+    {
+        "title": "vaibaamo-tampere",
+        "date_literal": "tbd",
+        "start_time_placeholder": "2025-12-31T12:00:00.000Z",
+        "place": "tampere",
+        "venue": "TBD",
+        "description": "Venue: TBD. Date: TBD"
+    }
+]
