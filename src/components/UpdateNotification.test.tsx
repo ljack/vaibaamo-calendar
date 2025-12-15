@@ -14,7 +14,7 @@ describe('UpdateNotification', () => {
             json: () => Promise.resolve({ version: '1000' }),
         } as Response))
 
-        global.fetch = fetchMock
+        globalThis.fetch = fetchMock
         vi.stubGlobal('fetch', fetchMock) // Ensure global is stubbed too
         Object.defineProperty(window, 'fetch', {
             writable: true,
@@ -33,42 +33,47 @@ describe('UpdateNotification', () => {
 
     afterEach(() => {
         vi.useRealTimers()
-        vi.restoreAllMocks()
+        vi.unstubAllGlobals()
     })
 
-    class ErrorBoundary extends React.Component<any, any> {
-        constructor(props: any) {
+    // Helper for testing ErrorBoundary
+    class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+        constructor(props: { children: React.ReactNode }) {
             super(props)
             this.state = { hasError: false }
         }
-        static getDerivedStateFromError(error: any) {
+        static getDerivedStateFromError(_error: any) {
             return { hasError: true }
         }
-        componentDidCatch(error: any, errorInfo: any) {
-            console.error('CAUGHT ERROR IN TEST:', error)
+        componentDidCatch(_error: any, _errorInfo: any) {
+            // log error
         }
         render() {
-            if (this.state.hasError) return <h1>Something went wrong.</h1>
+            if (this.state.hasError) {
+                return <div>Something went wrong.</div>
+            }
             return this.props.children
         }
     }
 
     it('should not render anything initially', async () => {
-        vi.mocked(global.fetch).mockImplementation((url) => {
+        vi.mocked(globalThis.fetch).mockImplementation((_url) => {
             return Promise.resolve({
                 ok: true,
+                status: 200,
                 json: () => Promise.resolve({ version: '1000' })
             } as Response)
         })
 
-        render(<UpdateNotification />)
+        const { queryByTestId } = render(<UpdateNotification />)
 
-        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
-        expect(screen.queryByText('Uusi versio saatavilla!')).not.toBeInTheDocument()
+        // Wait for effect
+        await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledTimes(1))
+        expect(queryByTestId('update-notification')).not.toBeInTheDocument()
     })
 
     it('should show notification when version changes', async () => {
-        const fetchMock = vi.mocked(global.fetch)
+        const fetchMock = vi.mocked(globalThis.fetch)
         fetchMock.mockReturnValue(Promise.resolve({
             ok: true,
             status: 200,
@@ -95,6 +100,7 @@ describe('UpdateNotification', () => {
             json: () => Promise.resolve({ version: '2000' }),
         } as Response))
 
+        // Trigger poll logic by advancing again (polling uses same interval)
         await act(async () => {
             await vi.runOnlyPendingTimersAsync()
         })
@@ -103,7 +109,7 @@ describe('UpdateNotification', () => {
     })
 
     it('should reload page when update button is clicked', async () => {
-        const fetchMock = vi.mocked(global.fetch)
+        const fetchMock = vi.mocked(globalThis.fetch)
 
         // Initial fetch
         fetchMock.mockReturnValue(Promise.resolve({
