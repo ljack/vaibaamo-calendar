@@ -30,7 +30,6 @@ export default function EventsList() {
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
         } catch (error: any) {
             console.error('Error fetching events:', error)
-            alert(`Virhe tapahtumien latauksessa: ${error.message || JSON.stringify(error)}`)
         } finally {
             console.log('Finished loading state')
             setLoading(false)

@@ -30,12 +30,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const initializeAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            setSession(session)
-            setUser(session?.user ?? null)
-            if (session?.user) {
-                await checkAdminStatus(session.user.id)
+            // Check for initial session
+            const { data: { session: initialSession } } = await supabase.auth.getSession()
+
+            if (initialSession) {
+                // Verify the session is actually valid by fetching user
+                const { data: { user }, error } = await supabase.auth.getUser()
+
+                if (error || !user) {
+                    console.log('Session found but invalid (likely old project), clearing...', error)
+                    await supabase.auth.signOut()
+                    localStorage.clear()
+                    setSession(null)
+                    setUser(null)
+                    setIsAdmin(false)
+                } else {
+                    setSession(initialSession)
+                    setUser(user)
+                    await checkAdminStatus(user.id)
+                }
             } else {
+                setSession(null)
+                setUser(null)
                 setIsAdmin(false)
             }
             setLoading(false)

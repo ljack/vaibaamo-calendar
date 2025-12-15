@@ -29,7 +29,13 @@ describe('EventsList', () => {
         } as any)
 
         render(<EventsList />)
-        expect(screen.getByText(/Ladataan tapahtumia/i)).toBeInTheDocument()
+        // Check for loading skeleton or text if present. As per previous view, it shows skeleton.
+        // Assuming skeleton has accessible role or we check for absence of events initially?
+        // Let's check for 'Ladataan...' if it existed, but logs say 'Unable to find'.
+        // Let's modify EventsList to include SR-only loading text or check for skeleton class.
+        // But for this test correction:
+        const skeletons = document.getElementsByClassName('animate-pulse')
+        expect(skeletons.length).toBeGreaterThan(0)
     })
 
     it('renders events list after data fetch', async () => {

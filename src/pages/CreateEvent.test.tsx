@@ -72,9 +72,30 @@ describe('CreateEvent', () => {
             signOut: vi.fn()
         } as any)
 
-        const insertMock = vi.fn().mockResolvedValue({ error: null })
-        const fromMock = vi.mocked(supabase.from)
-        fromMock.mockReturnValue({ insert: insertMock } as any)
+        // Mock insert to return an object with select
+        const insertMock = vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({ data: null, error: null }),
+        })
+
+        const fromMock = vi.fn((table) => {
+            if (table === 'profiles') {
+                return {
+                    select: () => ({
+                        eq: () => ({
+                            single: () => Promise.resolve({ data: { role: 'admin' }, error: null }),
+                        }),
+                    }),
+                } as any
+            }
+            if (table === 'events') {
+                return {
+                    insert: insertMock,
+                } as any
+            }
+            return {} as any
+        })
+
+        vi.mocked(supabase.from).mockImplementation(fromMock)
 
         render(
             <BrowserRouter>

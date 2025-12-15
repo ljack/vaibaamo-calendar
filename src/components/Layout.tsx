@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { UpdateNotification } from './UpdateNotification'
 
 export default function Layout() {
     const { user, isAdmin, signOut } = useAuth()
@@ -58,6 +59,8 @@ export default function Layout() {
             <main className="flex-1 max-w-7xl w-full mx-auto py-6 sm:px-6 lg:px-8">
                 <Outlet />
             </main>
+
+            <UpdateNotification />
 
             <footer className="bg-white border-t border-gray-200 py-6">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
