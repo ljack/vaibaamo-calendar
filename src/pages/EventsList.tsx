@@ -6,19 +6,35 @@ import { Link } from 'react-router-dom'
 export default function EventsList() {
     const [events, setEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        fetchEvents()
+        const abortController = new AbortController()
+        fetchEvents(abortController.signal)
+        return () => abortController.abort()
     }, [])
 
-    const fetchEvents = async () => {
+    const fetchEvents = async (signal?: AbortSignal) => {
         console.log('Fetching events...')
+        setLoading(true)
+        setError(null)
         const startTime = Date.now()
+
+        // Create a timeout signal if one wasn't provided or to enforce a limit
+        const timeoutId = setTimeout(() => {
+            // We can't cancel the supabase promise easily from outside unless we raced it,
+            // but we can manually abort if we passed the signal.
+            // However, Supabase v2 uses 'abortSignal' in config usually.
+        }, 10000)
+
         try {
             const { data, error } = await supabase
                 .from('events')
                 .select('*')
                 .order('start_time', { ascending: true })
+                .abortSignal(signal || new AbortController().signal) // Pass signal to supabase
+
+            clearTimeout(timeoutId)
 
             if (error) {
                 console.error('Supabase error:', error)
@@ -28,11 +44,17 @@ export default function EventsList() {
             console.log('Events data:', data)
             setEvents(data || [])
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
-        } catch (error: any) {
-            console.error('Error fetching events:', error)
+        } catch (err: any) {
+            console.error('Error fetching events:', err)
+            if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+                setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
+            } else {
+                setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')
+            }
         } finally {
             console.log('Finished loading state')
             setLoading(false)
+            clearTimeout(timeoutId)
         }
     }
 
@@ -57,6 +79,21 @@ export default function EventsList() {
                         </div>
                     ))}
                 </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="text-center py-12">
+                <div className="text-red-500 text-4xl mb-4">⚠️</div>
+                <h3 className="mt-2 text-lg font-semibold text-gray-900">{error}</h3>
+                <button
+                    onClick={() => fetchEvents()}
+                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                >
+                    Yritä uudelleen
+                </button>
             </div>
         )
     }

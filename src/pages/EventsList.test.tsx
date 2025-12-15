@@ -20,20 +20,16 @@ describe('EventsList', () => {
     })
 
     it('renders loading state initially', () => {
-        // Basic mock just to not crash
         const fromMock = vi.mocked(supabase.from)
         fromMock.mockReturnValue({
             select: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue(new Promise(() => { })) // Never resolves to keep loading
+                order: vi.fn().mockReturnValue({
+                    abortSignal: vi.fn().mockReturnValue(new Promise(() => { })) // Never resolves
+                })
             })
         } as any)
 
         render(<EventsList />)
-        // Check for loading skeleton or text if present. As per previous view, it shows skeleton.
-        // Assuming skeleton has accessible role or we check for absence of events initially?
-        // Let's check for 'Ladataan...' if it existed, but logs say 'Unable to find'.
-        // Let's modify EventsList to include SR-only loading text or check for skeleton class.
-        // But for this test correction:
         const skeletons = document.getElementsByClassName('animate-pulse')
         expect(skeletons.length).toBeGreaterThan(0)
     })
@@ -47,7 +43,9 @@ describe('EventsList', () => {
         const fromMock = vi.mocked(supabase.from)
         fromMock.mockReturnValue({
             select: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({ data: mockEvents, error: null })
+                order: vi.fn().mockReturnValue({
+                    abortSignal: vi.fn().mockResolvedValue({ data: mockEvents, error: null })
+                })
             })
         } as any)
 
@@ -67,7 +65,9 @@ describe('EventsList', () => {
         const fromMock = vi.mocked(supabase.from)
         fromMock.mockReturnValue({
             select: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({ data: [], error: null })
+                order: vi.fn().mockReturnValue({
+                    abortSignal: vi.fn().mockResolvedValue({ data: [], error: null })
+                })
             })
         } as any)
 
@@ -79,6 +79,27 @@ describe('EventsList', () => {
 
         await waitFor(() => {
             expect(screen.getByText(/Ei tulevia tapahtumia/i)).toBeInTheDocument()
+        })
+    })
+
+    it('renders error state on fetch failure', async () => {
+        const fromMock = vi.mocked(supabase.from)
+        fromMock.mockReturnValue({
+            select: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                    abortSignal: vi.fn().mockResolvedValue({ data: null, error: { message: 'Network error' } })
+                })
+            })
+        } as any)
+
+        render(
+            <BrowserRouter>
+                <EventsList />
+            </BrowserRouter>
+        )
+
+        await waitFor(() => {
+            expect(screen.getByText(/Tapahtumien lataaminen epäonnistui/i)).toBeInTheDocument()
         })
     })
 })
