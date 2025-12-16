@@ -28,6 +28,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAdmin, setIsAdmin] = useState(false)
     const [loading, setLoading] = useState(true)
 
+    const checkAdminStatus = async (userId: string) => {
+        try {
+            const { data } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .single()
+
+            setIsAdmin(data?.role === 'admin')
+        } catch (error) {
+            console.error('Error checking admin status', error)
+            setIsAdmin(false)
+        }
+    }
+
     useEffect(() => {
         const initializeAuth = async () => {
             // Check for initial session
@@ -74,21 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return () => subscription.unsubscribe()
     }, [])
-
-    const checkAdminStatus = async (userId: string) => {
-        try {
-            const { data } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', userId)
-                .single()
-
-            setIsAdmin(data?.role === 'admin')
-        } catch (error) {
-            console.error('Error checking admin status', error)
-            setIsAdmin(false)
-        }
-    }
 
     const signOut = async () => {
         await supabase.auth.signOut()

@@ -5,6 +5,23 @@ export function UpdateNotification() {
     const [hasUpdate, setHasUpdate] = useState(false)
     const [currentVersion, setCurrentVersion] = useState<string | null>(null)
 
+    const checkForUpdate = async () => {
+        if (!currentVersion) return
+        console.log('checkForUpdate called, polling')
+
+        try {
+            const res = await fetch(`/version.json?t=${Date.now()}`)
+            if (!res.ok) return
+
+            const data = await res.json()
+            if (data.version && data.version !== currentVersion) {
+                setHasUpdate(true)
+            }
+        } catch (error) {
+            console.error('Error checking for updates:', error)
+        }
+    }
+
     useEffect(() => {
         // Fetch initial version
         console.log('Initial fetch /version.json')
@@ -33,23 +50,6 @@ export function UpdateNotification() {
             window.removeEventListener('focus', handleFocus)
         }
     }, [currentVersion]) // End of useEffect
-
-    const checkForUpdate = async () => {
-        if (!currentVersion) return
-        console.log('checkForUpdate called, polling')
-
-        try {
-            const res = await fetch(`/version.json?t=${Date.now()}`)
-            if (!res.ok) return
-
-            const data = await res.json()
-            if (data.version && data.version !== currentVersion) {
-                setHasUpdate(true)
-            }
-        } catch (error) {
-            console.error('Error checking for updates:', error)
-        }
-    }
 
     const handleReload = () => {
         window.location.reload()
