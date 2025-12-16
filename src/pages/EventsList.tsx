@@ -2,17 +2,21 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../types'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function EventsList() {
+    const { loading: authLoading } = useAuth()
     const [events, setEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        if (authLoading) return
+
         const abortController = new AbortController()
         fetchEvents(abortController.signal)
         return () => abortController.abort()
-    }, [])
+    }, [authLoading])
 
     const fetchEvents = async (signal?: AbortSignal) => {
         console.log('Fetching events...')
@@ -20,21 +24,35 @@ export default function EventsList() {
         setError(null)
         const startTime = Date.now()
 
+        // Use a new controller if one wasn't passed (internal retry)
         // Create a timeout signal if one wasn't provided or to enforce a limit
+        const timeoutController = new AbortController();
         const timeoutId = setTimeout(() => {
-            // We can't cancel the supabase promise easily from outside unless we raced it,
-            // but we can manually abort if we passed the signal.
-            // However, Supabase v2 uses 'abortSignal' in config usually.
-        }, 10000)
+            timeoutController.abort(new Error('Request timed out after 10s'))
+        }, 10000);
 
         try {
+            const requestController = new AbortController();
+
+            // If parent signal aborts, abort requestController
+            if (signal) {
+                // Use 'once' to avoid leak if not using addEventListener options carefully, 
+                // but simpler: check if aborted.
+                if (signal.aborted) {
+                    requestController.abort();
+                } else {
+                    signal.addEventListener('abort', () => requestController.abort(), { once: true });
+                }
+            }
+
+            // Also link timeout controller
+            timeoutController.signal.addEventListener('abort', () => requestController.abort(timeoutController.signal.reason), { once: true });
+
             const { data, error } = await supabase
                 .from('events')
                 .select('*')
                 .order('start_time', { ascending: true })
-                .abortSignal(signal || new AbortController().signal) // Pass signal to supabase
-
-            clearTimeout(timeoutId)
+                .abortSignal(requestController.signal)
 
             if (error) {
                 console.error('Supabase error:', error)
@@ -46,7 +64,10 @@ export default function EventsList() {
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
         } catch (err: any) {
             console.error('Error fetching events:', err)
-            if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+            // Check if it was a timeout
+            const isTimeout = timeoutController.signal.aborted || err.message?.includes('timed out') || err.name === 'AbortError';
+
+            if (isTimeout) {
                 setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
             } else {
                 setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')

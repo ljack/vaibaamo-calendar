@@ -14,6 +14,10 @@ vi.mock('../lib/supabase', () => ({
     }
 }))
 
+vi.mock('../contexts/AuthContext', () => ({
+    useAuth: vi.fn(() => ({ loading: false }))
+}))
+
 describe('EventsList', () => {
     beforeEach(() => {
         vi.clearAllMocks()
