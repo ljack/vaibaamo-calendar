@@ -24,8 +24,12 @@ export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
         return Math.round(now - startedAt);
     };
 
+    let timedOut = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const timeout = new Promise<AuthState>((resolve) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
+            timedOut = true;
             console.warn("[authBootstrap] Session check timed out, defaulting to null", {
                 elapsedMs: elapsedMs(),
                 timeoutMs,
@@ -49,7 +53,7 @@ export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
             }
             const resolvedMs = elapsedMs();
             const hasSession = !!data.session;
-            if (resolvedMs > timeoutMs) {
+            if (timedOut) {
                 console.warn("[authBootstrap] getSession resolved after timeout", {
                     hasSession,
                     elapsedMs: resolvedMs,
@@ -83,6 +87,8 @@ export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
                 error: e?.message ?? "Unknown auth init error",
                 timedOut: false,
             };
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
         }
     })();
 
