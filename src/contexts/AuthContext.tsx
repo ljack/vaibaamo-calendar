@@ -90,6 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (error) {
                 console.error('[AuthContext] Auth initialization error:', error)
                 // Fallback: clear everything to be safe
+                console.log('[AuthContext] Clearing suspected bad session data from storage')
+                localStorage.clear()
+                // Attempt to notify supabase client to clear state (fire and forget, don't await/hang)
+                supabase.auth.signOut().catch(e => console.error('[AuthContext] Force signout error (ignoring):', e))
+
                 setSession(null)
                 setUser(null)
                 setIsAdmin(false)
