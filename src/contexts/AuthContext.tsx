@@ -53,6 +53,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let mounted = true
         let retryTimer: number | null = null
+        const shouldSignOutForError = (err: any) => {
+            if (!err) return false
+            if (typeof err?.status === 'number' && err.status === 401) return true
+            const message = String(err?.message || '')
+            return /auth session missing/i.test(message) || /invalid token/i.test(message)
+        }
+
+        const scheduleRetry = (reason: string) => {
+            if (retryTimer) window.clearTimeout(retryTimer)
+            if (DEBUG_AUTH) console.log('[AuthContext] Scheduling auth retry', reason)
+            const supabase = getSupabase()
+            retryTimer = window.setTimeout(async () => {
+                if (!mounted) return
+                try {
+                    const { data, error } = await supabase.auth.getSession()
+                    if (DEBUG_AUTH && error) {
+                        console.error('[AuthContext] getSession error after retry', error)
+                    }
+                    const retrySession = data.session
+                    if (!retrySession?.user) return
+
+                    const { data: userData, error: userError } = await supabase.auth.getUser()
+                    if (userError || !userData.user) {
+                        if (DEBUG_AUTH) console.log('[AuthContext] Retry verification failed', userError)
+                        if (shouldSignOutForError(userError)) {
+                            await signOut()
+                        }
+                        return
+                    }
+
+                    setSession(retrySession)
+                    setUser(userData.user)
+                    await checkAdminStatus(userData.user.id)
+                } catch (retryError) {
+                    if (DEBUG_AUTH) console.error('[AuthContext] Retry failed', retryError)
+                }
+            }, 2000)
+        }
 
         const bootstrap = async () => {
             if (DEBUG_AUTH) console.log('[AuthContext] initAuthOnce started')
@@ -80,9 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setSession(session)
                         setUser(verifiedUser)
                         await checkAdminStatus(verifiedUser.id)
-                    } catch {
-                        if (DEBUG_AUTH) console.log('[AuthContext] Verification failed, signing out')
-                        await signOut()
+                    } catch (verifyError: any) {
+                        if (DEBUG_AUTH) console.log('[AuthContext] Verification failed', verifyError)
+                        if (shouldSignOutForError(verifyError)) {
+                            if (DEBUG_AUTH) console.log('[AuthContext] Verification failed, signing out')
+                            await signOut()
+                        } else {
+                            // Keep the session and retry verification later.
+                            setSession(session)
+                            setUser(user)
+                            setIsAdmin(false)
+                            scheduleRetry('verification_failed')
+                        }
                     }
                 } else {
                     if (DEBUG_AUTH) console.log('[AuthContext] No valid session from bootstrap')
@@ -92,32 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 if (timedOut) {
-                    if (DEBUG_AUTH) console.log('[AuthContext] Auth init timed out, scheduling retry')
-                    const supabase = getSupabase()
-                    retryTimer = window.setTimeout(async () => {
-                        if (!mounted) return
-                        try {
-                            const { data, error } = await supabase.auth.getSession()
-                            if (DEBUG_AUTH && error) {
-                                console.error('[AuthContext] getSession error after retry', error)
-                            }
-                            const retrySession = data.session
-                            if (!retrySession?.user) return
-
-                            const { data: userData, error: userError } = await supabase.auth.getUser()
-                            if (userError || !userData.user) {
-                                if (DEBUG_AUTH) console.log('[AuthContext] Retry verification failed', userError)
-                                await signOut()
-                                return
-                            }
-
-                            setSession(retrySession)
-                            setUser(userData.user)
-                            await checkAdminStatus(userData.user.id)
-                        } catch (retryError) {
-                            if (DEBUG_AUTH) console.error('[AuthContext] Retry failed', retryError)
-                        }
-                    }, 2000)
+                    scheduleRetry('init_timed_out')
                 }
             } catch (err: any) {
                 console.error('[AuthContext] Bootstrap error:', err)
