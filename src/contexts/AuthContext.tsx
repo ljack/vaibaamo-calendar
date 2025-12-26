@@ -52,12 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         let mounted = true
+        let retryTimer: number | null = null
 
         const bootstrap = async () => {
             if (DEBUG_AUTH) console.log('[AuthContext] initAuthOnce started')
 
             try {
-                const { session, user, error } = await initAuthOnce()
+                const { session, user, error, timedOut } = await initAuthOnce()
 
                 if (!mounted) return
 
@@ -88,6 +89,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setSession(null)
                     setUser(null)
                     setIsAdmin(false)
+                }
+
+                if (timedOut) {
+                    if (DEBUG_AUTH) console.log('[AuthContext] Auth init timed out, scheduling retry')
+                    const supabase = getSupabase()
+                    retryTimer = window.setTimeout(async () => {
+                        if (!mounted) return
+                        try {
+                            const { data, error } = await supabase.auth.getSession()
+                            if (DEBUG_AUTH && error) {
+                                console.error('[AuthContext] getSession error after retry', error)
+                            }
+                            const retrySession = data.session
+                            if (!retrySession?.user) return
+
+                            const { data: userData, error: userError } = await supabase.auth.getUser()
+                            if (userError || !userData.user) {
+                                if (DEBUG_AUTH) console.log('[AuthContext] Retry verification failed', userError)
+                                await signOut()
+                                return
+                            }
+
+                            setSession(retrySession)
+                            setUser(userData.user)
+                            await checkAdminStatus(userData.user.id)
+                        } catch (retryError) {
+                            if (DEBUG_AUTH) console.error('[AuthContext] Retry failed', retryError)
+                        }
+                    }, 2000)
                 }
             } catch (err: any) {
                 console.error('[AuthContext] Bootstrap error:', err)
@@ -135,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return () => {
             mounted = false
+            if (retryTimer) window.clearTimeout(retryTimer)
             unsubscribe()
         }
     }, [])

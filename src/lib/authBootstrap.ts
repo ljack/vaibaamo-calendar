@@ -6,6 +6,7 @@ export type AuthState = {
     user: User | null;
     initialized: boolean;
     error?: string;
+    timedOut?: boolean;
 };
 
 /**
@@ -26,6 +27,7 @@ export async function initAuthOnce(timeoutMs = 1500): Promise<AuthState> {
                 user: null,
                 initialized: true,
                 error: "Auth check timed out",
+                timedOut: true,
             });
         }, timeoutMs);
     });
@@ -42,6 +44,7 @@ export async function initAuthOnce(timeoutMs = 1500): Promise<AuthState> {
                 user: data.session?.user ?? null,
                 initialized: true,
                 error: error?.message,
+                timedOut: false,
             };
         } catch (e: any) {
             if (DEBUG_AUTH) {
@@ -56,6 +59,7 @@ export async function initAuthOnce(timeoutMs = 1500): Promise<AuthState> {
                 user: null,
                 initialized: true,
                 error: e?.message ?? "Unknown auth init error",
+                timedOut: false,
             };
         }
     })();
