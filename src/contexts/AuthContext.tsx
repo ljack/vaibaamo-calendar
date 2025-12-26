@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { getSupabase } from '../lib/supabase'
+import { initAuthOnce } from '../lib/authBootstrap'
+import { listenToAuthEvents } from '../lib/authEvents'
 
 type AuthContextType = {
     session: Session | null
@@ -34,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkAdminStatus = async (userId: string) => {
         try {
+            const supabase = getSupabase()
             const { data } = await supabase
                 .from('profiles')
                 .select('role')
@@ -48,80 +51,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
-        const initializeAuth = async () => {
-            if (DEBUG_AUTH) console.log('[AuthContext] initializeAuth started')
+        let mounted = true
+
+        const bootstrap = async () => {
+            if (DEBUG_AUTH) console.log('[AuthContext] initAuthOnce started')
+
             try {
-                // Check for initial session with timeout
-                // We race against a timeout because if the token refresh logic hangs (network), the app freezes
-                const timeoutPromise = new Promise<{ data: { session: Session | null }, error: any }>((_, reject) =>
-                    setTimeout(() => reject(new Error('Session check timed out')), 2000)
-                )
+                const { session, user, error } = await initAuthOnce()
 
-                // Force return type compatibility for Promise.race
-                const { data: { session: initialSession }, error: sessionError } = await Promise.race([
-                    supabase.auth.getSession(),
-                    timeoutPromise
-                ])
+                if (!mounted) return
 
-                if (sessionError) throw sessionError
+                if (DEBUG_AUTH) console.log('[AuthContext] initAuthOnce completed', { hasSession: !!session, error })
 
-                if (initialSession) {
-                    if (DEBUG_AUTH) console.log('[AuthContext] Initial session found', initialSession.user.id)
-                    // Verify the session is actually valid by fetching user
-                    const { data: { user }, error } = await supabase.auth.getUser()
+                if (session && user) {
+                    // Verify validity with getUser (critical for security)
+                    let verifiedUser = user
 
-                    if (error || !user) {
-                        console.log('[AuthContext] Session found but invalid (likely old project), clearing...', error)
-                        await supabase.auth.signOut()
-                        localStorage.clear()
-                        setSession(null)
-                        setUser(null)
-                        setIsAdmin(false)
-                    } else {
-                        if (DEBUG_AUTH) console.log('[AuthContext] Session checked and valid')
-                        setSession(initialSession)
-                        setUser(user)
-                        await checkAdminStatus(user.id)
+                    try {
+                        const supabase = getSupabase()
+                        const { data, error } = await supabase.auth.getUser()
+                        if (error || !data.user) {
+                            if (DEBUG_AUTH) console.log('[AuthContext] Session invalid on verify', error)
+                            throw new Error('Verification failed')
+                        }
+                        verifiedUser = data.user
+
+                        setSession(session)
+                        setUser(verifiedUser)
+                        await checkAdminStatus(verifiedUser.id)
+                    } catch {
+                        if (DEBUG_AUTH) console.log('[AuthContext] Verification failed, signing out')
+                        await signOut()
                     }
                 } else {
-                    if (DEBUG_AUTH) console.log('[AuthContext] No initial session')
+                    if (DEBUG_AUTH) console.log('[AuthContext] No valid session from bootstrap')
                     setSession(null)
                     setUser(null)
                     setIsAdmin(false)
                 }
-            } catch (error) {
-                console.error('[AuthContext] Auth initialization error:', error)
-                // Fallback: clear everything to be safe
-                if (DEBUG_AUTH) console.log('[AuthContext] Clearing suspected bad session data from storage')
-                localStorage.clear()
-                // Attempt to notify supabase client to clear state (fire and forget, don't await/hang)
-                supabase.auth.signOut().catch(e => console.error('[AuthContext] Force signout error (ignoring):', e))
-
+            } catch (err: any) {
+                console.error('[AuthContext] Bootstrap error:', err)
+                if (DEBUG_AUTH) {
+                    console.error('[AuthContext] Bootstrap error details', {
+                        message: err?.message,
+                        name: err?.name,
+                        stack: err?.stack,
+                    })
+                }
                 setSession(null)
                 setUser(null)
-                setIsAdmin(false)
             } finally {
-                if (DEBUG_AUTH) console.log('[AuthContext] initializeAuth finished, setting loading=false')
-                setLoading(false)
+                if (mounted) setLoading(false)
             }
         }
 
-        initializeAuth()
+        // Start initialization
+        bootstrap()
 
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        // Set up listener
+        const unsubscribe = listenToAuthEvents(async (event) => {
+            if (!mounted) return
+            if (DEBUG_AUTH) console.log('[AuthContext] Auth event:', event)
+
+            const supabase = getSupabase()
+            // We re-fetch session to be safe and consistent
+            const { data: { session }, error } = await supabase.auth.getSession()
+            if (DEBUG_AUTH && error) {
+                console.error('[AuthContext] getSession error after auth event', error)
+            }
+
             setSession(session)
             setUser(session?.user ?? null)
+
             if (session?.user) {
                 await checkAdminStatus(session.user.id)
             } else {
                 setIsAdmin(false)
             }
+
+            // Should be loaded by now if an event fires
             setLoading(false)
         })
 
-        return () => subscription.unsubscribe()
+        return () => {
+            mounted = false
+            unsubscribe()
+        }
     }, [])
 
     const signOut = async () => {
@@ -129,9 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null)
         setUser(null)
         setIsAdmin(false)
-        localStorage.clear()
+
+        // Clear local storage manually as a safety net (though supabase client should handle it)
+        try { localStorage?.clear() } catch { }
 
         try {
+            const supabase = getSupabase()
             await supabase.auth.signOut()
         } catch (error) {
             console.error('Error signing out:', error)
@@ -140,14 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkSession = async () => {
         try {
+            const supabase = getSupabase()
             const { data: { session }, error } = await supabase.auth.getSession()
             if (error || !session) {
-                await signOut()
-                return false
-            }
-            // Double check with getUser for security/validity
-            const { data: { user }, error: userError } = await supabase.auth.getUser()
-            if (userError || !user) {
                 await signOut()
                 return false
             }
