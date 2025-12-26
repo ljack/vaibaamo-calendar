@@ -1,12 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
+    const navigate = useNavigate()
+    const { user } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [usePassword, setUsePassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+
+    useEffect(() => {
+        if (user) {
+            navigate('/')
+        }
+    }, [navigate, user])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -23,6 +33,7 @@ export default function Login() {
                     password,
                 })
                 if (error) throw error
+                navigate('/')
             } else {
                 const { error } = await supabase.auth.signInWithOtp({
                     email,

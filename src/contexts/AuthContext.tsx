@@ -198,9 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setIsAdmin(false)
 
-        // Clear local storage manually as a safety net (though supabase client should handle it)
-        try { localStorage?.clear() } catch { }
-
         try {
             const supabase = getSupabase()
             await supabase.auth.signOut()

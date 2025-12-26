@@ -32,8 +32,6 @@ export default function Layout() {
                                                 await signOut()
                                             } catch (e) {
                                                 console.error('Sign out failed', e)
-                                                // Fallback: clear all local storage if sign out fails (e.g. invalid token)
-                                                localStorage.clear()
                                             } finally {
                                                 window.location.href = '/'
                                             }
