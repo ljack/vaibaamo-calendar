@@ -1,6 +1,9 @@
+import type { Session } from "@supabase/supabase-js";
 import { getSupabase } from "./supabase";
 
-export function listenToAuthEvents(onChange: (event: string) => void): () => void {
+export function listenToAuthEvents(
+    onChange: (event: string, session: Session | null) => void
+): () => void {
     const supabase = getSupabase();
     const DEBUG_AUTH = String(import.meta.env.VITE_SUPABASE_DEBUG_AUTH) === "true";
 
@@ -14,7 +17,7 @@ export function listenToAuthEvents(onChange: (event: string) => void): () => voi
                 expiresAt: session?.expires_at,
             });
         }
-        onChange(event);
+        onChange(event, session ?? null);
     });
 
     return () => sub.subscription.unsubscribe();

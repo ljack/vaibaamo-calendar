@@ -120,22 +120,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         bootstrap()
 
         // Set up listener
-        const unsubscribe = listenToAuthEvents(async (event) => {
+        const unsubscribe = listenToAuthEvents(async (event, nextSession) => {
             if (!mounted) return
             if (DEBUG_AUTH) console.log('[AuthContext] Auth event:', event)
 
-            const supabase = getSupabase()
-            // We re-fetch session to be safe and consistent
-            const { data: { session }, error } = await supabase.auth.getSession()
-            if (DEBUG_AUTH && error) {
-                console.error('[AuthContext] getSession error after auth event', error)
-            }
+            setSession(nextSession)
+            setUser(nextSession?.user ?? null)
 
-            setSession(session)
-            setUser(session?.user ?? null)
-
-            if (session?.user) {
-                await checkAdminStatus(session.user.id)
+            if (nextSession?.user) {
+                await checkAdminStatus(nextSession.user.id)
             } else {
                 setIsAdmin(false)
             }
