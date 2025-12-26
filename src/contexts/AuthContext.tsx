@@ -8,6 +8,7 @@ type AuthContextType = {
     isAdmin: boolean
     loading: boolean
     signOut: () => Promise<void>
+    checkSession: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
     isAdmin: false,
     loading: true,
     signOut: async () => { },
+    checkSession: async () => false,
 })
 
 export const useAuth = () => {
@@ -91,7 +93,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     const signOut = async () => {
-        await supabase.auth.signOut()
+        // Optimistic clear
+        setSession(null)
+        setUser(null)
+        setIsAdmin(false)
+        localStorage.clear()
+
+        try {
+            await supabase.auth.signOut()
+        } catch (error) {
+            console.error('Error signing out:', error)
+        }
+    }
+
+    const checkSession = async () => {
+        try {
+            const { data: { session }, error } = await supabase.auth.getSession()
+            if (error || !session) {
+                await signOut()
+                return false
+            }
+            // Double check with getUser for security/validity
+            const { data: { user }, error: userError } = await supabase.auth.getUser()
+            if (userError || !user) {
+                await signOut()
+                return false
+            }
+            return true
+        } catch (e) {
+            await signOut()
+            return false
+        }
     }
 
     const value = {
@@ -100,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         loading,
         signOut,
+        checkSession,
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

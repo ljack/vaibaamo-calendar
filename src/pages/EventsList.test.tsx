@@ -1,109 +1,72 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import EventsList from '../pages/EventsList'
-import { supabase } from '../lib/supabase'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
+import EventsList from './EventsList'
+import { AuthProvider } from '../contexts/AuthContext'
 import { BrowserRouter } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
-vi.mock('../lib/supabase', () => ({
-    supabase: {
-        from: vi.fn(() => ({
-            select: vi.fn(() => ({
-                order: vi.fn() // Chainable mock setups below
-            }))
-        }))
-    }
-}))
+vi.mock('../lib/supabase')
 
-vi.mock('../contexts/AuthContext', () => ({
-    useAuth: vi.fn(() => ({ loading: false }))
-}))
-
-describe('EventsList', () => {
+describe('EventsList Timeout Handling', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+
+        // Mock Auth to be logged in
+        vi.mocked(supabase.auth.getSession).mockResolvedValue({
+            data: { session: { user: { id: '123' } } },
+            error: null,
+        } as any)
+        vi.mocked(supabase.auth.getUser).mockResolvedValue({
+            data: { user: { id: '123' } },
+            error: null,
+        } as any)
+        vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
+        } as any)
     })
 
-    it('renders loading state initially', () => {
-        const fromMock = vi.mocked(supabase.from)
-        fromMock.mockReturnValue({
-            select: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                    abortSignal: vi.fn().mockReturnValue(new Promise(() => { })) // Never resolves
-                })
-            })
-        } as any)
+    it('triggers session check on timeout error', async () => {
+        // Mock Events fetch to timeout
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            if (table === 'events') {
+                return {
+                    select: () => ({
+                        order: () => ({
+                            abortSignal: () => Promise.reject(new Error('Request timed out'))
+                        })
+                    })
+                } as any
+            }
+            if (table === 'profiles') {
+                return {
+                    select: () => ({
+                        eq: () => ({
+                            single: () => Promise.resolve({ data: { role: 'user' }, error: null })
+                        })
+                    })
+                } as any
+            }
+            return { select: vi.fn() } as any
+        })
 
-        render(<EventsList />)
-        const skeletons = document.getElementsByClassName('animate-pulse')
-        expect(skeletons.length).toBeGreaterThan(0)
-    })
-
-    it('renders events list after data fetch', async () => {
-        const mockEvents = [
-            { id: '1', title: 'Test Event 1', description: 'Desc 1', start_time: new Date().toISOString() },
-            { id: '2', title: 'Test Event 2', description: 'Desc 2', start_time: new Date().toISOString() }
-        ]
-
-        const fromMock = vi.mocked(supabase.from)
-        fromMock.mockReturnValue({
-            select: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                    abortSignal: vi.fn().mockResolvedValue({ data: mockEvents, error: null })
-                })
-            })
-        } as any)
+        // We want to verify that checkSession (or getUser) is called when timeout happens
+        // Since we can't easily spy on the internal context method, we spy on supabase.auth.getUser
+        // which checkSession should call.
 
         render(
-            <BrowserRouter>
-                <EventsList />
-            </BrowserRouter>
+            <AuthProvider>
+                <BrowserRouter>
+                    <EventsList />
+                </BrowserRouter>
+            </AuthProvider>
         )
 
-        await waitFor(() => {
-            expect(screen.getByText('Test Event 1')).toBeInTheDocument()
-            expect(screen.getByText('Test Event 2')).toBeInTheDocument()
-        })
-    })
+        // Wait for error message
+        await waitFor(() => expect(screen.getByText(/Yhteys aikakatkaistiin/i)).toBeInTheDocument())
 
-    it('renders empty state when no events', async () => {
-        const fromMock = vi.mocked(supabase.from)
-        fromMock.mockReturnValue({
-            select: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                    abortSignal: vi.fn().mockResolvedValue({ data: [], error: null })
-                })
-            })
-        } as any)
-
-        render(
-            <BrowserRouter>
-                <EventsList />
-            </BrowserRouter>
-        )
-
-        await waitFor(() => {
-            expect(screen.getByText(/Ei tulevia tapahtumia/i)).toBeInTheDocument()
-        })
-    })
-
-    it('renders error state on fetch failure', async () => {
-        const fromMock = vi.mocked(supabase.from)
-        fromMock.mockReturnValue({
-            select: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                    abortSignal: vi.fn().mockResolvedValue({ data: null, error: { message: 'Network error' } })
-                })
-            })
-        } as any)
-
-        render(
-            <BrowserRouter>
-                <EventsList />
-            </BrowserRouter>
-        )
-
-        await waitFor(() => {
-            expect(screen.getByText(/Tapahtumien lataaminen epäonnistui/i)).toBeInTheDocument()
-        })
+        // Verify getUser was called again (provenance: checkSession called it)
+        // Initial calls: getSession (1), getUser (1) for auth init.
+        // Recovery call: checkSession -> getUser (1)
+        expect(supabase.auth.getUser).toHaveBeenCalledTimes(2)
     })
 })

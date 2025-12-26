@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function EventsList() {
-    const { loading: authLoading } = useAuth()
+    const { loading: authLoading, checkSession } = useAuth()
     const [events, setEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -68,7 +68,13 @@ export default function EventsList() {
             const isTimeout = timeoutController.signal.aborted || err.message?.includes('timed out') || err.name === 'AbortError';
 
             if (isTimeout) {
-                setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
+                console.log('Request timed out, checking session validity...')
+                const isSessionValid = await checkSession()
+                if (!isSessionValid) {
+                    setError('Istunto on vanhentunut. Kirjaudu sisään uudelleen.')
+                } else {
+                    setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
+                }
             } else {
                 setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')
             }

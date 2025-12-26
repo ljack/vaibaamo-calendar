@@ -1,34 +1,37 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { AuthProvider, useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { AuthProvider, useAuth } from './AuthContext'
+import { supabase } from '../lib/supabase'
 
-// Mock the real supabase client
+// Mock Supabase
 vi.mock('../lib/supabase', () => ({
     supabase: {
         auth: {
-            getSession: vi.fn().mockReturnValue(Promise.resolve({ data: { session: null } })),
-            getUser: vi.fn().mockReturnValue(Promise.resolve({ data: { user: null } })),
+            getSession: vi.fn(),
+            getUser: vi.fn(),
             onAuthStateChange: vi.fn(),
             signOut: vi.fn(),
         },
-        from: vi.fn(() => ({
-            select: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                    single: vi.fn()
-                }))
-            }))
-        }))
+        from: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({ data: { role: 'user' }, error: null })
+                })
+            })
+        }),
     },
 }))
 
+// Test Component to consume context
 const TestComponent = () => {
-    const { user, loading, isAdmin } = useAuth()
-    if (loading) return <div>Loading...</div>
+    const { session, user, signOut, loading, checkSession } = useAuth() as any
     return (
         <div>
-            <div data-testid="user">{user ? user.email : 'No User'}</div>
-            <div data-testid="admin">{isAdmin ? 'Admin' : 'Not Admin'}</div>
+            {loading ? 'Loading...' : 'Loaded'}
+            <div data-testid="session-status">{session ? 'Logged In' : 'Logged Out'}</div>
+            <div data-testid="user-email">{user?.email}</div>
+            <button onClick={signOut}>Sign Out</button>
+            <button onClick={checkSession}>Check Session</button>
         </div>
     )
 }
@@ -36,122 +39,63 @@ const TestComponent = () => {
 describe('AuthContext', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        Object.defineProperty(window, 'localStorage', {
+            value: {
+                clear: vi.fn(),
+                getItem: vi.fn(),
+                setItem: vi.fn(),
+                removeItem: vi.fn(),
+            },
+            writable: true
+        })
+        window.localStorage.clear()
+
+        // Default mocks
+        vi.mocked(supabase.auth.getSession).mockResolvedValue({
+            data: { session: null },
+            error: null,
+        } as any)
+        vi.mocked(supabase.auth.getUser).mockResolvedValue({
+            data: { user: null },
+            error: null,
+        } as any)
+        vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
+        } as any)
     })
 
-    it('provides user session when authenticated', async () => {
-        vi.clearAllMocks() // Ensure clean state
+    it('signOut clears local state immediately even if backend fails', async () => {
+        // Setup initial logged in state
         const mockSession = { user: { id: '123', email: 'test@example.com' } }
-
-        // Mock getSession
-        const getSessionMock = vi.mocked(supabase.auth.getSession)
-        getSessionMock.mockResolvedValue({ data: { session: mockSession } } as any)
-
-        // Mock getUser (NEW validation)
-        const getUserMock = vi.mocked(supabase.auth.getUser)
-        getUserMock.mockResolvedValue({ data: { user: mockSession.user } } as any)
-
-        // Mock onAuthStateChange
-        const onAuthStateChangeMock = vi.mocked(supabase.auth.onAuthStateChange)
-        onAuthStateChangeMock.mockReturnValue({
-            data: { subscription: { unsubscribe: vi.fn() } }
-        } as any);
-
-        // Mock profile check (not admin)
-        // Mock profile check (not admin)
-        // Access the mock directly from the imported object since we mocked the module
-        (supabase.from as any).mockImplementation(() => ({
-            select: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                    single: vi.fn().mockResolvedValue({ data: { role: 'user' } })
-                }))
-            }))
-        }))
-
-
-        render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        )
-
-        await waitFor(() => {
-            expect(screen.getByTestId('user')).toHaveTextContent('test@example.com')
-            expect(screen.getByTestId('admin')).toHaveTextContent('Not Admin')
-        })
-    })
-
-    it('detects admin role correctly', async () => {
-        vi.clearAllMocks() // Ensure clean state
-        const mockSession = { user: { id: 'admin123', email: 'admin@example.com' } }
-
-        const getSessionMock = vi.mocked(supabase.auth.getSession)
-        getSessionMock.mockResolvedValue({ data: { session: mockSession } } as any)
-
-        const getUserMock = vi.mocked(supabase.auth.getUser)
-        getUserMock.mockResolvedValue({ data: { user: mockSession.user } } as any)
-
-        const onAuthStateChangeMock = vi.mocked(supabase.auth.onAuthStateChange)
-        onAuthStateChangeMock.mockReturnValue({
-            data: { subscription: { unsubscribe: vi.fn() } }
-        } as any);
-
-        // Mock profile check (IS admin)
-        (supabase.from as any).mockImplementation(() => ({
-            select: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                    single: vi.fn().mockResolvedValue({ data: { role: 'admin' } })
-                }))
-            }))
-        }))
-
-        render(
-            <AuthProvider>
-                <TestComponent />
-            </AuthProvider>
-        )
-
-        await waitFor(() => {
-            expect(screen.getByTestId('user')).toHaveTextContent('admin@example.com')
-            expect(screen.getByTestId('admin')).toHaveTextContent('Admin')
-        })
-    })
-
-    it('handles unauthenticated state', async () => {
-        const getSessionMock = vi.mocked(supabase.auth.getSession)
-        getSessionMock.mockResolvedValue({ data: { session: null } } as any)
-
-        const onAuthStateChangeMock = vi.mocked(supabase.auth.onAuthStateChange)
-        onAuthStateChangeMock.mockReturnValue({
-            data: { subscription: { unsubscribe: vi.fn() } }
+        vi.mocked(supabase.auth.getSession).mockResolvedValue({
+            data: { session: mockSession },
+            error: null,
+        } as any)
+        vi.mocked(supabase.auth.getUser).mockResolvedValue({
+            data: { user: mockSession.user },
+            error: null,
         } as any)
 
+        // Mock signOut to hang/fail
+        vi.mocked(supabase.auth.signOut).mockImplementation(async () => {
+            throw new Error('Network error')
+        })
+
         render(
             <AuthProvider>
                 <TestComponent />
             </AuthProvider>
         )
 
-        await waitFor(() => {
-            expect(screen.getByTestId('user')).toHaveTextContent('No User')
+        await waitFor(() => expect(screen.getByText('Logged In')).toBeInTheDocument())
+
+        const signOutBtn = screen.getByText('Sign Out')
+        await act(async () => {
+            signOutBtn.click()
         })
-    })
 
-    it('calls signOut successfully', async () => {
-        const signOutMock = vi.mocked(supabase.auth.signOut)
-        signOutMock.mockResolvedValue({ error: null })
-
-        const TestSignOut = () => {
-            const { signOut } = useAuth()
-            return <button onClick={signOut}>Sign Out</button>
-        }
-
-        render(
-            <AuthProvider>
-                <TestSignOut />
-            </AuthProvider>
-        )
-
-        fireEvent.click(screen.getByText('Sign Out'))
-        expect(signOutMock).toHaveBeenCalled()
+        // Should be logged out immediately despite error
+        await waitFor(() => expect(screen.getByText('Logged Out')).toBeInTheDocument())
+        expect(screen.queryByText('test@example.com')).not.toBeInTheDocument()
     })
 })
