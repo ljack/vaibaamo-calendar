@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../types'
 import { Link } from 'react-router-dom'
@@ -10,18 +10,35 @@ export default function EventsList() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const DEBUG_AUTH = import.meta.env.VITE_SUPABASE_DEBUG_AUTH === 'true'
+    const hasFetchedRef = useRef(false)
 
     useEffect(() => {
-        if (DEBUG_AUTH) console.log('[EventsList] useEffect triggered. authLoading:', authLoading)
-        if (authLoading) {
-            if (DEBUG_AUTH) console.log('[EventsList] Waiting for auth...')
-            return
+        const abortController = new AbortController()
+        const startFetch = () => {
+            if (hasFetchedRef.current) return
+            hasFetchedRef.current = true
+            if (DEBUG_AUTH) console.log('[EventsList] calling fetchEvents')
+            fetchEvents(abortController.signal)
         }
 
-        const abortController = new AbortController()
-        if (DEBUG_AUTH) console.log('[EventsList] calling fetchEvents')
-        fetchEvents(abortController.signal)
-        return () => abortController.abort()
+        if (DEBUG_AUTH) console.log('[EventsList] useEffect triggered. authLoading:', authLoading)
+        if (authLoading) {
+            if (DEBUG_AUTH) console.log('[EventsList] Waiting for auth, starting fallback timer...')
+        } else {
+            startFetch()
+        }
+
+        const fallbackTimer = window.setTimeout(() => {
+            if (authLoading) {
+                if (DEBUG_AUTH) console.log('[EventsList] Auth still loading, proceeding without it')
+                startFetch()
+            }
+        }, 2000)
+
+        return () => {
+            clearTimeout(fallbackTimer)
+            abortController.abort()
+        }
     }, [authLoading])
 
     const fetchEvents = async (signal?: AbortSignal) => {
