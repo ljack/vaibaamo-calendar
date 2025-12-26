@@ -18,11 +18,19 @@ export type AuthState = {
 export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
     const supabase = getSupabase();
     const DEBUG_AUTH = String(import.meta.env.VITE_SUPABASE_DEBUG_AUTH) === "true";
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const elapsedMs = () => {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        return Math.round(now - startedAt);
+    };
 
     const timeout = new Promise<AuthState>((resolve) => {
         setTimeout(() => {
             if (DEBUG_AUTH) {
-                console.warn("[authBootstrap] Session check timed out, defaulting to null");
+                console.warn("[authBootstrap] Session check timed out, defaulting to null", {
+                    elapsedMs: elapsedMs(),
+                    timeoutMs,
+                });
             }
             resolve({
                 session: null,
@@ -40,6 +48,12 @@ export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
             const { data, error } = await supabase.auth.getSession();
             if (error && DEBUG_AUTH) {
                 console.error("[authBootstrap] getSession error", error);
+            }
+            if (DEBUG_AUTH) {
+                console.log("[authBootstrap] getSession resolved", {
+                    hasSession: !!data.session,
+                    elapsedMs: elapsedMs(),
+                });
             }
             return {
                 session: data.session ?? null,
