@@ -80,6 +80,9 @@ export default function EventsList() {
                 .abortSignal(requestController.signal)
 
             if (error) {
+                if (error?.message?.includes('AbortError')) {
+                    throw error
+                }
                 console.error('Supabase error:', error)
                 throw error
             }
@@ -89,10 +92,19 @@ export default function EventsList() {
             hasFetchedRef.current = true
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
         } catch (err: any) {
+            const isAbort = err?.name === 'AbortError' || /aborted without reason/i.test(err?.message || '')
+            const isTimeout = timeoutController.signal.aborted || err?.message?.includes('timed out')
+
+            if (isAbort && !isTimeout) {
+                if (DEBUG_AUTH) console.log('[EventsList] Request aborted, skipping error UI')
+                if (abortRetryRef.current < 1) {
+                    abortRetryRef.current += 1
+                    fetchEvents()
+                }
+                return
+            }
+
             console.error('Error fetching events:', err)
-            // Check if it was a timeout
-            const isTimeout = timeoutController.signal.aborted || err.message?.includes('timed out') || err.name === 'AbortError';
-            const isAbort = err?.name === 'AbortError' || /aborted without reason/i.test(err?.message || '');
 
             if (isTimeout) {
                 console.log('Request timed out, checking session validity...')
@@ -101,12 +113,6 @@ export default function EventsList() {
                     setError('Istunto on vanhentunut. Kirjaudu sisään uudelleen.')
                 } else {
                     setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
-                }
-            } else if (isAbort) {
-                if (DEBUG_AUTH) console.log('[EventsList] Request aborted, skipping error UI')
-                if (abortRetryRef.current < 1) {
-                    abortRetryRef.current += 1
-                    fetchEvents()
                 }
             } else {
                 setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')
