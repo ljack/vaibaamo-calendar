@@ -137,9 +137,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false)
         })
 
+        const refreshOnFocus = async (reason: string) => {
+            if (!mounted) return
+            try {
+                const supabase = getSupabase()
+                const { data: { session }, error } = await supabase.auth.getSession()
+                if (DEBUG_AUTH && error) {
+                    console.error(`[AuthContext] getSession error on ${reason}`, error)
+                }
+                setSession(session)
+                setUser(session?.user ?? null)
+                if (session?.user) {
+                    await checkAdminStatus(session.user.id)
+                } else {
+                    setIsAdmin(false)
+                }
+            } catch (err) {
+                if (DEBUG_AUTH) console.error(`[AuthContext] getSession threw on ${reason}`, err)
+            }
+        }
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                refreshOnFocus('visibilitychange')
+            }
+        }
+
+        const handleFocus = () => {
+            refreshOnFocus('focus')
+        }
+
+        window.addEventListener('focus', handleFocus)
+        document.addEventListener('visibilitychange', handleVisibility)
+
         return () => {
             mounted = false
             if (retryTimer) window.clearTimeout(retryTimer)
+            window.removeEventListener('focus', handleFocus)
+            document.removeEventListener('visibilitychange', handleVisibility)
             unsubscribe()
         }
     }, [])
