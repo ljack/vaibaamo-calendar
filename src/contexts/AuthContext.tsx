@@ -24,6 +24,8 @@ export const useAuth = () => {
     return useContext(AuthContext)
 }
 
+const DEBUG_AUTH = import.meta.env.VITE_SUPABASE_DEBUG_AUTH === 'true'
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null)
     const [user, setUser] = useState<User | null>(null)
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const initializeAuth = async () => {
-            console.log('[AuthContext] initializeAuth started')
+            if (DEBUG_AUTH) console.log('[AuthContext] initializeAuth started')
             try {
                 // Check for initial session with timeout
                 // We race against a timeout because if the token refresh logic hangs (network), the app freezes
@@ -64,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (sessionError) throw sessionError
 
                 if (initialSession) {
-                    console.log('[AuthContext] Initial session found', initialSession.user.id)
+                    if (DEBUG_AUTH) console.log('[AuthContext] Initial session found', initialSession.user.id)
                     // Verify the session is actually valid by fetching user
                     const { data: { user }, error } = await supabase.auth.getUser()
 
@@ -76,13 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setUser(null)
                         setIsAdmin(false)
                     } else {
-                        console.log('[AuthContext] Session checked and valid')
+                        if (DEBUG_AUTH) console.log('[AuthContext] Session checked and valid')
                         setSession(initialSession)
                         setUser(user)
                         await checkAdminStatus(user.id)
                     }
                 } else {
-                    console.log('[AuthContext] No initial session')
+                    if (DEBUG_AUTH) console.log('[AuthContext] No initial session')
                     setSession(null)
                     setUser(null)
                     setIsAdmin(false)
@@ -90,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (error) {
                 console.error('[AuthContext] Auth initialization error:', error)
                 // Fallback: clear everything to be safe
-                console.log('[AuthContext] Clearing suspected bad session data from storage')
+                if (DEBUG_AUTH) console.log('[AuthContext] Clearing suspected bad session data from storage')
                 localStorage.clear()
                 // Attempt to notify supabase client to clear state (fire and forget, don't await/hang)
                 supabase.auth.signOut().catch(e => console.error('[AuthContext] Force signout error (ignoring):', e))
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null)
                 setIsAdmin(false)
             } finally {
-                console.log('[AuthContext] initializeAuth finished, setting loading=false')
+                if (DEBUG_AUTH) console.log('[AuthContext] initializeAuth finished, setting loading=false')
                 setLoading(false)
             }
         }

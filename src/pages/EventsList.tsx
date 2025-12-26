@@ -9,16 +9,17 @@ export default function EventsList() {
     const [events, setEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const DEBUG_AUTH = import.meta.env.VITE_SUPABASE_DEBUG_AUTH === 'true'
 
     useEffect(() => {
-        console.log('[EventsList] useEffect triggered. authLoading:', authLoading)
+        if (DEBUG_AUTH) console.log('[EventsList] useEffect triggered. authLoading:', authLoading)
         if (authLoading) {
-            console.log('[EventsList] Waiting for auth...')
+            if (DEBUG_AUTH) console.log('[EventsList] Waiting for auth...')
             return
         }
 
         const abortController = new AbortController()
-        console.log('[EventsList] calling fetchEvents')
+        if (DEBUG_AUTH) console.log('[EventsList] calling fetchEvents')
         fetchEvents(abortController.signal)
         return () => abortController.abort()
     }, [authLoading])
