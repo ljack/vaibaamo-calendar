@@ -26,12 +26,10 @@ export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
 
     const timeout = new Promise<AuthState>((resolve) => {
         setTimeout(() => {
-            if (DEBUG_AUTH) {
-                console.warn("[authBootstrap] Session check timed out, defaulting to null", {
-                    elapsedMs: elapsedMs(),
-                    timeoutMs,
-                });
-            }
+            console.warn("[authBootstrap] Session check timed out, defaulting to null", {
+                elapsedMs: elapsedMs(),
+                timeoutMs,
+            });
             resolve({
                 session: null,
                 user: null,
