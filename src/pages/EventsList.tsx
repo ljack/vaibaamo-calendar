@@ -12,6 +12,7 @@ export default function EventsList() {
     const DEBUG_AUTH = import.meta.env.VITE_SUPABASE_DEBUG_AUTH === 'true'
     const hasFetchedRef = useRef(false)
     const isFetchingRef = useRef(false)
+    const abortRetryRef = useRef(0)
 
     useEffect(() => {
         const abortController = new AbortController()
@@ -103,7 +104,10 @@ export default function EventsList() {
                 }
             } else if (isAbort) {
                 if (DEBUG_AUTH) console.log('[EventsList] Request aborted, skipping error UI')
-                // Let a retry or next effect run fetch again.
+                if (abortRetryRef.current < 1) {
+                    abortRetryRef.current += 1
+                    fetchEvents()
+                }
             } else {
                 setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')
             }
