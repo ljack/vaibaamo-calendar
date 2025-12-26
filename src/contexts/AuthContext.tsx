@@ -49,8 +49,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const initializeAuth = async () => {
             console.log('[AuthContext] initializeAuth started')
             try {
-                // Check for initial session
-                const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
+                // Check for initial session with timeout
+                // We race against a timeout because if the token refresh logic hangs (network), the app freezes
+                const timeoutPromise = new Promise<{ data: { session: Session | null }, error: any }>((_, reject) =>
+                    setTimeout(() => reject(new Error('Session check timed out')), 2000)
+                )
+
+                // Force return type compatibility for Promise.race
+                const { data: { session: initialSession }, error: sessionError } = await Promise.race([
+                    supabase.auth.getSession(),
+                    timeoutPromise
+                ])
 
                 if (sessionError) throw sessionError
 
