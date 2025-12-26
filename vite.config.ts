@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  envPrefix: ['VITE_', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'], // Allow Vercel/Supabase integration keys explicitly
+  // envPrefix: ['VITE_'], // Default behavior is sufficient
   test: {
     globals: true,
     environment: 'jsdom',

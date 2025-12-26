@@ -25,11 +25,14 @@ async function loadEnv() {
 async function syncEvents() {
     await loadEnv()
 
-    const supabaseUrl = process.env.VITE_SUPABASE_URL
-    const supabaseKey = process.env.sync_events_key || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
+    const supabaseUrl = process.env.SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    // Fallback for local development if service role is missing, but warn
+    // const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-        console.error('Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/VITE_SUPABASE_ANON_KEY')
+        console.error('Missing server env vars: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
         process.exit(1)
     }
 
