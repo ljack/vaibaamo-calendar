@@ -11,9 +11,14 @@ export default function EventsList() {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (authLoading) return
+        console.log('[EventsList] useEffect triggered. authLoading:', authLoading)
+        if (authLoading) {
+            console.log('[EventsList] Waiting for auth...')
+            return
+        }
 
         const abortController = new AbortController()
+        console.log('[EventsList] calling fetchEvents')
         fetchEvents(abortController.signal)
         return () => abortController.abort()
     }, [authLoading])

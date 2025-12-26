@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const initializeAuth = async () => {
+            console.log('[AuthContext] initializeAuth started')
             try {
                 // Check for initial session
                 const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
@@ -54,33 +55,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (sessionError) throw sessionError
 
                 if (initialSession) {
+                    console.log('[AuthContext] Initial session found', initialSession.user.id)
                     // Verify the session is actually valid by fetching user
                     const { data: { user }, error } = await supabase.auth.getUser()
 
                     if (error || !user) {
-                        console.log('Session found but invalid (likely old project), clearing...', error)
+                        console.log('[AuthContext] Session found but invalid (likely old project), clearing...', error)
                         await supabase.auth.signOut()
                         localStorage.clear()
                         setSession(null)
                         setUser(null)
                         setIsAdmin(false)
                     } else {
+                        console.log('[AuthContext] Session checked and valid')
                         setSession(initialSession)
                         setUser(user)
                         await checkAdminStatus(user.id)
                     }
                 } else {
+                    console.log('[AuthContext] No initial session')
                     setSession(null)
                     setUser(null)
                     setIsAdmin(false)
                 }
             } catch (error) {
-                console.error('Auth initialization error:', error)
+                console.error('[AuthContext] Auth initialization error:', error)
                 // Fallback: clear everything to be safe
                 setSession(null)
                 setUser(null)
                 setIsAdmin(false)
             } finally {
+                console.log('[AuthContext] initializeAuth finished, setting loading=false')
                 setLoading(false)
             }
         }
