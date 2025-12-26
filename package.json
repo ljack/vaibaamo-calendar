@@ -8,6 +8,7 @@
     "build": "node scripts/generate-version.js && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
     "test:integration": "npx playwright test",
     "sync-events": "node scripts/sync-events.js"
   },

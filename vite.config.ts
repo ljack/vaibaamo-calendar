@@ -14,5 +14,6 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
     },
+    exclude: ['tests/**', 'node_modules/**'], // Exclude Playwright tests
   },
 })
