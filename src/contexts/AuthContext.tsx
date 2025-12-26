@@ -47,31 +47,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const initializeAuth = async () => {
-            // Check for initial session
-            const { data: { session: initialSession } } = await supabase.auth.getSession()
+            try {
+                // Check for initial session
+                const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
 
-            if (initialSession) {
-                // Verify the session is actually valid by fetching user
-                const { data: { user }, error } = await supabase.auth.getUser()
+                if (sessionError) throw sessionError
 
-                if (error || !user) {
-                    console.log('Session found but invalid (likely old project), clearing...', error)
-                    await supabase.auth.signOut()
-                    localStorage.clear()
+                if (initialSession) {
+                    // Verify the session is actually valid by fetching user
+                    const { data: { user }, error } = await supabase.auth.getUser()
+
+                    if (error || !user) {
+                        console.log('Session found but invalid (likely old project), clearing...', error)
+                        await supabase.auth.signOut()
+                        localStorage.clear()
+                        setSession(null)
+                        setUser(null)
+                        setIsAdmin(false)
+                    } else {
+                        setSession(initialSession)
+                        setUser(user)
+                        await checkAdminStatus(user.id)
+                    }
+                } else {
                     setSession(null)
                     setUser(null)
                     setIsAdmin(false)
-                } else {
-                    setSession(initialSession)
-                    setUser(user)
-                    await checkAdminStatus(user.id)
                 }
-            } else {
+            } catch (error) {
+                console.error('Auth initialization error:', error)
+                // Fallback: clear everything to be safe
                 setSession(null)
                 setUser(null)
                 setIsAdmin(false)
+            } finally {
+                setLoading(false)
             }
-            setLoading(false)
         }
 
         initializeAuth()
