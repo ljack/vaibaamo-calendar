@@ -47,10 +47,18 @@ export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
             if (error && DEBUG_AUTH) {
                 console.error("[authBootstrap] getSession error", error);
             }
-            if (DEBUG_AUTH) {
+            const resolvedMs = elapsedMs();
+            const hasSession = !!data.session;
+            if (resolvedMs > timeoutMs) {
+                console.warn("[authBootstrap] getSession resolved after timeout", {
+                    hasSession,
+                    elapsedMs: resolvedMs,
+                    timeoutMs,
+                });
+            } else if (DEBUG_AUTH) {
                 console.log("[authBootstrap] getSession resolved", {
-                    hasSession: !!data.session,
-                    elapsedMs: elapsedMs(),
+                    hasSession,
+                    elapsedMs: resolvedMs,
                 });
             }
             return {
