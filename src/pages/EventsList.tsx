@@ -11,12 +11,13 @@ export default function EventsList() {
     const [error, setError] = useState<string | null>(null)
     const DEBUG_AUTH = import.meta.env.VITE_SUPABASE_DEBUG_AUTH === 'true'
     const hasFetchedRef = useRef(false)
+    const isFetchingRef = useRef(false)
 
     useEffect(() => {
         const abortController = new AbortController()
         const startFetch = () => {
-            if (hasFetchedRef.current) return
-            hasFetchedRef.current = true
+            if (hasFetchedRef.current || isFetchingRef.current) return
+            isFetchingRef.current = true
             if (DEBUG_AUTH) console.log('[EventsList] calling fetchEvents')
             fetchEvents(abortController.signal)
         }
@@ -84,11 +85,13 @@ export default function EventsList() {
 
             console.log('Events data:', data)
             setEvents(data || [])
+            hasFetchedRef.current = true
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
         } catch (err: any) {
             console.error('Error fetching events:', err)
             // Check if it was a timeout
             const isTimeout = timeoutController.signal.aborted || err.message?.includes('timed out') || err.name === 'AbortError';
+            const isAbort = err?.name === 'AbortError' || /aborted without reason/i.test(err?.message || '');
 
             if (isTimeout) {
                 console.log('Request timed out, checking session validity...')
@@ -98,6 +101,9 @@ export default function EventsList() {
                 } else {
                     setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
                 }
+            } else if (isAbort) {
+                if (DEBUG_AUTH) console.log('[EventsList] Request aborted, skipping error UI')
+                // Let a retry or next effect run fetch again.
             } else {
                 setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')
             }
@@ -105,6 +111,7 @@ export default function EventsList() {
             console.log('Finished loading state')
             setLoading(false)
             clearTimeout(timeoutId)
+            isFetchingRef.current = false
         }
     }
 
