@@ -12,7 +12,7 @@ These variables are safe to expose in the browser bundle.
 | Variable Name | Description | Visibility |
 |--------------|-------------|------------|
 | `VITE_SUPABASE_URL` | The Supabase project URL (e.g., `https://xyz.supabase.co`) | **Public** |
-| `VITE_SUPABASE_ANON_KEY` | The Supabase Anonymous API Key | **Public** |
+| `VITE_PUBLIC_SUPABASE_ANON_KEY` | The Supabase Anonymous API Key | **Public** |
 
 > **🚫 AVOID**: Do NOT use `NEXT_PUBLIC_` prefixes. This is a Next.js convention and is not standard for Vite.
 
@@ -22,10 +22,10 @@ Access these variables via `import.meta.env`:
 ```typescript
 // src/lib/supabase.ts
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase env vars: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY")
+  throw new Error("Missing Supabase env vars: VITE_SUPABASE_URL / VITE_PUBLIC_SUPABASE_ANON_KEY")
 }
 ```
 
