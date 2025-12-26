@@ -15,13 +15,15 @@ export type AuthState = {
  * - storage session is loaded
  * - we don't block forever if browser/network is weird
  */
-export async function initAuthOnce(timeoutMs = 1500): Promise<AuthState> {
+export async function initAuthOnce(timeoutMs = 4000): Promise<AuthState> {
     const supabase = getSupabase();
     const DEBUG_AUTH = String(import.meta.env.VITE_SUPABASE_DEBUG_AUTH) === "true";
 
     const timeout = new Promise<AuthState>((resolve) => {
         setTimeout(() => {
-            console.warn("[authBootstrap] Session check timed out, defaulting to null");
+            if (DEBUG_AUTH) {
+                console.warn("[authBootstrap] Session check timed out, defaulting to null");
+            }
             resolve({
                 session: null,
                 user: null,
