@@ -354,5 +354,5 @@
 .journey-map .leaflet-overlay-pane {
     display: block !important;
     visibility: visible !important;
-    z-index: 100;
+    z-index: 400;
 }

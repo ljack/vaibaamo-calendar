@@ -63,6 +63,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     const mapInstanceRef = useRef<any>(null);
     const mapInitializedRef = useRef(false);
     const carMarkerRef = useRef<any>(null);
+    const isZoomingRef = useRef(false);
     const roadEdgeRef = useRef<any>(null);
     const roadBaseRef = useRef<any>(null);
     const roadDashRef = useRef<any>(null);
@@ -161,35 +162,37 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
 
         const initMap = async () => {
             try {
+                // Ensure container is present
+                if (!mapContainerRef.current) return;
+
                 const L = await loadLeaflet();
                 LRef.current = L;
 
+                // Cleanup existing map if it exists
+                if (mapInstanceRef.current) {
+                    mapInstanceRef.current.remove();
+                    mapInstanceRef.current = null;
+                }
+
                 const startPos = geocodedEvents[0];
-                const map = L.map(mapContainerRef.current!, {
+                const map = L.map(mapContainerRef.current, {
                     zoomControl: false,
                     attributionControl: false,
-                    keyboard: false // We use keyboard for driving
+                    keyboard: false
                 }).setView([startPos.lat, startPos.lon], 6);
 
-                // Z6: Region/Country level for 550km/h travel
-
-                // Dark vibes map style (CartoDB Dark Matter)
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap &copy; CARTO',
                     subdomains: 'abcd',
                     maxZoom: 20
                 }).addTo(map);
 
-                // Add markers for all events
                 geocodedEvents.forEach(evt => {
                     L.marker([evt.lat, evt.lon])
                         .bindPopup(evt.title)
                         .addTo(map);
                 });
 
-                // Car Marker (Using Sprite)
-                // Sprite is 1024x256 (4 frames of 256x256 each).
-                // Container size: 64x96.
                 const carSpriteUrl = getCarSpriteUrl(selectedCar || 'red');
                 const carIcon = L.divIcon({
                     html: `<div class="car-sprite car-${selectedCar || 'red'} frame-0" style="transform: rotate(90deg); background-image: url('${carSpriteUrl}');"></div>`,
@@ -199,7 +202,6 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 });
                 carMarkerRef.current = L.marker([startPos.lat, startPos.lon], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
 
-                // Generate Curved Route
                 const rawPoints = geocodedEvents.map(e => ({ lat: e.lat, lon: e.lon }));
                 const curvedPath = generateCurvedPath(rawPoints, 20);
                 pathRef.current = curvedPath;
@@ -207,42 +209,32 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
 
                 const latlngs: [number, number][] = curvedPath.map(p => [p.lat, p.lon]);
 
-                // LAYER 1: Yellow Edges (Widest)
-                roadEdgeRef.current = L.polyline(latlngs, {
-                    color: '#f5d547', // Yellow
-                    weight: 54,
-                    opacity: 1,
-                    lineCap: 'round',
-                    lineJoin: 'round'
-                }).addTo(map);
-
-                // LAYER 2: Asphalt (Middle)
-                roadBaseRef.current = L.polyline(latlngs, {
-                    color: '#333', // Dark Grey Asphalt
-                    weight: 50,
-                    opacity: 1,
-                    lineCap: 'round',
-                    lineJoin: 'round'
-                }).addTo(map);
-
-                // LAYER 3: Center Marking (White Dashed)
-                roadDashRef.current = L.polyline(latlngs, {
-                    color: '#fff', // White center
-                    weight: 2,
-                    opacity: 1,
-                    dashArray: '20, 30', // Long dashes
-                    lineCap: 'butt'
-                }).addTo(map);
+                roadEdgeRef.current = L.polyline(latlngs, { color: '#f5d547', weight: 54, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                roadBaseRef.current = L.polyline(latlngs, { color: '#333', weight: 50, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                roadDashRef.current = L.polyline(latlngs, { color: '#fff', weight: 2, opacity: 1, dashArray: '20, 30', lineCap: 'butt' }).addTo(map);
 
                 mapInstanceRef.current = map;
                 mapInitializedRef.current = true;
+
+                map.on('zoomstart', () => { isZoomingRef.current = true; });
+                map.on('zoomend', () => { isZoomingRef.current = false; });
             } catch (error) {
                 console.error('[JourneyOverlay] Map initialization error:', error);
             }
         };
 
-        initMap();
-    }, [geocodedEvents.length, selectedCar]); // Depend on length, not array itself, and selectedCar for car sprite
+        if (geocodedEvents.length > 0 && (gameState === 'TRAVELING' || gameState === 'ARRIVED')) {
+            initMap();
+        }
+
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+                mapInitializedRef.current = false;
+            }
+        };
+    }, [geocodedEvents.length, selectedCar, gameState]);
 
     // Check for fuel out and game over
     useEffect(() => {
@@ -259,7 +251,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
 
     // 3. Game Loop using Physics
     useEffect(() => {
-        if (gameState !== 'TRAVELING' || !positionRef.current || !mapInstanceRef.current) return;
+        if (gameState !== 'TRAVELING' || !positionRef.current || !mapInstanceRef.current || !pathRef.current.length) return;
 
         const targetIndex = currentEventIndex + 1;
         if (targetIndex >= geocodedEvents.length) {
@@ -426,20 +418,25 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
 
             const rotation = 90 - degs;
 
-            carMarkerRef.current.setLatLng([positionRef.current.lat, positionRef.current.lon]);
-            mapInstanceRef.current.panTo([positionRef.current.lat, positionRef.current.lon], { animate: false });
+            if (mapInstanceRef.current && !isZoomingRef.current && carMarkerRef.current) {
+                carMarkerRef.current.setLatLng([positionRef.current.lat, positionRef.current.lon]);
+                mapInstanceRef.current.panTo([positionRef.current.lat, positionRef.current.lon], { animate: false });
+            }
 
             // Update Icon HTML for frame and rotation
-            const iconEl = carMarkerRef.current.getElement();
-            if (iconEl) {
-                const inner = iconEl.querySelector('.car-sprite');
-                if (inner) {
-                    // Update class for frame
-                    inner.className = `car-sprite car-${selectedCar || 'red'} ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
-                    // Update rotation
-                    inner.style.transform = `rotate(${rotation}deg)`;
+            if (carMarkerRef.current) {
+                const iconEl = carMarkerRef.current.getElement();
+                if (iconEl) {
+                    const inner = iconEl.querySelector('.car-sprite');
+                    if (inner) {
+                        // Update class for frame
+                        inner.className = `car-sprite car-${selectedCar || 'red'} ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
+                        // Update rotation
+                        inner.style.transform = `rotate(${rotation}deg)`;
+                    }
                 }
             }
+
         }
 
         // Check POI
