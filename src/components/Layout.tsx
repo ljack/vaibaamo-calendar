@@ -1,6 +1,31 @@
 import { Link, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { UpdateNotification } from './UpdateNotification'
+import { useKonamiCode } from '../hooks/useKonamiCode'
+import JourneyOverlay from './JourneyOverlay'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import type { Event } from '../types'
+
+function KonamiJourneyWrapper() {
+    const triggered = useKonamiCode()
+    const [isOpen, setIsOpen] = useState(false)
+    const [events, setEvents] = useState<Event[]>([])
+
+    useEffect(() => {
+        if (triggered) {
+            setIsOpen(true)
+            // Fetch events only when triggered
+            supabase.from('events').select('*').then(({ data }) => {
+                if (data) setEvents(data as unknown as Event[])
+            })
+        }
+    }, [triggered])
+
+    if (!isOpen) return null
+
+    return <JourneyOverlay events={events} onClose={() => setIsOpen(false)} />
+}
 
 export default function Layout() {
     const { user, isAdmin, signOut } = useAuth()
@@ -57,6 +82,8 @@ export default function Layout() {
             <main className="flex-1 max-w-7xl w-full mx-auto py-6 sm:px-6 lg:px-8">
                 <Outlet />
             </main>
+
+            <KonamiJourneyWrapper />
 
             <UpdateNotification />
 
