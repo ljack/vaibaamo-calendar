@@ -40,7 +40,7 @@
     transform: translateX(-50%);
     font-size: 0.8rem;
     white-space: nowrap;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     padding: 2px 5px;
     border-radius: 4px;
     opacity: 0.8;
@@ -50,8 +50,20 @@
     position: absolute;
     font-size: 3rem;
     transform: translate(-50%, -50%);
-    transition: all 0.1s linear; /* simple tweening */
+    transition: all 0.1s linear;
+    /* simple tweening */
     z-index: 10;
+}
+
+/* Old Vertical/Grid sprite definitions removed. Using Horizontal Strip below. */
+
+/* Broken Frames (Row 2) */
+.car-sprite.broken-0 {
+    background-position: 0% 100%;
+}
+
+.car-sprite.broken-1 {
+    background-position: 33.33% 100%;
 }
 
 .journey-controls {
@@ -61,7 +73,7 @@
     display: flex;
     flex-direction: column;
     gap: 15px;
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
 }
 
 .console {
@@ -130,7 +142,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.9);
     padding: 40px;
     border: 2px solid #ffd700;
     text-align: center;
@@ -138,8 +150,163 @@
     box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
 }
 
-.victory-modal h1 {
-    color: #ffd700;
-    font-size: 3rem;
-    margin-bottom: 20px;
+/* Dashhboard */
+.enhanced-controls {
+    height: auto;
+    min-height: 250px;
+    background: linear-gradient(to top, #0f3460, #16213e);
+}
+
+.dashboard-grid {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #0ff;
+    width: 60px;
+}
+
+.gauge .label {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+.gauge .value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    font-family: 'Orbitron', monospace;
+    /* Fallback to monospace if unavailable */
+    color: #fff;
+    text-shadow: 0 0 10px #0ff;
+}
+
+.gauge .unit {
+    font-size: 0.6rem;
+    color: #666;
+}
+
+.driving-hint {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-right: auto;
+    align-self: center;
+}
+
+/* Collage */
+.collage-mode {
+    width: 90vw;
+    height: 90vh;
+    max-width: 1000px;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+}
+
+.collage-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.collage-item {
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    border-radius: 5px;
+    border: 1px solid #333;
+}
+
+.collage-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.collage-item:hover img {
+    transform: scale(1.1);
+}
+
+.collage-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 5px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.collage-footer {
+    padding: 20px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a2e;
+}
+
+/* Car Sprite - Horizontal Strip (4 frames) */
+/* Car Sprite - Horizontal Strip (4 frames) */
+/* Car Sprite - 4x2 Grid (1024x1024) */
+/* Scaled down to 64x96 container (0.25x scale) */
+.car-sprite {
+    width: 64px;
+    height: 96px;
+    background-image: url('/car_sprites.png');
+    background-size: 256px 256px;
+    /* 1024 scaled by 0.25 */
+    /* Frames are variable width/height, we center them manually */
+    background-repeat: no-repeat;
+    image-rendering: auto;
+    /* Smoother for downscaling */
+    pointer-events: none;
+    transition: transform 0.1s linear;
+}
+
+/* Row 0 Frames (Y~316px -> 79px) */
+.frame-0 {
+    /* X~40 (10px). W~156 (39px). CenterX 12.5. Pos: 12.5 - 10 = 2.5 */
+    background-position: 2.5px -76.75px;
+}
+
+.frame-1 {
+    /* X~250 (62.5px). W~242 (60.5px). CenterX 1.75. Pos: 1.75 - 62.5 = -60.75 */
+    background-position: -60.75px -76.75px;
+}
+
+.frame-2 {
+    /* X~552 (138px). W~166 (41.5px). CenterX 11.25. Pos: 11.25 - 138 = -126.75 */
+    background-position: -126.75px -76.75px;
+}
+
+.frame-3 {
+    /* X~782 (195.5px). W~217 (54.25px). CenterX 4.875. Pos: 4.875 - 195.5 = -190.625 */
+    background-position: -190.6px -76.75px;
+}
+
+/* Broken State - Reuse Frame 0 with filter */
+.broken-0,
+.broken-1 {
+    background-position: 2.5px -76.75px;
+    filter: grayscale(100%) sepia(100%) hue-rotate(0deg) saturate(500%) brightness(0.6);
+}
+
+/* Highway Road Styling */
+.journey-map .leaflet-overlay-pane path {
+    filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
 }

@@ -59,3 +59,50 @@ export function normalizeCoordinates(
         normalizedY: 1 - (event.lat - minLat) / safeLatRange,
     }));
 }
+
+
+// Basic spline interpolation for smoother paths
+export const generateCurvedPath = (points: { lat: number, lon: number }[], resolution: number = 10): { lat: number, lon: number }[] => {
+    if (points.length < 2) return points;
+    const curvedPoints: { lat: number, lon: number }[] = [];
+
+    for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[Math.max(0, i - 1)];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[Math.min(points.length - 1, i + 2)];
+
+        for (let t = 0; t < 1; t += 1 / resolution) {
+            // Catmull-Rom spline
+            const t2 = t * t;
+            const t3 = t2 * t;
+
+            const lat = 0.5 * (
+                (2 * p1.lat) +
+                (-p0.lat + p2.lat) * t +
+                (2 * p0.lat - 5 * p1.lat + 4 * p2.lat - p3.lat) * t2 +
+                (-p0.lat + 3 * p1.lat - 3 * p2.lat + p3.lat) * t3
+            );
+
+            const lon = 0.5 * (
+                (2 * p1.lon) +
+                (-p0.lon + p2.lon) * t +
+                (2 * p0.lon - 5 * p1.lon + 4 * p2.lon - p3.lon) * t2 +
+                (-p0.lon + 3 * p1.lon - 3 * p2.lon + p3.lon) * t3
+            );
+            curvedPoints.push({ lat, lon });
+        }
+    }
+    curvedPoints.push(points[points.length - 1]);
+    return curvedPoints;
+};
+
+export const POI_TYPES = [
+    "Old Gas Station", "Abandoned Barn", "Scenic Overlook", "Roadside Diner",
+    "Mysterious Monolith", "Herd of Reindeer", "Aurora Borealis", "Speed Trap!",
+    "Hitchhiker (Ignore!)", "Radio Silence Zone"
+];
+
+export const generateNearbyPOI = () => {
+    return POI_TYPES[Math.floor(Math.random() * POI_TYPES.length)];
+}

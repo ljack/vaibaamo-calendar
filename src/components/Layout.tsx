@@ -7,28 +7,46 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../types'
 
-function KonamiJourneyWrapper() {
-    const triggered = useKonamiCode()
-    const [isOpen, setIsOpen] = useState(false)
+function JourneyFeature({
+    isOpen,
+    onClose,
+}: {
+    isOpen: boolean
+    onClose: () => void
+}) {
     const [events, setEvents] = useState<Event[]>([])
+    const [hasFetched, setHasFetched] = useState(false)
 
     useEffect(() => {
-        if (triggered) {
-            setIsOpen(true)
+        if (isOpen && !hasFetched) {
             // Fetch events only when triggered
-            supabase.from('events').select('*').then(({ data }) => {
-                if (data) setEvents(data as unknown as Event[])
-            })
+            supabase
+                .from('events')
+                .select('*')
+                .then(({ data }) => {
+                    if (data) {
+                        setEvents(data as unknown as Event[])
+                        setHasFetched(true)
+                    }
+                })
         }
-    }, [triggered])
+    }, [isOpen, hasFetched])
 
     if (!isOpen) return null
 
-    return <JourneyOverlay events={events} onClose={() => setIsOpen(false)} />
+    return <JourneyOverlay events={events} onClose={onClose} />
 }
 
 export default function Layout() {
     const { user, isAdmin, signOut } = useAuth()
+    const konamiTriggered = useKonamiCode()
+    const [journeyOpen, setJourneyOpen] = useState(false)
+
+    useEffect(() => {
+        if (konamiTriggered) {
+            setJourneyOpen(true)
+        }
+    }, [konamiTriggered])
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -42,7 +60,10 @@ export default function Layout() {
                         </div>
                         <div className="flex items-center space-x-4">
                             {isAdmin && (
-                                <Link to="/events/new" className="text-gray-900 hover:text-indigo-600 font-medium text-sm">
+                                <Link
+                                    to="/events/new"
+                                    className="text-gray-900 hover:text-indigo-600 font-medium text-sm"
+                                >
                                     + Luo tapahtuma
                                 </Link>
                             )}
@@ -83,13 +104,23 @@ export default function Layout() {
                 <Outlet />
             </main>
 
-            <KonamiJourneyWrapper />
+            <JourneyFeature
+                isOpen={journeyOpen}
+                onClose={() => setJourneyOpen(false)}
+            />
 
             <UpdateNotification />
 
             <footer className="bg-white border-t border-gray-200 py-6">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
-                    &copy; {new Date().getFullYear()} Vaibaamo.
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
+                    <div>&copy; {new Date().getFullYear()} Vaibaamo.</div>
+                    <button
+                        onClick={() => setJourneyOpen(true)}
+                        className="text-xs text-gray-300 hover:text-gray-500 transition-colors duration-300 cursor-pointer"
+                        title="Start Journey"
+                    >
+                        π
+                    </button>
                 </div>
             </footer>
         </div>
