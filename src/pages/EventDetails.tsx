@@ -6,12 +6,20 @@ import type { Event, Participant } from '../types'
 import EventsMap from '../components/EventsMap'
 import { createMapLink } from '../lib/geocode'
 
+type ParticipantEmail = {
+    user_id: string
+    email: string | null
+}
+
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>()
     const { user, isAdmin } = useAuth()
     const navigate = useNavigate()
     const [event, setEvent] = useState<Event | null>(null)
     const [participant, setParticipant] = useState<Participant | null>(null)
+    const [participantCount, setParticipantCount] = useState<number | null>(null)
+    const [participantEmails, setParticipantEmails] = useState<string[]>([])
+    const [participantEmailsError, setParticipantEmailsError] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [registering, setRegistering] = useState(false)
     const [deleting, setDeleting] = useState(false)
@@ -34,6 +42,19 @@ export default function EventDetails() {
             if (error) throw error
             setEvent(data)
 
+            const { count, error: countError } = await supabase
+                .from('participants')
+                .select('id', { count: 'exact', head: true })
+                .eq('event_id', eventId)
+                .eq('status', 'registered')
+
+            if (countError) {
+                console.error('Error fetching participant count:', countError)
+                setParticipantCount(null)
+            } else {
+                setParticipantCount(count ?? 0)
+            }
+
             if (user) {
                 const { data: partData } = await supabase
                     .from('participants')
@@ -43,6 +64,29 @@ export default function EventDetails() {
                     .single()
 
                 setParticipant(partData)
+
+                const canViewEmails = isAdmin || user.id === data.creator_id
+                if (canViewEmails) {
+                    const { data: participantData, error: participantError } = await supabase.rpc('get_event_participants', {
+                        p_event_id: eventId,
+                    })
+
+                    if (participantError) {
+                        console.error('Error fetching participant emails:', participantError)
+                        setParticipantEmails([])
+                        setParticipantEmailsError('Osallistujien sähköposteja ei voitu hakea.')
+                    } else {
+                        const emails = (participantData as ParticipantEmail[] | null)?.map((row) => row.email).filter(Boolean) as string[] || []
+                        setParticipantEmails(emails)
+                        setParticipantEmailsError(null)
+                    }
+                } else {
+                    setParticipantEmails([])
+                    setParticipantEmailsError(null)
+                }
+            } else {
+                setParticipantEmails([])
+                setParticipantEmailsError(null)
             }
         } catch (error) {
             console.error('Error fetching event:', error)
@@ -155,6 +199,16 @@ export default function EventDetails() {
                             </a>
                         )}
                     </div>
+                    <div className="sm:col-span-1">
+                        <dt className="text-sm font-medium text-gray-500">Osallistujat</dt>
+                        <dd className="mt-1 text-sm text-gray-900">
+                            {participantCount === null
+                                ? '—'
+                                : event.max_participants
+                                    ? `${participantCount} / ${event.max_participants}`
+                                    : `${participantCount} osallistujaa`}
+                        </dd>
+                    </div>
                     {event.location && (
                         <div className="sm:col-span-2">
                             <EventsMap
@@ -162,6 +216,26 @@ export default function EventDetails() {
                                 title="Sijainti kartalla"
                                 showList={false}
                             />
+                        </div>
+                    )}
+                    {(isAdmin || (user && user.id === event.creator_id)) && (
+                        <div className="sm:col-span-2">
+                            <dt className="text-sm font-medium text-gray-500">Ilmoittautuneet</dt>
+                            <dd className="mt-2 text-sm text-gray-900">
+                                {participantEmailsError && (
+                                    <span className="text-sm text-red-600">{participantEmailsError}</span>
+                                )}
+                                {!participantEmailsError && participantEmails.length === 0 && (
+                                    <span className="text-sm text-gray-500">Ei ilmoittautuneita vielä.</span>
+                                )}
+                                {!participantEmailsError && participantEmails.length > 0 && (
+                                    <ul className="space-y-1">
+                                        {participantEmails.map((email) => (
+                                            <li key={email}>{email}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </dd>
                         </div>
                     )}
                     {deleteError && (

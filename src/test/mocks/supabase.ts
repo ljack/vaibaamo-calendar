@@ -8,6 +8,7 @@ export const supabase = {
         signInWithOtp: vi.fn(),
         signOut: vi.fn(),
     },
+    rpc: vi.fn(),
     from: vi.fn(() => ({
         select: vi.fn(() => ({
             eq: vi.fn(() => ({

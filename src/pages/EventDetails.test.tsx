@@ -8,6 +8,7 @@ import * as AuthContext from '../contexts/AuthContext'
 vi.mock('../lib/supabase', () => ({
     supabase: {
         from: vi.fn(),
+        rpc: vi.fn(),
     },
 }))
 
@@ -27,6 +28,7 @@ vi.mock('react-router-dom', async () => {
 describe('EventDetails', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as any)
     })
 
     it('allows admin to delete an event', async () => {
@@ -46,6 +48,7 @@ describe('EventDetails', () => {
             location: 'Helsinki',
             max_participants: null,
             created_at: new Date().toISOString(),
+            creator_id: 'admin',
         }
 
         const deleteEqMock = vi.fn().mockResolvedValue({ error: null })
@@ -65,13 +68,22 @@ describe('EventDetails', () => {
             }
             if (table === 'participants') {
                 return {
-                    select: () => ({
-                        eq: () => ({
+                    select: (_columns?: string, options?: { head?: boolean }) => {
+                        if (options?.head) {
+                            return {
+                                eq: () => ({
+                                    eq: () => Promise.resolve({ data: [], count: 2, error: null }),
+                                }),
+                            }
+                        }
+                        return {
                             eq: () => ({
-                                single: () => Promise.resolve({ data: null, error: null }),
+                                eq: () => ({
+                                    single: () => Promise.resolve({ data: null, error: null }),
+                                }),
                             }),
-                        }),
-                    }),
+                        }
+                    },
                 } as any
             }
             return {} as any
@@ -88,6 +100,8 @@ describe('EventDetails', () => {
         )
 
         await waitFor(() => expect(screen.getByText('Test Event')).toBeInTheDocument())
+        expect(screen.getByText(/Osallistujat/i)).toBeInTheDocument()
+        expect(screen.getByText('2 osallistujaa')).toBeInTheDocument()
 
         const deleteButton = screen.getByRole('button', { name: /Poista/i })
         fireEvent.click(deleteButton)
@@ -149,6 +163,7 @@ describe('EventDetails', () => {
             location: null,
             max_participants: null,
             created_at: new Date().toISOString(),
+            creator_id: 'owner-1',
         }
 
         const insertMock = vi.fn().mockResolvedValue({ error: null })
@@ -170,13 +185,22 @@ describe('EventDetails', () => {
             }
             if (table === 'participants') {
                 return {
-                    select: () => ({
-                        eq: () => ({
+                    select: (_columns?: string, options?: { head?: boolean }) => {
+                        if (options?.head) {
+                            return {
+                                eq: () => ({
+                                    eq: () => Promise.resolve({ data: [], count: 0, error: null }),
+                                }),
+                            }
+                        }
+                        return {
                             eq: () => ({
-                                single: participantSelect,
+                                eq: () => ({
+                                    single: participantSelect,
+                                }),
                             }),
-                        }),
-                    }),
+                        }
+                    },
                     insert: insertMock,
                     delete: deleteMock,
                 } as any
@@ -219,6 +243,7 @@ describe('EventDetails', () => {
             location: null,
             max_participants: null,
             created_at: new Date().toISOString(),
+            creator_id: 'admin',
         }
 
         const deleteEqMock = vi.fn().mockResolvedValue({ error: new Error('fail') })
@@ -237,13 +262,22 @@ describe('EventDetails', () => {
             }
             if (table === 'participants') {
                 return {
-                    select: () => ({
-                        eq: () => ({
+                    select: (_columns?: string, options?: { head?: boolean }) => {
+                        if (options?.head) {
+                            return {
+                                eq: () => ({
+                                    eq: () => Promise.resolve({ data: [], count: 1, error: null }),
+                                }),
+                            }
+                        }
+                        return {
                             eq: () => ({
-                                single: () => Promise.resolve({ data: null, error: null }),
+                                eq: () => ({
+                                    single: () => Promise.resolve({ data: null, error: null }),
+                                }),
                             }),
-                        }),
-                    }),
+                        }
+                    },
                 } as any
             }
             return {} as any
@@ -263,5 +297,80 @@ describe('EventDetails', () => {
         fireEvent.click(screen.getByText('Poista'))
 
         await waitFor(() => expect(screen.getByText('fail')).toBeInTheDocument())
+    })
+
+    it('shows participant emails to event owner', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: { id: 'owner-1' } as any,
+            isAdmin: false,
+            loading: false,
+            signOut: vi.fn(),
+        } as any)
+
+        const event = {
+            id: 'event-4',
+            title: 'Owner Event',
+            description: 'Desc',
+            start_time: new Date().toISOString(),
+            end_time: new Date().toISOString(),
+            location: null,
+            max_participants: 10,
+            created_at: new Date().toISOString(),
+            creator_id: 'owner-1',
+        }
+
+        vi.mocked(supabase.rpc).mockResolvedValue({
+            data: [
+                { user_id: 'u1', email: 'alice@example.com' },
+                { user_id: 'u2', email: 'bob@example.com' },
+            ],
+            error: null,
+        } as any)
+
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            if (table === 'events') {
+                return {
+                    select: () => ({
+                        eq: () => ({
+                            single: () => Promise.resolve({ data: event, error: null }),
+                        }),
+                    }),
+                } as any
+            }
+            if (table === 'participants') {
+                return {
+                    select: (_columns?: string, options?: { head?: boolean }) => {
+                        if (options?.head) {
+                            return {
+                                eq: () => ({
+                                    eq: () => Promise.resolve({ data: [], count: 2, error: null }),
+                                }),
+                            }
+                        }
+                        return {
+                            eq: () => ({
+                                eq: () => ({
+                                    single: () => Promise.resolve({ data: null, error: null }),
+                                }),
+                            }),
+                        }
+                    },
+                } as any
+            }
+            return {} as any
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/events/event-4']}>
+                <Routes>
+                    <Route path="/events/:id" element={<EventDetails />} />
+                </Routes>
+            </MemoryRouter>
+        )
+
+        await waitFor(() => expect(screen.getByText('Owner Event')).toBeInTheDocument())
+        expect(screen.getByText('2 / 10')).toBeInTheDocument()
+        expect(screen.getByText('alice@example.com')).toBeInTheDocument()
+        expect(screen.getByText('bob@example.com')).toBeInTheDocument()
     })
 })
