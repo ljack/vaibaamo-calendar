@@ -29,6 +29,14 @@ vi.mock('../components/EventsMap', () => ({
     default: () => <div data-testid="events-map" />,
 }))
 
+const createParticipantsMock = (rows: Array<{ event_id: string }> = []) => ({
+    select: () => ({
+        eq: () => ({
+            in: () => Promise.resolve({ data: rows, error: null }),
+        }),
+    }),
+})
+
 describe('EventsList Timeout Handling', () => {
     beforeEach(() => {
         vi.clearAllMocks()
@@ -54,6 +62,9 @@ describe('EventsList Timeout Handling', () => {
                         })
                     })
                 } as any
+            }
+            if (table === 'participants') {
+                return createParticipantsMock()
             }
             if (table === 'profiles') {
                 return {
@@ -145,6 +156,13 @@ describe('EventsList ordering and past events', () => {
                     }),
                 } as any
             }
+            if (table === 'participants') {
+                return createParticipantsMock([
+                    { event_id: 'soon' },
+                    { event_id: 'soon' },
+                    { event_id: 'later' },
+                ])
+            }
             if (table === 'profiles') {
                 return {
                     select: () => ({
@@ -170,6 +188,8 @@ describe('EventsList ordering and past events', () => {
         const titles = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent)
         expect(titles[0]).toContain('Soon Event')
         expect(titles[1]).toContain('Later Event')
+        expect(screen.getByText('2 osallistujaa')).toBeInTheDocument()
+        expect(screen.getByText('1 osallistujaa')).toBeInTheDocument()
         expect(screen.queryByText('Past Event')).not.toBeInTheDocument()
 
         const toggle = screen.getByRole('button', { name: /Näytä menneet tapahtumat/i })
@@ -201,6 +221,9 @@ describe('EventsList edge states', () => {
                         }),
                     }),
                 } as any
+            }
+            if (table === 'participants') {
+                return createParticipantsMock()
             }
             if (table === 'profiles') {
                 return {
@@ -235,6 +258,9 @@ describe('EventsList edge states', () => {
                         }),
                     }),
                 } as any
+            }
+            if (table === 'participants') {
+                return createParticipantsMock()
             }
             if (table === 'profiles') {
                 return {
@@ -295,6 +321,9 @@ describe('EventsList edge states', () => {
                     }),
                 } as any
             }
+            if (table === 'participants') {
+                return createParticipantsMock([{ event_id: 'retry' }])
+            }
             if (table === 'profiles') {
                 return {
                     select: () => ({
@@ -342,6 +371,9 @@ describe('EventsList edge states', () => {
                         }),
                     }),
                 } as any
+            }
+            if (table === 'participants') {
+                return createParticipantsMock([{ event_id: 'invalid' }])
             }
             if (table === 'profiles') {
                 return {
@@ -398,6 +430,9 @@ describe('EventsList edge states', () => {
                         }),
                     }),
                 } as any
+            }
+            if (table === 'participants') {
+                return createParticipantsMock([{ event_id: 'recovered' }])
             }
             if (table === 'profiles') {
                 return {
@@ -466,6 +501,9 @@ describe('EventsList auth fallback and timeout', () => {
                     }),
                 } as any
             }
+            if (table === 'participants') {
+                return createParticipantsMock([{ event_id: 'fallback' }])
+            }
             return {} as any
         })
 
@@ -504,6 +542,9 @@ describe('EventsList auth fallback and timeout', () => {
                         }),
                     }),
                 } as any
+            }
+            if (table === 'participants') {
+                return createParticipantsMock()
             }
             return {} as any
         })

@@ -8,6 +8,7 @@ import EventsMap from '../components/EventsMap'
 export default function EventsList() {
     const { loading: authLoading, checkSession } = useAuth()
     const [events, setEvents] = useState<Event[]>([])
+    const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({})
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [showPast, setShowPast] = useState(false)
@@ -90,7 +91,27 @@ export default function EventsList() {
             }
 
             console.log('Events data:', data)
-            setEvents(data || [])
+            const nextEvents = data || []
+            setEvents(nextEvents)
+            setParticipantCounts({})
+            const eventIds = nextEvents.map((item) => item.id)
+            if (eventIds.length > 0) {
+                const { data: participantRows, error: participantsError } = await supabase
+                    .from('participants')
+                    .select('event_id')
+                    .eq('status', 'registered')
+                    .in('event_id', eventIds)
+
+                if (participantsError) {
+                    console.error('Error fetching participant counts:', participantsError)
+                } else if (participantRows) {
+                    const counts = participantRows.reduce<Record<string, number>>((acc, row: { event_id: string }) => {
+                        acc[row.event_id] = (acc[row.event_id] || 0) + 1
+                        return acc
+                    }, {})
+                    setParticipantCounts(counts)
+                }
+            }
             hasFetchedRef.current = true
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
         } catch (err: any) {
@@ -223,6 +244,12 @@ export default function EventsList() {
                             <div className="flex items-center">
                                 <span className="mr-1.5">📍</span>
                                 {event.location || 'Online'}
+                            </div>
+                            <div className="flex items-center">
+                                <span className="mr-1.5">👥</span>
+                                {event.max_participants
+                                    ? `${participantCounts[event.id] || 0} / ${event.max_participants}`
+                                    : `${participantCounts[event.id] || 0} osallistujaa`}
                             </div>
                         </div>
                     </div>
