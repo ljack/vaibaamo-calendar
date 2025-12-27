@@ -32,6 +32,11 @@
 - PRs should include a concise summary, test results, and screenshots for UI changes.
 - Note any new Supabase migrations or RPC changes in the PR description.
 
+## Deployment & Vercel
+- Vercel CLI is available. Use `vercel ls` to list recent deployments for this project.
+- Check a failing deployment with `vercel inspect <deployment>` and `vercel logs <deployment>` as needed.
+- Preview protection bypass rules are documented in `docs/vercel_deployment_rules.md`.
+
 ## Security & Configuration Tips
 - Environment variables live in `.env` (ignored). Key variables include `VITE_SUPABASE_URL` and `VITE_PUBLIC_SUPABASE_ANON_KEY`.
 - For sensitive data (e.g., attendee emails), use Supabase RPCs with explicit permission checks.
