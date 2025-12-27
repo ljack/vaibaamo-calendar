@@ -2,9 +2,8 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import type { Event } from '../types';
 import { geocodeLocation } from '../lib/geocode';
 import { getDistance, generateNearbyPOI, generateCurvedPath } from '../lib/journeyUtils';
-import { useCarPhysics } from '../hooks/useCarPhysics';
+import { useCarPhysics, type DifficultyMode } from '../hooks/useCarPhysics';
 import { loadLeaflet } from '../lib/leafletLoader';
-import JourneyCollage from './JourneyCollage';
 import 'leaflet/dist/leaflet.css';
 import './JourneyOverlay.css';
 
@@ -13,7 +12,10 @@ type JourneyOverlayProps = {
     onClose: () => void;
 };
 
-type JourneyState = 'LOADING' | 'TRAVELING' | 'ARRIVED' | 'FINISHED';
+type JourneyState = 'LOADING' | 'TRAVELING' | 'ARRIVED' | 'FINISHED' | 'SELECT_CAR' | 'SELECT_DIFFICULTY';
+type CarType = 'red' | 'blue';
+
+const AVAILABLE_CARS: CarType[] = ['red', 'blue'];
 
 const ARRIVAL_MESSAGES = [
     "Vibe Coding!",
@@ -23,14 +25,34 @@ const ARRIVAL_MESSAGES = [
     "Adding more AI...",
 ];
 
+// Car sprite configuration
+const getCarSpriteUrl = (carType: CarType): string => {
+    return `/car_sprites_${carType}.png`;
+};
+
 export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps) {
+    // Parse URL parameters for direct journey start
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCar = urlParams.get('car') as CarType | null;
+    const urlDifficulty = urlParams.get('difficulty') as DifficultyMode | null;
+
     const [geocodedEvents, setGeocodedEvents] = useState<any[]>([]);
-    const [gameState, setGameState] = useState<JourneyState>('LOADING');
+
+    // Initialize car and difficulty from URL or defaults
+    const initialCar = (urlCar || null) as CarType | null;
+    const initialDifficulty = (urlDifficulty || null) as DifficultyMode | null;
+
+    const [selectedCar, setSelectedCar] = useState<CarType | null>(initialCar);
+    const [difficulty, setDifficulty] = useState<DifficultyMode | null>(initialDifficulty);
+    const [gameState, setGameState] = useState<JourneyState>(
+        initialCar && initialDifficulty ? 'LOADING' : 'SELECT_CAR'
+    );
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
+    const [finalStats, setFinalStats] = useState<any>(null);
 
     // Physics engine
-    const [carState, carControls] = useCarPhysics();
+    const [carState, carControls] = useCarPhysics(difficulty || 'normal');
 
     // Sprite Animation
     const spriteFrameRef = useRef(0);
@@ -39,6 +61,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     // Map refs
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<any>(null);
+    const mapInitializedRef = useRef(false);
     const carMarkerRef = useRef<any>(null);
     const roadEdgeRef = useRef<any>(null);
     const roadBaseRef = useRef<any>(null);
@@ -60,21 +83,42 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         [events]
     );
 
-    // 1. Geocode Events
+    // 1. Geocode Events - Only after car is selected and events are loaded
     useEffect(() => {
+        if (!selectedCar || eventsValid.length === 0) {
+            return; // Wait for car selection and events to load
+        }
+
         const fetchLocations = async () => {
             const results = [];
-            for (const event of eventsValid) {
-                if (event.location) {
-                    const coords = await geocodeLocation(event.location);
+
+            // Filter events with valid location strings (not "Ei sijaintia" or empty)
+            const eventsWithLocations = eventsValid.filter(event =>
+                event.location &&
+                event.location.trim() &&
+                event.location.toLowerCase() !== 'ei sijaintia'
+            );
+
+            for (const event of eventsWithLocations) {
+                try {
+                    const location = event.location || '';
+                    const coords = await geocodeLocation(location);
                     if (coords) {
                         results.push({ ...event, lat: coords.lat, lon: coords.lon });
                     }
+                } catch (error) {
+                    console.error('[JourneyOverlay] Geocoding error:', event.location, error);
                 }
             }
 
             if (results.length < 2) {
                 // Not enough events for a journey
+                setFinalStats({
+                    distance: 0,
+                    score: 0,
+                    reason: 'INSUFFICIENT_EVENTS',
+                    message: `Need at least 2 events with locations (found ${results.length})`
+                });
                 setGameState('FINISHED');
                 return;
             }
@@ -82,105 +126,136 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
             setGeocodedEvents(results);
             // Start at first event
             positionRef.current = { lat: results[0].lat, lon: results[0].lon };
-            setGameState('TRAVELING');
+            // Don't start traveling yet - wait for difficulty selection
         };
         fetchLocations();
-    }, [eventsValid]);
+    }, [eventsValid, selectedCar]);
+
+    // Advance to difficulty selection after car is selected
+    useEffect(() => {
+        if (selectedCar && gameState === 'SELECT_CAR') {
+            setGameState('SELECT_DIFFICULTY');
+        }
+    }, [selectedCar, gameState]);
+
+    // Start traveling after difficulty is selected or when URL params are ready
+    useEffect(() => {
+        if (difficulty && selectedCar && geocodedEvents.length > 0) {
+            if (gameState === 'SELECT_DIFFICULTY' || gameState === 'LOADING') {
+                setGameState('TRAVELING');
+            }
+        }
+    }, [difficulty, selectedCar, geocodedEvents.length, gameState]);
 
     // 2. Initialize Map (Leaflet)
     useEffect(() => {
-        if (!mapContainerRef.current || !geocodedEvents.length) return;
+        // Guard: wait for container and events to be ready
+        if (!mapContainerRef.current || geocodedEvents.length === 0) {
+            return;
+        }
+
+        // Guard: only initialize once
+        if (mapInitializedRef.current) {
+            return;
+        }
 
         const initMap = async () => {
-            if (mapInstanceRef.current || !mapContainerRef.current) return;
+            try {
+                const L = await loadLeaflet();
+                LRef.current = L;
 
-            const L = await loadLeaflet();
-            LRef.current = L;
+                const startPos = geocodedEvents[0];
+                const map = L.map(mapContainerRef.current!, {
+                    zoomControl: false,
+                    attributionControl: false,
+                    keyboard: false // We use keyboard for driving
+                }).setView([startPos.lat, startPos.lon], 6);
 
-            const startPos = geocodedEvents[0];
-            const map = L.map(mapContainerRef.current, {
-                zoomControl: false,
-                attributionControl: false,
-                keyboard: false // We use keyboard for driving
-            }).setView([startPos.lat, startPos.lon], 6); // Z6: Region/Country level for 550km/h travel
+                // Z6: Region/Country level for 550km/h travel
 
-            // Dark vibes map style (CartoDB Dark Matter)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
+                // Dark vibes map style (CartoDB Dark Matter)
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(map);
 
-            // Add markers for all events
-            geocodedEvents.forEach(evt => {
-                L.marker([evt.lat, evt.lon])
-                    .bindPopup(evt.title)
-                    .addTo(map);
-            });
+                // Add markers for all events
+                geocodedEvents.forEach(evt => {
+                    L.marker([evt.lat, evt.lon])
+                        .bindPopup(evt.title)
+                        .addTo(map);
+                });
 
-            // Car Marker (Using Sprite)
-            // Sprite is 1024x1024.
-            // Row 0 has variable width frames. Max width ~242px (60.5px scaled). Max Height ~366px (91.5px scaled).
-            // Container size: 64x96.
-            const carIcon = L.divIcon({
-                html: `<div class="car-sprite frame-0" style="transform: rotate(90deg);"></div>`,
-                className: 'car-icon-marker',
-                iconSize: [64, 96],
-                iconAnchor: [32, 48]
-            });
-            carMarkerRef.current = L.marker([startPos.lat, startPos.lon], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
+                // Car Marker (Using Sprite)
+                // Sprite is 1024x256 (4 frames of 256x256 each).
+                // Container size: 64x96.
+                const carSpriteUrl = getCarSpriteUrl(selectedCar || 'red');
+                const carIcon = L.divIcon({
+                    html: `<div class="car-sprite car-${selectedCar || 'red'} frame-0" style="transform: rotate(90deg); background-image: url('${carSpriteUrl}');"></div>`,
+                    className: 'car-icon-marker',
+                    iconSize: [64, 96],
+                    iconAnchor: [32, 48]
+                });
+                carMarkerRef.current = L.marker([startPos.lat, startPos.lon], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
 
-            // Generate Curved Route
-            const rawPoints = geocodedEvents.map(e => ({ lat: e.lat, lon: e.lon }));
-            const curvedPath = generateCurvedPath(rawPoints, 20);
-            pathRef.current = curvedPath;
-            pathNodeIndexRef.current = 1;
+                // Generate Curved Route
+                const rawPoints = geocodedEvents.map(e => ({ lat: e.lat, lon: e.lon }));
+                const curvedPath = generateCurvedPath(rawPoints, 20);
+                pathRef.current = curvedPath;
+                pathNodeIndexRef.current = 1;
 
-            const latlngs: [number, number][] = curvedPath.map(p => [p.lat, p.lon]);
+                const latlngs: [number, number][] = curvedPath.map(p => [p.lat, p.lon]);
 
-            // LAYER 1: Yellow Edges (Widest)
-            roadEdgeRef.current = L.polyline(latlngs, {
-                color: '#f5d547', // Yellow
-                weight: 54,       // Wide enough to form edges (+4px on each side of Asphalt?) No, significantly wider.
-                // If road is 50px, edges should be maybe +4px each side = 58px?
-                // User image has dashed yellow lines? No, solid yellow side lines, dashed yellow side lines?
-                // Image: Solid Yellow Side Lines.
-                // Let's make it 60px wide yellow line.
-                opacity: 1,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
+                // LAYER 1: Yellow Edges (Widest)
+                roadEdgeRef.current = L.polyline(latlngs, {
+                    color: '#f5d547', // Yellow
+                    weight: 54,
+                    opacity: 1,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(map);
 
-            // LAYER 2: Asphalt (Middle)
-            roadBaseRef.current = L.polyline(latlngs, {
-                color: '#333', // Dark Grey Asphalt
-                weight: 50,    // 5px narrower on each side = yellow borders
-                opacity: 1,
-                lineCap: 'round',
-                lineJoin: 'round'
-            }).addTo(map);
+                // LAYER 2: Asphalt (Middle)
+                roadBaseRef.current = L.polyline(latlngs, {
+                    color: '#333', // Dark Grey Asphalt
+                    weight: 50,
+                    opacity: 1,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(map);
 
-            // LAYER 3: Center Marking (White Dashed)
-            roadDashRef.current = L.polyline(latlngs, {
-                color: '#fff', // White center
-                weight: 2,
-                opacity: 1,
-                dashArray: '20, 30', // Long dashes
-                lineCap: 'butt'
-            }).addTo(map);
+                // LAYER 3: Center Marking (White Dashed)
+                roadDashRef.current = L.polyline(latlngs, {
+                    color: '#fff', // White center
+                    weight: 2,
+                    opacity: 1,
+                    dashArray: '20, 30', // Long dashes
+                    lineCap: 'butt'
+                }).addTo(map);
 
-            mapInstanceRef.current = map;
+                mapInstanceRef.current = map;
+                mapInitializedRef.current = true;
+            } catch (error) {
+                console.error('[JourneyOverlay] Map initialization error:', error);
+            }
         };
 
         initMap();
+    }, [geocodedEvents.length, selectedCar]); // Depend on length, not array itself, and selectedCar for car sprite
 
-        return () => {
-            if (mapInstanceRef.current) {
-                mapInstanceRef.current.remove();
-                mapInstanceRef.current = null;
-            }
+    // Check for fuel out and game over
+    useEffect(() => {
+        if (gameState === 'TRAVELING' && carState.fuel <= 0) {
+            setGameState('FINISHED');
+            setFinalStats({
+                distance: carState.distanceTraveled,
+                score: carState.score,
+                reason: 'OUT_OF_FUEL',
+                efficiency: carState.distanceTraveled > 0 ? (carState.score / carState.distanceTraveled).toFixed(2) : 0
+            });
         }
-    }, [geocodedEvents]); // Only re-init if events change. gameState changes shouldn't kill the map.
+    }, [carState.fuel, gameState, carState.distanceTraveled, carState.score]);
 
     // 3. Game Loop using Physics
     useEffect(() => {
@@ -189,6 +264,13 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         const targetIndex = currentEventIndex + 1;
         if (targetIndex >= geocodedEvents.length) {
             setGameState('FINISHED');
+            setFinalStats({
+                distance: carState.distanceTraveled,
+                score: carState.score,
+                reason: 'COMPLETED',
+                fuel: carState.fuel,
+                efficiency: carState.distanceTraveled > 0 ? (carState.score / carState.distanceTraveled).toFixed(2) : 0
+            });
             return;
         }
 
@@ -353,7 +435,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 const inner = iconEl.querySelector('.car-sprite');
                 if (inner) {
                     // Update class for frame
-                    inner.className = `car-sprite ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
+                    inner.className = `car-sprite car-${selectedCar || 'red'} ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
                     // Update rotation
                     inner.style.transform = `rotate(${rotation}deg)`;
                 }
@@ -373,16 +455,281 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     }, [carState, gameState, geocodedEvents, currentEventIndex]);
 
 
+    // Car Selection Screen
+    if (gameState === 'SELECT_CAR') {
+        return (
+            <div className="journey-overlay">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', justifyContent: 'center', alignItems: 'center', height: '100%', padding: '40px' }}>
+                    <h1 style={{ fontSize: '2.5rem', margin: 0 }}>Choose Your Vehicle</h1>
+                    <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {AVAILABLE_CARS.map(car => (
+                            <button
+                                key={car}
+                                onClick={() => setSelectedCar(car)}
+                                style={{
+                                    padding: '30px 40px',
+                                    fontSize: '1.2rem',
+                                    background: car === 'red' ? '#e74c3c' : '#3498db',
+                                    color: 'white',
+                                    border: '3px solid ' + (car === 'red' ? '#c0392b' : '#2980b9'),
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    transition: 'transform 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '15px',
+                                    minWidth: '200px'
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            >
+                                <div style={{ fontSize: '3rem' }}>
+                                    {car === 'red' ? '🚗' : '🚘'}
+                                </div>
+                                <div style={{ textTransform: 'capitalize', fontSize: '1.3rem' }}>
+                                    {car} Car
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            padding: '10px 20px',
+                            fontSize: '1rem',
+                            background: '#666',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            marginTop: '20px'
+                        }}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Difficulty Selection Screen
+    if (gameState === 'SELECT_DIFFICULTY') {
+        return (
+            <div className="journey-overlay">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <h1>Select Difficulty</h1>
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                        <button
+                            onClick={() => setDifficulty('easy')}
+                            style={{
+                                padding: '15px 30px',
+                                fontSize: '1.1rem',
+                                background: '#4CAF50',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            🟢 Easy (Unlimited Fuel)
+                        </button>
+                        <button
+                            onClick={() => setDifficulty('normal')}
+                            style={{
+                                padding: '15px 30px',
+                                fontSize: '1.1rem',
+                                background: '#FF9800',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            🟠 Normal (Limited Fuel)
+                        </button>
+                        <button
+                            onClick={() => setDifficulty('hard')}
+                            style={{
+                                padding: '15px 30px',
+                                fontSize: '1.1rem',
+                                background: '#f44336',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            🔴 Hard (Very Limited Fuel)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (gameState === 'LOADING') {
         return <div className="journey-overlay"><h1>Initializing GPS...</h1></div>
     }
 
     if (gameState === 'FINISHED') {
-        return (
-            <div className="journey-overlay">
-                <JourneyCollage onClose={onClose} />
-            </div>
-        );
+        if (finalStats?.reason === 'COMPLETED') {
+            return (
+                <div className="journey-overlay">
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '30px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '100%',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        padding: '40px'
+                    }}>
+                        <h1 style={{ fontSize: '3rem', margin: 0 }}>🎉 JOURNEY COMPLETE!</h1>
+                        <div style={{
+                            background: 'rgba(0,0,0,0.7)',
+                            padding: '30px',
+                            borderRadius: '10px',
+                            textAlign: 'center',
+                            minWidth: '400px'
+                        }}>
+                            <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>📍 Distance: <strong>{finalStats.distance.toFixed(1)} km</strong></p>
+                            <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>⭐ Score: <strong>{Math.round(finalStats.score)}</strong></p>
+                            <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>⚡ Fuel Remaining: <strong>{finalStats.fuel?.toFixed(1)}%</strong></p>
+                            <p style={{ fontSize: '1.3rem', margin: '10px 0', color: '#FFD700' }}>🏆 Efficiency: <strong>{finalStats.efficiency}</strong> pts/km</p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '1.2rem',
+                                background: '#4CAF50',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            );
+        } else if (finalStats?.reason === 'OUT_OF_FUEL') {
+            return (
+                <div className="journey-overlay">
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '30px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '100%',
+                        background: 'linear-gradient(135deg, #d32f2f 0%, #7b1fa2 100%)',
+                        padding: '40px'
+                    }}>
+                        <h1 style={{ fontSize: '3rem', margin: 0 }}>⛽ OUT OF FUEL!</h1>
+                        <div style={{
+                            background: 'rgba(0,0,0,0.7)',
+                            padding: '30px',
+                            borderRadius: '10px',
+                            textAlign: 'center',
+                            minWidth: '400px'
+                        }}>
+                            <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>📍 Distance Traveled: <strong>{finalStats.distance.toFixed(1)} km</strong></p>
+                            <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>⭐ Score: <strong>{Math.round(finalStats.score)}</strong></p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '1.2rem',
+                                background: '#FF9800',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            );
+        } else if (finalStats?.reason === 'INSUFFICIENT_EVENTS') {
+            return (
+                <div className="journey-overlay">
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '30px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '100%',
+                        background: '#1a1a2e',
+                        padding: '40px'
+                    }}>
+                        <h1 style={{ fontSize: '2rem' }}>⚠️ Journey Not Available</h1>
+                        <p style={{ fontSize: '1.1rem', color: '#aaa' }}>{finalStats.message}</p>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '1.2rem',
+                                background: '#FF6B6B',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Back
+                        </button>
+                    </div>
+                </div>
+            );
+        } else {
+            // Fallback for unknown finish state
+            return (
+                <div className="journey-overlay">
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '30px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '100%',
+                        background: '#1a1a2e',
+                        padding: '40px'
+                    }}>
+                        <h1>Journey Ended</h1>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '1.2rem',
+                                background: '#FF6B6B',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Back
+                        </button>
+                    </div>
+                </div>
+            );
+        }
     }
 
     return (
@@ -408,9 +755,21 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                         <span className="value">{carState.gear}</span>
                     </div>
                     <div className="gauge">
+                        <span className="label">FUEL</span>
+                        <span className="value" style={{ color: carState.fuel < 20 ? '#ff4444' : '#0ff' }}>
+                            {carState.fuel.toFixed(0)}
+                        </span>
+                        <span className="unit">%</span>
+                    </div>
+                    <div className="gauge">
                         <span className="label">DIST</span>
                         <span className="value">{carState.distanceTraveled.toFixed(1)}</span>
                         <span className="unit">km</span>
+                    </div>
+                    <div className="gauge">
+                        <span className="label">SCORE</span>
+                        <span className="value" style={{ color: '#FFD700' }}>{Math.round(carState.score)}</span>
+                        <span className="unit">pts</span>
                     </div>
                 </div>
 

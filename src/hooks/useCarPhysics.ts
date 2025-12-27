@@ -12,6 +12,9 @@ export type CarState = {
     rpm: number; // 0-8000
     distanceTraveled: number; // km
     isBroken: boolean;
+    fuel: number; // 0-100 (percentage)
+    fuelConsumption: number; // liters per km
+    score: number; // based on efficiency
 };
 
 export type CarControls = {
@@ -20,14 +23,25 @@ export type CarControls = {
     repair: () => void;
 };
 
-export function useCarPhysics(): [CarState, CarControls] {
+export type DifficultyMode = 'easy' | 'normal' | 'hard';
+
+export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState, CarControls] {
     const [car, setCar] = useState<CarState>({
         speed: 0,
         gear: 1,
         rpm: 0,
         distanceTraveled: 0,
-        isBroken: false
+        isBroken: false,
+        fuel: difficulty === 'easy' ? 100 : 80,
+        fuelConsumption: 0,
+        score: 0
     });
+
+    const difficultyRef = useRef<DifficultyMode>(difficulty);
+
+    useEffect(() => {
+        difficultyRef.current = difficulty;
+    }, [difficulty]);
 
     const controls = useRef({
         accelerating: false,
@@ -121,16 +135,39 @@ export function useCarPhysics(): [CarState, CarControls] {
                 const rpm = (speedInGear / gearRange) * 7000 + 1000; // 1000 idle, max 8000
 
                 // Distance: Speed (km/h) * time (h)
-                // dt is seconds. 
+                // dt is seconds.
                 // Let's keep logic simple: km/h * h = km.
                 const d_km = (newSpeed * dt) / 3600;
+
+                // Fuel consumption: increases with speed and acceleration
+                // Optimal speed is ~200 km/h. Too fast or too slow = inefficient
+                const speedPenalty = Math.abs(newSpeed - 200) / 200;
+                const accelerationPenalty = controls.current.accelerating ? 0.3 : 0;
+                let fuelBurn = (0.05 + speedPenalty * 0.1 + accelerationPenalty) * d_km;
+
+                // Easy mode: no fuel consumption
+                if (difficultyRef.current === 'easy') {
+                    fuelBurn = 0;
+                }
+
+                let newFuel = Math.max(0, prev.fuel - fuelBurn);
+
+                // Score: reward efficient driving
+                // Points for distance + bonus for optimal speed (180-220 km/h) + fuel efficiency
+                const speedBonus = newSpeed >= 180 && newSpeed <= 220 ? 10 : 0;
+                const distancePoints = d_km * 2;
+                const fuelBonus = difficultyRef.current !== 'easy' ? (100 - fuelBurn) * 0.1 : 0;
+                const newScore = prev.score + Math.max(0, distancePoints + speedBonus + fuelBonus);
 
                 return {
                     speed: newSpeed,
                     gear: currentGear,
                     rpm: Math.min(Math.max(rpm, 1000), 8000),
                     distanceTraveled: prev.distanceTraveled + d_km,
-                    isBroken: broken
+                    isBroken: broken,
+                    fuel: newFuel,
+                    fuelConsumption: fuelBurn / d_km,
+                    score: newScore
                 };
             });
 

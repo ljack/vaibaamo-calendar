@@ -42,6 +42,18 @@ export default function Layout() {
     const konamiTriggered = useKonamiCode()
     const [journeyOpen, setJourneyOpen] = useState(false)
 
+    // Check for journey parameters on mount and when location changes
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search)
+        const hasCar = urlParams.has('car')
+        const hasDifficulty = urlParams.has('difficulty')
+
+        if (hasCar && hasDifficulty) {
+            setJourneyOpen(true)
+        }
+    }, [])
+
+    // Also check for Konami code
     useEffect(() => {
         if (konamiTriggered) {
             setJourneyOpen(true)

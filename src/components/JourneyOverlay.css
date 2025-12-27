@@ -172,7 +172,9 @@
     flex-direction: column;
     align-items: center;
     color: #0ff;
-    width: 60px;
+    width: auto;
+    min-width: 50px;
+    flex: 1;
 }
 
 .gauge .label {
@@ -260,53 +262,97 @@
     background: #1a1a2e;
 }
 
-/* Car Sprite - Horizontal Strip (4 frames) */
-/* Car Sprite - Horizontal Strip (4 frames) */
-/* Car Sprite - 4x2 Grid (1024x1024) */
-/* Scaled down to 64x96 container (0.25x scale) */
+/* Car Sprite Base */
 .car-sprite {
-    width: 64px;
-    height: 96px;
-    background-image: url('/car_sprites.png');
-    background-size: 256px 256px;
-    /* 1024 scaled by 0.25 */
-    /* Frames are variable width/height, we center them manually */
-    background-repeat: no-repeat;
+    background-repeat: no-repeat !important;
     image-rendering: auto;
-    /* Smoother for downscaling */
     pointer-events: none;
     transition: transform 0.1s linear;
 }
 
-/* Row 0 Frames (Y~316px -> 79px) */
-.frame-0 {
-    /* X~40 (10px). W~156 (39px). CenterX 12.5. Pos: 12.5 - 10 = 2.5 */
-    background-position: 2.5px -76.75px;
+/* RED CAR - Custom sizing and positioning */
+.car-sprite.car-red {
+    width: 64px;
+    height: 96px;
+    background-size: 1024px 256px !important;
 }
 
-.frame-1 {
-    /* X~250 (62.5px). W~242 (60.5px). CenterX 1.75. Pos: 1.75 - 62.5 = -60.75 */
-    background-position: -60.75px -76.75px;
+.car-sprite.car-red.frame-0 {
+    background-position: -96px -80px;
 }
 
-.frame-2 {
-    /* X~552 (138px). W~166 (41.5px). CenterX 11.25. Pos: 11.25 - 138 = -126.75 */
-    background-position: -126.75px -76.75px;
+.car-sprite.car-red.frame-1 {
+    background-position: -352px -80px;
 }
 
-.frame-3 {
-    /* X~782 (195.5px). W~217 (54.25px). CenterX 4.875. Pos: 4.875 - 195.5 = -190.625 */
-    background-position: -190.6px -76.75px;
+.car-sprite.car-red.frame-2 {
+    background-position: -608px -80px;
+}
+
+.car-sprite.car-red.frame-3 {
+    background-position: -864px -80px;
+}
+
+/* BLUE CAR - Custom sizing and positioning */
+.car-sprite.car-blue {
+    width: 64px;
+    height: 96px;
+    background-size: 1024px 256px !important;
+}
+
+.car-sprite.car-blue.frame-0 {
+    background-position: -96px -80px;
+}
+
+.car-sprite.car-blue.frame-1 {
+    background-position: -352px -80px;
+}
+
+.car-sprite.car-blue.frame-2 {
+    background-position: -608px -80px;
+}
+
+.car-sprite.car-blue.frame-3 {
+    background-position: -864px -80px;
 }
 
 /* Broken State - Reuse Frame 0 with filter */
 .broken-0,
 .broken-1 {
-    background-position: 2.5px -76.75px;
+    background-position: 0% 0%;
     filter: grayscale(100%) sepia(100%) hue-rotate(0deg) saturate(500%) brightness(0.6);
+}
+
+/* Legacy support for frame classes without car type */
+.frame-0 {
+    background-position: -96px -80px;
+}
+
+.frame-1 {
+    background-position: -352px -80px;
+}
+
+.frame-2 {
+    background-position: -608px -80px;
+}
+
+.frame-3 {
+    background-position: -864px -80px;
 }
 
 /* Highway Road Styling */
 .journey-map .leaflet-overlay-pane path {
     filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+
+/* Ensure leaflet panes are visible */
+.journey-map .leaflet-pane {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.journey-map .leaflet-overlay-pane {
+    display: block !important;
+    visibility: visible !important;
+    z-index: 100;
 }
