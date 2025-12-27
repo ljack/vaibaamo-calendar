@@ -1,0 +1,32 @@
+name: Verify Deployment
+on:
+  deployment_status:
+
+jobs:
+  e2e-deployment:
+    # Only run if the deployment was successful
+    if: github.event.deployment_status.state == 'success'
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright tests against Deployment
+        run: npx playwright test tests/e2e.spec.ts
+        env:
+          # Use the URL from the deployment (Preview or Production)
+          TEST_URL: ${{ github.event.deployment_status.target_url }}
+          # Pass the bypass secret if needed for Vercel Preview Protection
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-deployment
+          path: playwright-report/
+          retention-days: 30

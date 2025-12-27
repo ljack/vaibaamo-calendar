@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import type { Event, Participant } from '../types'
+import EventsMap from '../components/EventsMap'
+import { createMapLink } from '../lib/geocode'
 
 export default function EventDetails() {
     const { id } = useParams<{ id: string }>()
     const { user, isAdmin } = useAuth()
+    const navigate = useNavigate()
     const [event, setEvent] = useState<Event | null>(null)
     const [participant, setParticipant] = useState<Participant | null>(null)
     const [loading, setLoading] = useState(true)
     const [registering, setRegistering] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
 
     useEffect(() => {
         if (id) {
@@ -87,6 +92,29 @@ export default function EventDetails() {
         }
     }
 
+    const handleDelete = async () => {
+        if (!event) return
+        setDeleteError(null)
+
+        const confirmed = window.confirm('Haluatko varmasti poistaa tapahtuman?')
+        if (!confirmed) return
+
+        setDeleting(true)
+        try {
+            const { error } = await supabase
+                .from('events')
+                .delete()
+                .eq('id', event.id)
+
+            if (error) throw error
+            navigate('/')
+        } catch (error: any) {
+            setDeleteError(error.message || 'Tapahtuman poistaminen epäonnistui.')
+        } finally {
+            setDeleting(false)
+        }
+    }
+
     if (loading) {
         return <div className="text-center py-10">Ladataan tietoja...</div>
     }
@@ -116,7 +144,31 @@ export default function EventDetails() {
                     <div className="sm:col-span-1">
                         <dt className="text-sm font-medium text-gray-500">Sijainti</dt>
                         <dd className="mt-1 text-sm text-gray-900">{event.location || 'Online'}</dd>
+                        {event.location && (
+                            <a
+                                href={createMapLink(event.location)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-2 inline-flex text-sm text-indigo-600 hover:underline"
+                            >
+                                Avaa kartassa
+                            </a>
+                        )}
                     </div>
+                    {event.location && (
+                        <div className="sm:col-span-2">
+                            <EventsMap
+                                events={[event]}
+                                title="Sijainti kartalla"
+                                showList={false}
+                            />
+                        </div>
+                    )}
+                    {deleteError && (
+                        <div className="sm:col-span-2">
+                            <p className="text-sm text-red-600">{deleteError}</p>
+                        </div>
+                    )}
                     <div className="sm:col-span-2">
                         <div className="flex items-center justify-end space-x-4 mt-6">
                             {!user ? (
@@ -139,6 +191,15 @@ export default function EventDetails() {
                                         >
                                             Muokkaa
                                         </Link>
+                                    )}
+                                    {isAdmin && (
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                            className="inline-flex items-center px-4 py-2 border border-red-200 text-sm font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        >
+                                            {deleting ? 'Poistetaan...' : 'Poista'}
+                                        </button>
                                     )}
 
                                     {participant ? (

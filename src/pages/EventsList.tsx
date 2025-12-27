@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../types'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import EventsMap from '../components/EventsMap'
 
 export default function EventsList() {
     const { loading: authLoading, checkSession } = useAuth()
     const [events, setEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [showPast, setShowPast] = useState(false)
     const DEBUG_AUTH = import.meta.env.VITE_SUPABASE_DEBUG_AUTH === 'true'
     const hasFetchedRef = useRef(false)
     const isFetchingRef = useRef(false)
@@ -125,6 +127,30 @@ export default function EventsList() {
         }
     }
 
+    const { upcomingEvents, pastEvents } = useMemo(() => {
+        const now = Date.now()
+        const upcoming: Event[] = []
+        const past: Event[] = []
+
+        for (const event of events) {
+            const endTime = event.end_time ? new Date(event.end_time).getTime() : new Date(event.start_time).getTime()
+            if (Number.isNaN(endTime)) {
+                upcoming.push(event)
+                continue
+            }
+            if (endTime < now) {
+                past.push(event)
+            } else {
+                upcoming.push(event)
+            }
+        }
+
+        upcoming.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+        past.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
+
+        return { upcomingEvents: upcoming, pastEvents: past }
+    }, [events])
+
     if (loading) {
         return (
             <div className="space-y-6">
@@ -174,6 +200,37 @@ export default function EventsList() {
         )
     }
 
+    const renderEvents = (items: Event[]) => (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((event) => (
+                <Link
+                    key={event.id}
+                    to={`/events/${event.id}`}
+                    className="block group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                >
+                    <div className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                            {event.title}
+                        </h3>
+                        <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+                            {event.description}
+                        </p>
+                        <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
+                            <div className="flex items-center">
+                                <span className="mr-1.5">📅</span>
+                                {new Date(event.start_time).toLocaleDateString('fi-FI')}
+                            </div>
+                            <div className="flex items-center">
+                                <span className="mr-1.5">📍</span>
+                                {event.location || 'Online'}
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+            ))}
+        </div>
+    )
+
     return (
         <div className="space-y-6">
             <div className="md:flex md:items-center md:justify-between">
@@ -184,34 +241,31 @@ export default function EventsList() {
                 </div>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {events.map((event) => (
-                    <Link
-                        key={event.id}
-                        to={`/events/${event.id}`}
-                        className="block group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+            <EventsMap
+                events={upcomingEvents}
+                title="Tulevat tapahtumat kartalla"
+            />
+
+            {upcomingEvents.length ? (
+                renderEvents(upcomingEvents)
+            ) : (
+                <div className="text-center py-8">
+                    <h3 className="text-sm font-semibold text-gray-900">Ei tulevia tapahtumia</h3>
+                    <p className="mt-1 text-sm text-gray-500">Tarkista myöhemmin uudelleen!</p>
+                </div>
+            )}
+
+            {pastEvents.length > 0 && (
+                <div className="space-y-4">
+                    <button
+                        onClick={() => setShowPast((prev) => !prev)}
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
                     >
-                        <div className="p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                                {event.title}
-                            </h3>
-                            <p className="mt-2 text-sm text-gray-500 line-clamp-2">
-                                {event.description}
-                            </p>
-                            <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
-                                <div className="flex items-center">
-                                    <span className="mr-1.5">📅</span>
-                                    {new Date(event.start_time).toLocaleDateString('fi-FI')}
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="mr-1.5">📍</span>
-                                    {event.location || 'Online'}
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-                ))}
-            </div>
+                        {showPast ? 'Piilota menneet tapahtumat' : `Näytä menneet tapahtumat (${pastEvents.length})`}
+                    </button>
+                    {showPast && renderEvents(pastEvents)}
+                </div>
+            )}
         </div>
     )
 }

@@ -15,6 +15,7 @@ export interface Event {
     location: string | null
     max_participants: number | null
     created_at: string
+    creator_id?: string | null
 }
 
 export interface Participant {

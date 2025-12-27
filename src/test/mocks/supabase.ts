@@ -3,6 +3,7 @@ import { vi } from 'vitest'
 export const supabase = {
     auth: {
         getSession: vi.fn(),
+        getUser: vi.fn(),
         onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
         signInWithOtp: vi.fn(),
         signOut: vi.fn(),
@@ -18,3 +19,5 @@ export const supabase = {
         delete: vi.fn(),
     })),
 }
+
+export const getSupabase = () => supabase

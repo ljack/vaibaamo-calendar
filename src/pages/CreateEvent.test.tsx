@@ -115,4 +115,75 @@ describe('CreateEvent', () => {
             expect(mockedNavigate).toHaveBeenCalledWith('/')
         })
     })
+
+    it('does not submit when user is missing', async () => {
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: null,
+            isAdmin: true,
+            loading: false,
+            signOut: vi.fn()
+        } as any)
+
+        render(
+            <BrowserRouter>
+                <CreateEvent />
+            </BrowserRouter>
+        )
+
+        fireEvent.change(screen.getByLabelText(/Otsikko/i), { target: { value: 'No User Event' } })
+        fireEvent.change(screen.getByLabelText(/Kuvaus/i), { target: { value: 'Description' } })
+        fireEvent.change(screen.getByLabelText(/Alkaa/i), { target: { value: '2025-12-24T12:00' } })
+        fireEvent.change(screen.getByLabelText(/Päättyy/i), { target: { value: '2025-12-24T14:00' } })
+
+        fireEvent.click(screen.getByRole('button', { name: /Luo tapahtuma/i }))
+
+        await waitFor(() => {
+            expect(consoleSpy).toHaveBeenCalledWith('No user found')
+        })
+        expect(supabase.from).not.toHaveBeenCalled()
+        consoleSpy.mockRestore()
+    })
+
+    it('shows alert when create fails', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: { id: 'admin' } as any,
+            isAdmin: true,
+            loading: false,
+            signOut: vi.fn()
+        } as any)
+
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { })
+
+        const insertMock = vi.fn().mockReturnValue({
+            select: vi.fn().mockResolvedValue({ data: null, error: new Error('nope') }),
+        })
+
+        vi.mocked(supabase.from).mockImplementation((table) => {
+            if (table === 'events') {
+                return {
+                    insert: insertMock,
+                } as any
+            }
+            return {} as any
+        })
+
+        render(
+            <BrowserRouter>
+                <CreateEvent />
+            </BrowserRouter>
+        )
+
+        fireEvent.change(screen.getByLabelText(/Otsikko/i), { target: { value: 'Fail Event' } })
+        fireEvent.change(screen.getByLabelText(/Kuvaus/i), { target: { value: 'Description' } })
+        fireEvent.change(screen.getByLabelText(/Alkaa/i), { target: { value: '2025-12-24T12:00' } })
+        fireEvent.change(screen.getByLabelText(/Päättyy/i), { target: { value: '2025-12-24T14:00' } })
+
+        fireEvent.click(screen.getByRole('button', { name: /Luo tapahtuma/i }))
+
+        await waitFor(() => {
+            expect(alertSpy).toHaveBeenCalled()
+        })
+        alertSpy.mockRestore()
+    })
 })

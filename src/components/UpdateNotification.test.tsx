@@ -152,4 +152,45 @@ describe('UpdateNotification', () => {
         expect(window.location.reload).toHaveBeenCalled()
         expect(window.location.reload).toHaveBeenCalled()
     })
+
+    it('does not poll when version is not loaded yet', async () => {
+        const fetchMock = vi.fn().mockReturnValue(new Promise(() => { }))
+        vi.stubGlobal('fetch', fetchMock)
+        Object.defineProperty(window, 'fetch', {
+            writable: true,
+            value: fetchMock,
+        })
+
+        render(<UpdateNotification />)
+
+        window.dispatchEvent(new Event('focus'))
+
+        await Promise.resolve()
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores update checks when response is not ok', async () => {
+        const fetchMock = vi.mocked(globalThis.fetch)
+        fetchMock.mockReturnValue(Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ version: '1000' }),
+        } as Response))
+
+        render(<UpdateNotification />)
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+
+        fetchMock.mockReturnValue(Promise.resolve({
+            ok: false,
+            status: 500,
+            json: () => Promise.resolve({}),
+        } as Response))
+
+        await act(async () => {
+            await vi.runOnlyPendingTimersAsync()
+        })
+
+        expect(screen.queryByText('Uusi versio saatavilla!')).not.toBeInTheDocument()
+    })
 })

@@ -4,9 +4,28 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import EditEvent from './EditEvent'
 import { AuthProvider } from '../contexts/AuthContext'
 import { BrowserRouter } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 
-vi.mock('../lib/supabase')
+const supabaseMock = vi.hoisted(() => {
+    const supabase = {
+        auth: {
+            getSession: vi.fn(),
+            getUser: vi.fn(),
+            onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+        },
+        from: vi.fn(),
+    }
+    return {
+        supabase,
+        getSupabase: () => supabase,
+    }
+})
+
+vi.mock('../lib/supabase', () => ({
+    supabase: supabaseMock.supabase,
+    getSupabase: supabaseMock.getSupabase,
+}))
+
+const { supabase } = supabaseMock
 
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async () => {
@@ -133,5 +152,69 @@ describe('EditEvent', () => {
         expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
             title: 'New Title'
         }))
+    })
+
+    it('shows alert and redirects when fetch fails', async () => {
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { })
+
+        vi.mocked(supabase.from).mockImplementation((table) => {
+            if (table === 'events') {
+                return {
+                    select: () => ({
+                        eq: () => ({
+                            single: () => Promise.resolve({ data: null, error: new Error('nope') })
+                        })
+                    })
+                } as any
+            }
+            return {
+                select: () => ({
+                    eq: () => ({
+                        single: () => Promise.resolve({ data: { role: 'user' }, error: null })
+                    })
+                })
+            } as any
+        })
+
+        render(
+            <AuthProvider>
+                <BrowserRouter>
+                    <EditEvent />
+                </BrowserRouter>
+            </AuthProvider>
+        )
+
+        await waitFor(() => {
+            expect(alertSpy).toHaveBeenCalled()
+            expect(mockNavigate).toHaveBeenCalledWith('/')
+        })
+
+        alertSpy.mockRestore()
+    })
+
+    it('shows alert when update fails', async () => {
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { })
+        const eqMock = vi.fn().mockResolvedValue({ error: new Error('fail') })
+        updateMock.mockImplementationOnce(() => ({ eq: eqMock }))
+
+        render(
+            <AuthProvider>
+                <BrowserRouter>
+                    <EditEvent />
+                </BrowserRouter>
+            </AuthProvider>
+        )
+
+        await waitFor(() => expect(screen.getByDisplayValue('Old Title')).toBeInTheDocument())
+
+        const submitBtn = screen.getByText('Tallenna muutokset')
+        const form = submitBtn.closest('form')
+        fireEvent.submit(form!)
+
+        await waitFor(() => {
+            expect(alertSpy).toHaveBeenCalled()
+        })
+
+        alertSpy.mockRestore()
     })
 })
