@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useKonamiCode } from './useKonamiCode';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('useKonamiCode', () => {
     it('should return false initially', () => {

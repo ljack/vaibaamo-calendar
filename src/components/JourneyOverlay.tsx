@@ -295,7 +295,6 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
             } else if (speedKmH > 10) {
                 // User Feedback: Frames 2 and 4 (Indices 1 and 3) look bad.
                 // Restrict to Frame 1 and 3 (Indices 0 and 2).
-                const ALLOWED_FRAMES = [0, 2];
                 // We need to know which "step" of the allowed frames we are on.
                 // We can just toggle between 0 and 2.
                 const current = spriteFrameRef.current;
