@@ -29,7 +29,7 @@ describe('fetchWithSupabaseAuth', () => {
             data: { session: { access_token: 'token-123' } },
         })
 
-        const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 200 }))
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }))
 
         await fetchWithSupabaseAuth('/api/test', { headers: { 'X-Test': 'yes' } })
 
@@ -42,7 +42,7 @@ describe('fetchWithSupabaseAuth', () => {
         supabaseMock.supabase.auth.getSession.mockResolvedValue({
             data: { session: { access_token: 'token-123' } },
         })
-        vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 401 }))
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }))
 
         await fetchWithSupabaseAuth('/api/test')
 

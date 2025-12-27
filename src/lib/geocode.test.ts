@@ -29,7 +29,7 @@ describe('geocodeLocation', () => {
     it('returns cached results when available', async () => {
         localStorage.setItem('geocode:helsinki', JSON.stringify({ lat: 60.17, lon: 24.94 }))
 
-        const fetchSpy = vi.spyOn(global, 'fetch')
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
         const result = await geocodeLocation('Helsinki')
         expect(result).toEqual({ lat: 60.17, lon: 24.94 })
@@ -37,7 +37,7 @@ describe('geocodeLocation', () => {
     })
 
     it('stores results after successful fetch', async () => {
-        const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: true,
             json: async () => [{ lat: '60.2', lon: '24.9' }],
         } as any)
@@ -52,7 +52,7 @@ describe('geocodeLocation', () => {
     })
 
     it('returns null when no results are found', async () => {
-        vi.spyOn(global, 'fetch').mockResolvedValue({
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: true,
             json: async () => [],
         } as any)
@@ -62,7 +62,7 @@ describe('geocodeLocation', () => {
     })
 
     it('returns null for empty locations', async () => {
-        const fetchSpy = vi.spyOn(global, 'fetch')
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
         const result = await geocodeLocation('   ')
         expect(result).toBeNull()
         expect(fetchSpy).not.toHaveBeenCalled()
@@ -70,7 +70,7 @@ describe('geocodeLocation', () => {
 
     it('ignores invalid cached values and fetches', async () => {
         localStorage.setItem('geocode:invalid', JSON.stringify({ lat: 'nope', lon: null }))
-        const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: true,
             json: async () => [{ lat: '60.2', lon: '24.9' }],
         } as any)
@@ -81,7 +81,7 @@ describe('geocodeLocation', () => {
     })
 
     it('returns null when response is not ok', async () => {
-        vi.spyOn(global, 'fetch').mockResolvedValue({
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: false,
             json: async () => [],
         } as any)
@@ -91,7 +91,7 @@ describe('geocodeLocation', () => {
     })
 
     it('returns null when coordinates are invalid', async () => {
-        vi.spyOn(global, 'fetch').mockResolvedValue({
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: true,
             json: async () => [{ lat: 'NaN', lon: 'NaN' }],
         } as any)
@@ -101,14 +101,14 @@ describe('geocodeLocation', () => {
     })
 
     it('returns null on abort error', async () => {
-        vi.spyOn(global, 'fetch').mockRejectedValue(Object.assign(new Error('Aborted'), { name: 'AbortError' }))
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(Object.assign(new Error('Aborted'), { name: 'AbortError' }))
 
         const result = await geocodeLocation('Abort here')
         expect(result).toBeNull()
     })
 
     it('returns null on generic fetch errors', async () => {
-        vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network down'))
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
 
         const result = await geocodeLocation('Offline')
         expect(result).toBeNull()

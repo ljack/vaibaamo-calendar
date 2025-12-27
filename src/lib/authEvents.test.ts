@@ -3,9 +3,11 @@ import { listenToAuthEvents } from './authEvents'
 
 const supabaseMock = vi.hoisted(() => {
     const unsubscribe = vi.fn()
-    const onAuthStateChange = vi.fn(() => ({
-        data: { subscription: { unsubscribe } },
-    }))
+    const onAuthStateChange = vi.fn(
+        (_callback: (event: string, session: { user: { id: string } } | null) => void) => ({
+            data: { subscription: { unsubscribe } },
+        })
+    )
     const supabase = {
         auth: {
             onAuthStateChange,
@@ -39,7 +41,12 @@ describe('listenToAuthEvents', () => {
 
         expect(supabaseMock.onAuthStateChange).toHaveBeenCalled()
 
-        const callback = supabaseMock.onAuthStateChange.mock.calls[0][0]
+        const callback = supabaseMock.onAuthStateChange.mock.calls[0]?.[0] as
+            | ((event: string, session: { user: { id: string } } | null) => void)
+            | undefined
+        if (!callback) {
+            throw new Error('Expected auth state change callback')
+        }
         const session = { user: { id: 'user-1' } }
         callback('SIGNED_IN', session)
 
@@ -54,9 +61,11 @@ describe('listenToAuthEvents', () => {
         vi.stubEnv('VITE_SUPABASE_DEBUG_AUTH', 'true')
 
         const unsubscribe = vi.fn()
-        const onAuthStateChange = vi.fn(() => ({
+        const onAuthStateChange = vi.fn(
+            (_callback: (event: string, session: { user: { id: string } } | null) => void) => ({
             data: { subscription: { unsubscribe } },
-        }))
+            })
+        )
         const supabase = { auth: { onAuthStateChange } }
 
         vi.doMock('./supabase', () => ({
@@ -69,7 +78,12 @@ describe('listenToAuthEvents', () => {
         const handler = vi.fn()
         const cleanup = listenToAuthEvents(handler)
 
-        const callback = onAuthStateChange.mock.calls[0][0]
+        const callback = onAuthStateChange.mock.calls[0]?.[0] as
+            | ((event: string, session: { user: { id: string } } | null) => void)
+            | undefined
+        if (!callback) {
+            throw new Error('Expected auth state change callback')
+        }
         callback('SIGNED_OUT', null)
 
         expect(handler).toHaveBeenCalledWith('SIGNED_OUT', null)

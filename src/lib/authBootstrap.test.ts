@@ -64,10 +64,14 @@ describe('initAuthOnce', () => {
 
     it('logs when getSession resolves after timeout', async () => {
         const supabaseMock = createSupabaseMock()
-        let resolveSession: ((value: any) => void) | null = null
-        const sessionPromise = new Promise((resolve) => {
+        let resolveSession:
+            | ((value: { data: { session: { user: { id: string } } | null }; error: Error | null }) => void)
+            | undefined
+        const sessionPromise = new Promise<{ data: { session: { user: { id: string } } | null }; error: Error | null }>(
+            (resolve) => {
             resolveSession = resolve
-        })
+            }
+        )
         supabaseMock.auth.getSession.mockReturnValue(sessionPromise)
 
         vi.doMock('./supabase', () => ({
@@ -84,7 +88,11 @@ describe('initAuthOnce', () => {
 
         expect(result.timedOut).toBe(true)
 
-        resolveSession?.({
+        if (!resolveSession) {
+            throw new Error('resolveSession not set')
+        }
+
+        resolveSession({
             data: { session: { user: { id: 'late-user' } } },
             error: null,
         })
