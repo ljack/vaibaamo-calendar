@@ -27,6 +27,10 @@ serve(async (req) => {
             if (userRes.error) throw userRes.error;
             const user = userRes.data.user;
 
+            const origin = req.headers.get("Origin") || url.origin;
+            const originUrl = new URL(origin);
+            const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
+
             // Get existing passkeys
             const { data: existingPasskeys } = await supabase
                 .from("passkeys")
@@ -35,7 +39,7 @@ serve(async (req) => {
 
             const options = await SimpleWebAuthn.generateRegistrationOptions({
                 rpName: "Vaibaamo Calendar",
-                rpID: url.hostname === "localhost" ? "localhost" : url.hostname,
+                rpID,
                 userID: new TextEncoder().encode(user.id),
                 userName: user.email!,
                 attestationType: "none",
@@ -79,11 +83,15 @@ serve(async (req) => {
 
             if (challengeError || !challengeData) throw new Error("Challenge not found or expired");
 
+            const origin = req.headers.get("Origin") || url.origin;
+            const originUrl = new URL(origin);
+            const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
+
             const verification = await SimpleWebAuthn.verifyRegistrationResponse({
                 response: body,
                 expectedChallenge: challengeData.challenge,
-                expectedOrigin: req.headers.get("Origin") || url.origin,
-                expectedRPID: url.hostname === "localhost" ? "localhost" : url.hostname,
+                expectedOrigin: origin,
+                expectedRPID: rpID,
             });
 
             if (verification.verified && verification.registrationInfo) {
@@ -91,10 +99,12 @@ serve(async (req) => {
 
                 const { error: saveError } = await supabase.from("passkeys").insert({
                     user_id: user.id,
-                    credential_id: credentialID,
+                    credential_id: SimpleWebAuthn.isoBase64.fromUint8Array(credentialID),
                     public_key: btoa(String.fromCharCode(...new Uint8Array(credentialPublicKey))),
                     counter,
                     transports: body.response.transports || [],
+                    rp_id: rpID,
+                    origin: origin,
                 });
 
                 if (saveError) throw saveError;
@@ -111,10 +121,12 @@ serve(async (req) => {
 
         // 3. Login Options
         if (path === "login-options") {
-            const body = await req.json(); // May contain email if we want to filter
+            const origin = req.headers.get("Origin") || url.origin;
+            const originUrl = new URL(origin);
+            const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
 
             const options = await SimpleWebAuthn.generateAuthenticationOptions({
-                rpID: url.hostname === "localhost" ? "localhost" : url.hostname,
+                rpID,
                 userVerification: "preferred",
             });
 
@@ -131,34 +143,44 @@ serve(async (req) => {
         // 4. Login Verify
         if (path === "login-verify") {
             const body = await req.json();
+            const { credential, challenge } = body;
+
+            if (!credential || !challenge) {
+                throw new Error("Missing credential or challenge in request");
+            }
 
             // Get challenge
             const { data: challengeData, error: challengeError } = await supabase
                 .from("webauthn_challenges")
                 .select("challenge")
-                .eq("challenge", body.response.challenge) // Ideally we have a better way, but for POC
+                .eq("challenge", challenge)
                 .gt("expires_at", new Date().toISOString())
                 .single();
 
             if (challengeError || !challengeData) throw new Error("Challenge not found or expired");
 
+            const origin = req.headers.get("Origin") || url.origin;
+            const originUrl = new URL(origin);
+            const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
+
             // Find passkey
             const { data: passkey, error: passkeyError } = await supabase
                 .from("passkeys")
                 .select("*")
-                .eq("credential_id", body.id)
+                .eq("credential_id", credential.id)
+                .eq("rp_id", rpID)
                 .single();
 
-            if (passkeyError || !passkey) throw new Error("Passkey not found");
+            if (passkeyError || !passkey) throw new Error("Passkey not found for this host");
 
             // Convert stored public key back to Uint8Array
             const publicKey = new Uint8Array(atob(passkey.public_key).split("").map(c => c.charCodeAt(0)));
 
             const verification = await SimpleWebAuthn.verifyAuthenticationResponse({
-                response: body,
+                response: credential,
                 expectedChallenge: challengeData.challenge,
-                expectedOrigin: req.headers.get("Origin") || url.origin,
-                expectedRPID: url.hostname === "localhost" ? "localhost" : url.hostname,
+                expectedOrigin: origin,
+                expectedRPID: rpID,
                 authenticator: {
                     credentialID: passkey.credential_id,
                     credentialPublicKey: publicKey,
