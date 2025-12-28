@@ -24,7 +24,8 @@ export const passkeyService = {
         if (regError) throw regError;
 
         // 2. Start WebAuthn registration
-        const attResp = await startRegistration(regOptions);
+        // SimpleWebAuthn v10+ expects { optionsJSON: ... }
+        const attResp = await startRegistration({ optionsJSON: regOptions });
 
         // 3. Verify registration with Edge Function
         const { data: verification, error: verifyError } = await supabase.functions.invoke(`${FUNCTION_NAME}/register-verify`, {
@@ -46,22 +47,22 @@ export const passkeyService = {
         if (optionsError) throw optionsError;
 
         // 2. Start WebAuthn authentication
-        const asseResp = await startAuthentication(loginOptions);
+        // SimpleWebAuthn v10+ expects { optionsJSON: ... }
+        const asseResp = await startAuthentication({ optionsJSON: loginOptions });
 
         // 3. Verify authentication with Edge Function
         const { data: verification, error: verifyError } = await supabase.functions.invoke(`${FUNCTION_NAME}/login-verify`, {
-            body: asseResp
+            body: {
+                credential: asseResp,
+                challenge: loginOptions.challenge
+            }
         });
 
         if (verifyError) throw verifyError;
 
-        if (verification.verified && verification.properties?.action_link) {
-            // The Edge Function returns a magic link token hash or full link
-            // We can use supabase.auth.verifyOtp to sign in if it's a token_hash,
-            // or just redirect if it's a full link.
-            // My Edge Function returned linkData from admin.generateLink.
-
-            const { hashed_token, email } = verification.properties;
+        if (verification.verified && verification.hashed_token) {
+            // The Edge Function returns a magic link token hash spread at the top level
+            const { hashed_token, email } = verification;
 
             const { data: authData, error: authError } = await supabase.auth.verifyOtp({
                 email,

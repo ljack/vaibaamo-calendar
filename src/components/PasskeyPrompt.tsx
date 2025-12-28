@@ -3,19 +3,19 @@ import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
 
 export function PasskeyPrompt() {
-    const { user, passkeySupported, hasPasskey, refreshPasskeyStatus } = useAuth()
+    const { user, loading: authLoading, passkeySupported, hasPasskey, refreshPasskeyStatus } = useAuth()
     const [isVisible, setIsVisible] = useState(false)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
     useEffect(() => {
         const isDismissed = localStorage.getItem('passkey_prompt_dismissed') === 'true'
-        if (user && passkeySupported && !hasPasskey && !isDismissed) {
+        if (!authLoading && user && passkeySupported && !hasPasskey && !isDismissed) {
             setIsVisible(true)
         } else {
             setIsVisible(false)
         }
-    }, [user, passkeySupported, hasPasskey])
+    }, [user, authLoading, passkeySupported, hasPasskey])
 
     const handleDismiss = () => {
         localStorage.setItem('passkey_prompt_dismissed', 'true')

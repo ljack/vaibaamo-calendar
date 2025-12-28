@@ -179,8 +179,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(session?.user ?? null)
                 if (session?.user) {
                     await checkAdminStatus(session.user.id)
+                    await refreshPasskeyStatus()
                 } else {
                     setIsAdmin(false)
+                    setHasPasskey(false)
                 }
             } catch (err) {
                 if (DEBUG_AUTH) console.error(`[AuthContext] getSession threw on ${reason}`, err)
