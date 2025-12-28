@@ -43,21 +43,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [hasPasskey, setHasPasskey] = useState(false)
 
     const refreshPasskeyStatus = async () => {
-        if (!user) {
-            setHasPasskey(false)
-            return
-        }
+        if (!user) return
         try {
             const supabase = getSupabase()
-            const { data } = await supabase
+            const hostname = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+            const { count, error } = await supabase
                 .from('passkeys')
-                .select('id')
+                .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
-                .limit(1)
+                .eq('rp_id', hostname)
 
-            setHasPasskey((data?.length ?? 0) > 0)
-        } catch (error) {
-            console.error('Error refreshing passkey status', error)
+            if (!error) {
+                setHasPasskey((count ?? 0) > 0)
+            } else {
+                console.error('[AuthContext] Error fetching passkey count:', error)
+                setHasPasskey(false)
+            }
+        } catch (err) {
+            console.error('[AuthContext] Error refreshing passkey status:', err)
+            setHasPasskey(false)
         }
     }
 
