@@ -2,11 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import * as SimpleWebAuthn from "https://esm.sh/@simplewebauthn/server@10.0.0";
 
+/**
+ * CORS headers for cross-origin requests
+ */
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * WebAuthn Edge Function Handler
+ * 
+ * Endpoints:
+ * - POST /register-options: Get WebAuthn registration options
+ * - POST /register-verify: Verify WebAuthn registration response
+ * - POST /login-options: Get WebAuthn authentication options
+ * - POST /login-verify: Verify WebAuthn authentication response
+ */
 serve(async (req) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });

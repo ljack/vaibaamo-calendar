@@ -3,9 +3,13 @@ import { getSupabase } from './supabase';
 
 const FUNCTION_NAME = 'auth-webauthn';
 
+/**
+ * Service for managing WebAuthn (Passkey) authentication
+ */
 export const passkeyService = {
     /**
      * Check if the browser supports WebAuthn
+     * @returns {boolean} True if the browser supports WebAuthn Passkeys
      */
     isSupported: () => {
         return !!window.PublicKeyCredential &&
@@ -15,6 +19,8 @@ export const passkeyService = {
 
     /**
      * Register a new Passkey for the current user
+     * @returns {Promise<{verified: boolean}>} Registration verification result
+     * @throws {Error} If registration fails or user cancels
      */
     register: async () => {
         const supabase = getSupabase();
@@ -51,6 +57,8 @@ export const passkeyService = {
 
     /**
      * Login using an existing Passkey
+     * @returns {Promise<{user: object, session: object}>} Authentication data with user and session
+     * @throws {Error} If login fails or user cancels
      */
     login: async () => {
         const supabase = getSupabase();
