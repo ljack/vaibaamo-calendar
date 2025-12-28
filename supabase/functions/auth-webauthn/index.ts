@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import * as SimpleWebAuthn from "https://esm.sh/@simplewebauthn/server@10.0.0";
+import {
+    generateRegistrationOptions,
+    verifyRegistrationResponse,
+    generateAuthenticationOptions,
+    verifyAuthenticationResponse,
+    isoBase64,
+} from "https://esm.sh/@simplewebauthn/server@10.0.0";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -8,9 +14,10 @@ const corsHeaders = {
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
 };
 
-// Helper to encode Uint8Array to URL-safe Base64
-function toBase64URL(buffer: Uint8Array): string {
-    const base64 = btoa(String.fromCharCode(...buffer));
+// Robust helper to encode Uint8Array to URL-safe Base64
+function toBase64URL(buffer: Uint8Array | string): string {
+    if (typeof buffer === "string") return buffer; // Already encoded?
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
@@ -46,7 +53,7 @@ serve(async (req) => {
                 .select("credential_id")
                 .eq("user_id", user.id);
 
-            const options = await SimpleWebAuthn.generateRegistrationOptions({
+            const options = await generateRegistrationOptions({
                 rpName: "Vaibaamo Calendar",
                 rpID,
                 userID: new TextEncoder().encode(user.id),
@@ -103,7 +110,7 @@ serve(async (req) => {
 
             let verification;
             try {
-                verification = await SimpleWebAuthn.verifyRegistrationResponse({
+                verification = await verifyRegistrationResponse({
                     response: body,
                     expectedChallenge: challengeData.challenge,
                     expectedOrigin: origin,
@@ -154,7 +161,7 @@ serve(async (req) => {
             const originUrl = new URL(origin);
             const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
 
-            const options = await SimpleWebAuthn.generateAuthenticationOptions({
+            const options = await generateAuthenticationOptions({
                 rpID,
                 userVerification: "preferred",
             });
@@ -174,6 +181,8 @@ serve(async (req) => {
             const body = await req.json();
             const { credential, challenge } = body;
 
+            console.log(`[login-verify] Attempting login with challenge: ${challenge}`);
+
             if (!credential || !challenge) {
                 throw new Error("Missing credential or challenge in request");
             }
@@ -186,11 +195,16 @@ serve(async (req) => {
                 .gt("expires_at", new Date().toISOString())
                 .single();
 
-            if (challengeError || !challengeData) throw new Error("Challenge not found or expired");
+            if (challengeError || !challengeData) {
+                console.error(`[login-verify] Challenge not found or expired: ${challenge}`);
+                throw new Error("Challenge not found or expired");
+            }
 
             const origin = req.headers.get("Origin") || url.origin;
             const originUrl = new URL(origin);
             const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
+
+            console.log(`[login-verify] origin: ${origin}, rpID: ${rpID}`);
 
             // Find passkey
             const { data: passkey, error: passkeyError } = await supabase
@@ -200,22 +214,35 @@ serve(async (req) => {
                 .eq("rp_id", rpID)
                 .single();
 
-            if (passkeyError || !passkey) throw new Error("Passkey not found for this host");
+            if (passkeyError || !passkey) {
+                console.error(`[login-verify] Passkey not found for credential: ${credential.id} and rpID: ${rpID}`);
+                throw new Error("Passkey not found for this host");
+            }
+
+            console.log(`[login-verify] Found passkey for user: ${passkey.user_id}`);
 
             // Convert stored public key back to Uint8Array
             const publicKey = new Uint8Array(atob(passkey.public_key).split("").map(c => c.charCodeAt(0)));
 
-            const verification = await SimpleWebAuthn.verifyAuthenticationResponse({
-                response: credential,
-                expectedChallenge: challengeData.challenge,
-                expectedOrigin: origin,
-                expectedRPID: rpID,
-                authenticator: {
-                    credentialID: passkey.credential_id,
-                    credentialPublicKey: publicKey,
-                    counter: passkey.counter,
-                },
-            });
+            let verification;
+            try {
+                verification = await verifyAuthenticationResponse({
+                    response: credential,
+                    expectedChallenge: challengeData.challenge,
+                    expectedOrigin: origin,
+                    expectedRPID: rpID,
+                    authenticator: {
+                        credentialID: passkey.credential_id,
+                        credentialPublicKey: publicKey,
+                        counter: passkey.counter,
+                    },
+                });
+            } catch (vErr: any) {
+                console.error(`[login-verify] SimpleWebAuthn error:`, vErr);
+                throw new Error(`Verification error: ${vErr.message}`);
+            }
+
+            console.log(`[login-verify] Verification result:`, verification.verified);
 
             if (verification.verified) {
                 // Update counter
