@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { passkeyService } from '../lib/passkeyService'
 
 export default function Login() {
     const navigate = useNavigate()
-    const { user } = useAuth()
+    const { user, passkeySupported } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [usePassword, setUsePassword] = useState(false)
@@ -55,6 +56,23 @@ export default function Login() {
             setMessage({
                 type: 'error',
                 text: error.message || 'Virhe kirjautumisessa.',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handlePasskeyLogin = async () => {
+        setLoading(true)
+        setMessage(null)
+        try {
+            await passkeyService.login()
+            navigate('/')
+        } catch (error: any) {
+            console.error('Passkey login error:', error)
+            setMessage({
+                type: 'error',
+                text: error.message || 'Virhe avainkoodilla kirjautumisessa.',
             })
         } finally {
             setLoading(false)
@@ -178,6 +196,32 @@ export default function Login() {
                                     : 'Lähetä kirjautumislinkki'}
                         </button>
                     </div>
+
+                    {passkeySupported && (
+                        <div className="pt-2">
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-gray-300"></div>
+                                </div>
+                                <div className="relative flex justify-center text-sm">
+                                    <span className="bg-white px-2 text-gray-500">Tai käytä</span>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handlePasskeyLogin}
+                                disabled={loading}
+                                className="mt-4 group relative flex w-full justify-center rounded-md border border-gray-300 py-2.5 px-3 text-sm font-semibold text-gray-900 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-70 gap-2 items-center"
+                            >
+                                <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zM7 7a3 3 0 116 0v2H7V7zm3 11a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                                </svg>
+                                Kirjaudu avainkoodilla
+                            </button>
+                        </div>
+                    )}
+
                     {usePassword && (
                         <div>
                             <button

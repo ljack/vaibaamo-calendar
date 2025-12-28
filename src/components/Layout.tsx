@@ -4,6 +4,7 @@ import { UpdateNotification } from './UpdateNotification'
 import { useKonamiCode } from '../hooks/useKonamiCode'
 import JourneyOverlay from './JourneyOverlay'
 import { useEffect, useState } from 'react'
+import { PasskeyPrompt } from './PasskeyPrompt'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../types'
 
@@ -111,6 +112,8 @@ export default function Layout() {
                     </div>
                 </div>
             </nav>
+
+            <PasskeyPrompt />
 
             <main className="flex-1 max-w-7xl w-full mx-auto py-6 sm:px-6 lg:px-8">
                 <Outlet />
