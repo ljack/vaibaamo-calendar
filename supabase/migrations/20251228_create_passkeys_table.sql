@@ -6,6 +6,8 @@ create table if not exists public.passkeys (
   public_key text not null,
   counter bigint not null default 0,
   transports text[] default '{}',
+  rp_id text,
+  origin text,
   created_at timestamptz default now(),
   last_used_at timestamptz
 );
