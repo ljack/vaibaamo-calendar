@@ -12,7 +12,7 @@ test.describe('E2E Public Access', () => {
 
         // 2. Verify Events List is present
         // Check for the "Tulevat tapahtumat" (Upcoming Events) header
-        const eventsHeader = page.getByRole('heading', { name: /tulevat tapahtumat/i });
+        const eventsHeader = page.getByRole('heading', { name: 'Tulevat tapahtumat', exact: true });
         await expect(eventsHeader).toBeVisible();
 
         // 3. Verify at least one event card is visible

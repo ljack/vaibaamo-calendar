@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Journey Game', () => {
+    test.beforeEach(async ({ page }) => {
+        // Mock geocoding to avoid network flakes and speed up tests
+        await page.route('**/nominatim.openstreetmap.org/search*', async route => {
+            const url = new URL(route.request().url());
+            const query = url.searchParams.get('q') || '';
+
+            // Return fixed coordinates for testing
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify([{
+                    lat: query.includes('Helsinki') ? '60.1699' : '61.4978',
+                    lon: query.includes('Helsinki') ? '24.9384' : '23.7610',
+                }])
+            });
+        });
+    });
+
     test('Game starts with URL parameters and map is visible', async ({ page }) => {
         // Navigate directly to the game with URL parameters
         await page.goto('/?car=red&difficulty=normal');
@@ -21,7 +39,8 @@ test.describe('Journey Game', () => {
         await expect(journeyMap).toBeVisible();
 
         // Critical: Verify Leaflet map is initialized and rendering
-        const leafletContainer = page.locator('.leaflet-container');
+        // Use more specific selector to avoid matching other leaflet containers if they exist (e.g. in background)
+        const leafletContainer = page.locator('.journey-map.leaflet-container');
         await expect(leafletContainer).toBeVisible();
 
         // Verify map has content (tiles loaded)
@@ -58,7 +77,8 @@ test.describe('Journey Game', () => {
 
     test('Game can be started with Konami code', async ({ page }) => {
         await page.goto('/');
-        await page.waitForLoadState('networkidle');
+        // Instead of networkidle which can be flaky/slow, wait for the main content
+        await expect(page.getByRole('heading', { name: 'Tulevat tapahtumat', exact: true })).toBeVisible();
 
         // Trigger Konami code: ↑ ↑ ↓ ↓ ← → ← → B A
         await page.keyboard.press('ArrowUp');
@@ -89,10 +109,11 @@ test.describe('Journey Game', () => {
         await normalButton.click();
 
         // Verify game started and map is visible
-        const journeyMap = page.locator('.journey-map');
-        await expect(journeyMap).toBeVisible();
+        // Increasing timeout as geocoding might take a moment
+        const journeyMap = page.locator('.journey-overlay .journey-map');
+        await expect(journeyMap).toBeVisible({ timeout: 10000 });
 
-        const leafletContainer = page.locator('.leaflet-container');
+        const leafletContainer = page.locator('.journey-overlay .leaflet-container');
         await expect(leafletContainer).toBeVisible({ timeout: 5000 });
     });
 
@@ -108,7 +129,7 @@ test.describe('Journey Game', () => {
         }
 
         // Verify map is visible (tiles are loaded)
-        const mapElement = page.locator('.leaflet-container');
+        const mapElement = page.locator('.journey-map.leaflet-container');
         await expect(mapElement).toBeVisible();
 
         // Simulate driving - press accelerate key repeatedly
