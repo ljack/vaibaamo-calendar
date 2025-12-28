@@ -213,7 +213,7 @@ describe('passkeyService', () => {
             })
 
             // Test & Assert
-            await expect(passkeyService.login()).rejects.toThrow('Challenge ID not provided by server')
+            await expect(passkeyService.login()).rejects.toThrow('Palvelin ei palauttanut haaste-tunnistetta')
         })
 
         it('should throw user-friendly error when user cancels login', async () => {
@@ -246,7 +246,7 @@ describe('passkeyService', () => {
             mockStartAuthentication.mockResolvedValue({ id: 'cred' })
 
             // Test & Assert
-            await expect(passkeyService.login()).rejects.toThrow('Login failed: Verification succeeded but no login link returned')
+            await expect(passkeyService.login()).rejects.toThrow('Kirjautuminen epäonnistui')
         })
     })
 })

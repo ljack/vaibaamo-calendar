@@ -67,11 +67,11 @@ export const passkeyService = {
             // 1. Get login options
             const { data: loginOptions, error: optionsError } = await supabase.functions.invoke(`${FUNCTION_NAME}/login-options`);
             if (optionsError) throw optionsError;
-            if (!loginOptions) throw new Error('Failed to get login options');
+            if (!loginOptions) throw new Error('Kirjautumisasetusten haku epäonnistui');
 
             // Extract challengeId for verification
             const { challengeId, ...webAuthnOptions } = loginOptions;
-            if (!challengeId) throw new Error('Challenge ID not provided by server');
+            if (!challengeId) throw new Error('Palvelin ei palauttanut haaste-tunnistetta');
 
             // 2. Start WebAuthn authentication
             const asseResp = await startAuthentication(webAuthnOptions);
@@ -101,7 +101,7 @@ export const passkeyService = {
                 return authData;
             }
 
-            throw new Error('Login failed: Verification succeeded but no login link returned');
+            throw new Error('Kirjautuminen epäonnistui: Vahvistus onnistui mutta kirjautumislinkkiä ei palautettu');
         } catch (error) {
             // Handle specific WebAuthn errors
             if (error instanceof Error) {
