@@ -9,8 +9,11 @@ type AuthContextType = {
     user: User | null
     isAdmin: boolean
     loading: boolean
+    passkeySupported: boolean
+    hasPasskey: boolean
     signOut: () => Promise<void>
     checkSession: () => Promise<boolean>
+    refreshPasskeyStatus: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,8 +21,11 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     isAdmin: false,
     loading: true,
+    passkeySupported: false,
+    hasPasskey: false,
     signOut: async () => { },
     checkSession: async () => false,
+    refreshPasskeyStatus: async () => { },
 })
 
 export const useAuth = () => {
@@ -33,6 +39,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [isAdmin, setIsAdmin] = useState(false)
     const [loading, setLoading] = useState(true)
+    const [passkeySupported, setPasskeySupported] = useState(false)
+    const [hasPasskey, setHasPasskey] = useState(false)
+
+    const refreshPasskeyStatus = async () => {
+        if (!user) {
+            setHasPasskey(false)
+            return
+        }
+        try {
+            const supabase = getSupabase()
+            const { data } = await supabase
+                .from('passkeys')
+                .select('id')
+                .eq('user_id', user.id)
+                .limit(1)
+
+            setHasPasskey((data?.length ?? 0) > 0)
+        } catch (error) {
+            console.error('Error refreshing passkey status', error)
+        }
+    }
 
     const checkAdminStatus = async (userId: string) => {
         try {
@@ -90,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setSession(session)
                     setUser(user)
                     await checkAdminStatus(user.id)
+                    await refreshPasskeyStatus()
                 } else {
                     if (DEBUG_AUTH) console.log('[AuthContext] No valid session from bootstrap')
                     setSession(null)
@@ -129,8 +157,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (nextSession?.user) {
                 await checkAdminStatus(nextSession.user.id)
+                await refreshPasskeyStatus()
             } else {
                 setIsAdmin(false)
+                setHasPasskey(false)
             }
 
             // Should be loaded by now if an event fires
@@ -169,6 +199,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         window.addEventListener('focus', handleFocus)
         document.addEventListener('visibilitychange', handleVisibility)
+
+        // Check for WebAuthn support
+        if (window.PublicKeyCredential) {
+            // Check if platform authenticator is available (biometrics etc)
+            PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
+                setPasskeySupported(supported)
+            })
+        }
 
         return () => {
             mounted = false
@@ -213,8 +251,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAdmin,
         loading,
+        passkeySupported,
+        hasPasskey,
         signOut,
         checkSession,
+        refreshPasskeyStatus
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
