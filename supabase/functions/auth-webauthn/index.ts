@@ -87,6 +87,8 @@ serve(async (req) => {
             const originUrl = new URL(origin);
             const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
 
+            console.log(`[register-verify] origin: ${origin}, rpID: ${rpID}`);
+
             const verification = await SimpleWebAuthn.verifyRegistrationResponse({
                 response: body,
                 expectedChallenge: challengeData.challenge,
@@ -94,12 +96,17 @@ serve(async (req) => {
                 expectedRPID: rpID,
             });
 
+            console.log(`[register-verify] verified: ${verification.verified}`);
+
             if (verification.verified && verification.registrationInfo) {
                 const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
 
+                const encodedID = SimpleWebAuthn.isoBase64.fromUint8Array(credentialID);
+                console.log(`[register-verify] Saving passkey with credentialID: ${encodedID} for user ${user.id}`);
+
                 const { error: saveError } = await supabase.from("passkeys").insert({
                     user_id: user.id,
-                    credential_id: SimpleWebAuthn.isoBase64.fromUint8Array(credentialID),
+                    credential_id: encodedID,
                     public_key: btoa(String.fromCharCode(...new Uint8Array(credentialPublicKey))),
                     counter,
                     transports: body.response.transports || [],
@@ -107,7 +114,10 @@ serve(async (req) => {
                     origin: origin,
                 });
 
-                if (saveError) throw saveError;
+                if (saveError) {
+                    console.error(`[register-verify] Save error:`, saveError);
+                    throw saveError;
+                }
 
                 // Cleanup challenge
                 await supabase.from("webauthn_challenges").delete().eq("user_id", user.id);
