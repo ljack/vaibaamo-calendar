@@ -18,7 +18,9 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Run Playwright tests against Deployment
-        run: npx playwright test
+        run: |
+          echo "Targeting URL: $TEST_URL"
+          npx playwright test
         env:
           # Use the URL from the deployment (Preview or Production)
           TEST_URL: ${{ github.event.deployment_status.target_url }}
