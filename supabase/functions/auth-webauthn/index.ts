@@ -5,7 +5,6 @@ import {
     verifyRegistrationResponse,
     generateAuthenticationOptions,
     verifyAuthenticationResponse,
-    isoBase64,
 } from "https://esm.sh/@simplewebauthn/server@10.0.0";
 
 const corsHeaders = {
@@ -59,7 +58,7 @@ serve(async (req) => {
                 userID: new TextEncoder().encode(user.id),
                 userName: user.email!,
                 attestationType: "none",
-                excludeCredentials: existingPasskeys?.map((pk) => ({
+                excludeCredentials: existingPasskeys?.map((pk: any) => ({
                     id: pk.credential_id,
                     type: "public-key",
                 })),
@@ -127,7 +126,7 @@ serve(async (req) => {
                 const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
 
                 const encodedID = toBase64URL(credentialID);
-                console.log(`[register-verify] Success! Saving credentialID: ${encodedID}`);
+                console.log(`[register-verify] Success! Saving credentialID: ${encodedID} (Raw: ${typeof credentialID})`);
 
                 const { error: saveError } = await supabase.from("passkeys").insert({
                     user_id: user.id,
@@ -258,14 +257,22 @@ serve(async (req) => {
                 const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
                     type: "magiclink",
                     email: userData.user.email!,
+                    options: { redirectTo: origin }
                 });
 
                 if (linkError) throw linkError;
 
+                console.log(`[login-verify] Link generated successfully:`, JSON.stringify(linkData));
+
                 // Cleanup challenge
                 await supabase.from("webauthn_challenges").delete().eq("challenge", challengeData.challenge);
 
-                return new Response(JSON.stringify({ verified: true, ...linkData }), {
+                return new Response(JSON.stringify({
+                    verified: true,
+                    email: userData.user.email,
+                    ...linkData.properties,
+                    user: userData.user
+                }), {
                     headers: { ...corsHeaders, "Content-Type": "application/json" },
                 });
             }

@@ -13,7 +13,7 @@ type AuthContextType = {
     hasPasskey: boolean
     signOut: () => Promise<void>
     checkSession: () => Promise<boolean>
-    refreshPasskeyStatus: () => Promise<void>
+    refreshPasskeyStatus: (userId?: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,7 +25,7 @@ const AuthContext = createContext<AuthContextType>({
     hasPasskey: false,
     signOut: async () => { },
     checkSession: async () => false,
-    refreshPasskeyStatus: async () => { },
+    refreshPasskeyStatus: async (_userId?: string) => { },
 })
 
 export const useAuth = () => {
@@ -42,15 +42,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [passkeySupported, setPasskeySupported] = useState(false)
     const [hasPasskey, setHasPasskey] = useState(false)
 
-    const refreshPasskeyStatus = async () => {
-        if (!user) return
+    const refreshPasskeyStatus = async (userIdOverride?: string) => {
+        const effectiveUserId = userIdOverride || user?.id
+        if (!effectiveUserId) return
+
         try {
             const supabase = getSupabase()
             const hostname = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
             const { count, error } = await supabase
                 .from('passkeys')
                 .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
+                .eq('user_id', effectiveUserId)
                 .eq('rp_id', hostname)
 
             if (!error) {
@@ -121,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setSession(session)
                     setUser(user)
                     await checkAdminStatus(user.id)
-                    await refreshPasskeyStatus()
+                    await refreshPasskeyStatus(user.id)
                 } else {
                     if (DEBUG_AUTH) console.log('[AuthContext] No valid session from bootstrap')
                     setSession(null)
@@ -161,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (nextSession?.user) {
                 await checkAdminStatus(nextSession.user.id)
-                await refreshPasskeyStatus()
+                await refreshPasskeyStatus(nextSession.user.id)
             } else {
                 setIsAdmin(false)
                 setHasPasskey(false)
@@ -183,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(session?.user ?? null)
                 if (session?.user) {
                     await checkAdminStatus(session.user.id)
-                    await refreshPasskeyStatus()
+                    await refreshPasskeyStatus(session.user.id)
                 } else {
                     setIsAdmin(false)
                     setHasPasskey(false)
