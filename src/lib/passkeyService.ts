@@ -60,14 +60,13 @@ export const passkeyService = {
 
         if (verifyError) throw verifyError;
 
-        if (verification.verified && verification.hashed_token) {
-            // The Edge Function returns a magic link token hash spread at the top level
-            const { hashed_token, email } = verification;
+        if (verification.verified && (verification.hashed_token || verification.email_otp)) {
+            const { hashed_token, email, email_otp } = verification;
 
             const { data: authData, error: authError } = await supabase.auth.verifyOtp({
                 email,
-                token: hashed_token,
-                type: 'magiclink'
+                token: email_otp || hashed_token,
+                type: email_otp ? 'email' : 'magiclink'
             });
 
             if (authError) throw authError;
