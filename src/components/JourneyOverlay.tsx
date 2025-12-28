@@ -46,6 +46,7 @@ const RED_CAR_SCALE = 0.15;
 
 const getCarSpriteUrl = (carType: CarType): string => {
     if (carType === 'red') return '/red_car.webp';
+    if (carType === 'blue') return '/blue_car_trimmed_alpha.png';
     return `/car_sprites_${carType}.png`;
 };
 
@@ -75,7 +76,8 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     const [carState, carControls] = useCarPhysics(difficulty || 'normal');
 
     // Sprite Animation
-    const spriteFrameRef = useRef(0);
+    // Both red and blue now use frame 1 exclusively
+    const spriteFrameRef = useRef((initialCar === 'red' || initialCar === 'blue') ? 1 : 0);
     const lastFrameTimeRef = useRef(0);
 
     // Map refs
@@ -107,15 +109,20 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     // 0. Load Car Manifests
     useEffect(() => {
         const loadManifests = async () => {
-            try {
-                const response = await fetch('/red_car.json');
-                if (response.ok) {
-                    const data = await response.json();
-                    setCarManifests(prev => ({ ...prev, red: data }));
+            const cars = ['red', 'blue'];
+            const newManifests: Record<string, CarManifest> = {};
+            for (const car of cars) {
+                try {
+                    const response = await fetch(`/${car}_car.json`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        newManifests[car] = data;
+                    }
+                } catch (err) {
+                    console.error(`[JourneyOverlay] Failed to load ${car} manifest:`, err);
                 }
-            } catch (err) {
-                console.error('[JourneyOverlay] Failed to load car manifest:', err);
             }
+            setCarManifests(prev => ({ ...prev, ...newManifests }));
         };
         loadManifests();
     }, []);
@@ -230,24 +237,24 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 });
 
                 const carSpriteUrl = getCarSpriteUrl(selectedCar || 'red');
-                const isRedCar = selectedCar === 'red';
-                const redCarData = carManifests['red'];
-                const initialFrame = isRedCar && redCarData ? redCarData.frames[0] : null;
+                const isManifestCar = selectedCar === 'red' || selectedCar === 'blue';
+                const manifest = selectedCar ? carManifests[selectedCar] : null;
+                const initialFrame = isManifestCar && manifest ? manifest.frames[1] : null; // Use frame index 1
 
                 const carIcon = L.divIcon({
-                    html: `<div class="car-sprite car-${selectedCar || 'red'} frame-0" style="
+                    html: `<div class="car-sprite car-${selectedCar || 'red'} ${isManifestCar ? 'frame-1' : 'frame-0'}" style="
                         transform: rotate(90deg);
                         background-image: url('${carSpriteUrl}');
-                        ${isRedCar ? `
+                        ${isManifestCar && manifest ? `
                             width: ${Math.round((initialFrame?.width || 241) * RED_CAR_SCALE)}px;
                             height: ${Math.round((initialFrame?.height || 290) * RED_CAR_SCALE)}px;
                             background-position: -${Math.round((initialFrame?.x || 0) * RED_CAR_SCALE)}px -${Math.round((initialFrame?.y || 0) * RED_CAR_SCALE)}px;
-                            background-size: ${Math.round(1024 * RED_CAR_SCALE)}px ${Math.round(1024 * RED_CAR_SCALE)}px;
+                            background-size: ${Math.round(manifest.meta.imageWidth * RED_CAR_SCALE)}px ${Math.round(manifest.meta.imageHeight * RED_CAR_SCALE)}px;
                         ` : ''}
                     "></div>`,
                     className: 'car-icon-marker',
-                    iconSize: isRedCar ? [Math.round(241 * RED_CAR_SCALE), Math.round(290 * RED_CAR_SCALE)] : [64, 96],
-                    iconAnchor: isRedCar ? [Math.round(120 * RED_CAR_SCALE), Math.round(145 * RED_CAR_SCALE)] : [32, 48]
+                    iconSize: isManifestCar && initialFrame ? [Math.round(initialFrame.width * RED_CAR_SCALE), Math.round(initialFrame.height * RED_CAR_SCALE)] : [64, 96],
+                    iconAnchor: isManifestCar && initialFrame ? [Math.round(initialFrame.width / 2 * RED_CAR_SCALE), Math.round(initialFrame.height / 2 * RED_CAR_SCALE)] : [32, 48]
                 });
                 carMarkerRef.current = L.marker([startPos.lat, startPos.lon], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
 
@@ -393,10 +400,13 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 const next = (spriteFrameRef.current + 1) % 2;
                 spriteFrameRef.current = next;
             } else if (speedKmH > 10) {
-                const redCarData = carManifests['red'];
-                const frameCount = (selectedCar === 'red' && redCarData) ? redCarData.frames.length : 4;
-                const next = (spriteFrameRef.current + 1) % frameCount;
-                spriteFrameRef.current = next;
+                if (selectedCar === 'red' || selectedCar === 'blue') {
+                    // Static frame 1 for manifest cars
+                    spriteFrameRef.current = 1;
+                } else {
+                    const next = (spriteFrameRef.current + 1) % 4;
+                    spriteFrameRef.current = next;
+                }
             }
         }
 
@@ -452,13 +462,15 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 if (iconEl) {
                     const inner = iconEl.querySelector('.car-sprite') as HTMLElement;
                     if (inner) {
-                        const redCarData = carManifests['red'];
-                        if (selectedCar === 'red' && redCarData) {
-                            const frame = redCarData.frames[spriteFrameRef.current];
+                        const manifest = selectedCar ? carManifests[selectedCar] : null;
+                        const isManifestCar = selectedCar === 'red' || selectedCar === 'blue';
+
+                        if (isManifestCar && manifest) {
+                            const frame = manifest.frames[spriteFrameRef.current];
                             inner.style.backgroundPosition = `-${Math.round(frame.x * RED_CAR_SCALE)}px -${Math.round(frame.y * RED_CAR_SCALE)}px`;
                             inner.style.width = `${Math.round(frame.width * RED_CAR_SCALE)}px`;
                             inner.style.height = `${Math.round(frame.height * RED_CAR_SCALE)}px`;
-                            inner.style.backgroundSize = `${Math.round(1024 * RED_CAR_SCALE)}px ${Math.round(1024 * RED_CAR_SCALE)}px`;
+                            inner.style.backgroundSize = `${Math.round(manifest.meta.imageWidth * RED_CAR_SCALE)}px ${Math.round(manifest.meta.imageHeight * RED_CAR_SCALE)}px`;
                             if (carState.isBroken) {
                                 inner.style.filter = 'grayscale(100%) sepia(100%) hue-rotate(0deg) saturate(500%) brightness(0.6)';
                             } else {

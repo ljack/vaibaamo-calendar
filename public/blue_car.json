@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "image": "blue_car_trimmed_alpha.png",
+        "imageWidth": 989,
+        "imageHeight": 347,
+        "frameCount": 4,
+        "layout": "horizontal",
+        "origin": "top-left"
+    },
+    "frames": [
+        {
+            "name": "car_frame_0",
+            "x": 0,
+            "y": 0,
+            "width": 247,
+            "height": 347
+        },
+        {
+            "name": "car_frame_1",
+            "x": 247,
+            "y": 0,
+            "width": 247,
+            "height": 347
+        },
+        {
+            "name": "car_frame_2",
+            "x": 494,
+            "y": 0,
+            "width": 247,
+            "height": 347
+        },
+        {
+            "name": "car_frame_3",
+            "x": 741,
+            "y": 0,
+            "width": 248,
+            "height": 347
+        }
+    ]
+}
