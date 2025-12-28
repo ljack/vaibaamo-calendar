@@ -18,6 +18,13 @@
     position: relative;
     background: radial-gradient(circle at center, #16213e 0%, #1a1a2e 100%);
     border-bottom: 4px solid #0f3460;
+    min-height: 200px;
+}
+
+.journey-map .leaflet-container {
+    width: 100%;
+    height: 100%;
+    background: transparent;
 }
 
 .map-node {
@@ -270,30 +277,9 @@
     transition: transform 0.1s linear;
 }
 
-/* RED CAR - Custom sizing and positioning */
-.car-sprite.car-red {
-    width: 64px;
-    height: 96px;
-    background-size: 1024px 256px !important;
-}
+/* RED CAR - Base styles (dimensions driven by JS) */
 
-.car-sprite.car-red.frame-0 {
-    background-position: -96px -80px;
-}
-
-.car-sprite.car-red.frame-1 {
-    background-position: -352px -80px;
-}
-
-.car-sprite.car-red.frame-2 {
-    background-position: -608px -80px;
-}
-
-.car-sprite.car-red.frame-3 {
-    background-position: -864px -80px;
-}
-
-/* BLUE CAR - Custom sizing and positioning */
+/* BLUE CAR - Custom sizing and positioning (Legacy) */
 .car-sprite.car-blue {
     width: 64px;
     height: 96px;
@@ -313,30 +299,6 @@
 }
 
 .car-sprite.car-blue.frame-3 {
-    background-position: -864px -80px;
-}
-
-/* Broken State - Reuse Frame 0 with filter */
-.broken-0,
-.broken-1 {
-    background-position: 0% 0%;
-    filter: grayscale(100%) sepia(100%) hue-rotate(0deg) saturate(500%) brightness(0.6);
-}
-
-/* Legacy support for frame classes without car type */
-.frame-0 {
-    background-position: -96px -80px;
-}
-
-.frame-1 {
-    background-position: -352px -80px;
-}
-
-.frame-2 {
-    background-position: -608px -80px;
-}
-
-.frame-3 {
     background-position: -864px -80px;
 }
 

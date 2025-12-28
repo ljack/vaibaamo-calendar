@@ -25,8 +25,27 @@ const ARRIVAL_MESSAGES = [
     "Adding more AI...",
 ];
 
-// Car sprite configuration
+// Car sprite and metadata interface
+interface CarManifest {
+    meta: {
+        image: string;
+        imageWidth: number;
+        imageHeight: number;
+        frameCount: number;
+    };
+    frames: Array<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }>;
+}
+
+// Car sprite scaling
+const RED_CAR_SCALE = 0.15;
+
 const getCarSpriteUrl = (carType: CarType): string => {
+    if (carType === 'red') return '/red_car.webp';
     return `/car_sprites_${carType}.png`;
 };
 
@@ -50,6 +69,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
     const [finalStats, setFinalStats] = useState<any>(null);
+    const [carManifests, setCarManifests] = useState<Record<string, CarManifest>>({});
 
     // Physics engine
     const [carState, carControls] = useCarPhysics(difficulty || 'normal');
@@ -83,6 +103,22 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         () => events.filter((event) => event.location?.trim()),
         [events]
     );
+
+    // 0. Load Car Manifests
+    useEffect(() => {
+        const loadManifests = async () => {
+            try {
+                const response = await fetch('/red_car.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    setCarManifests(prev => ({ ...prev, red: data }));
+                }
+            } catch (err) {
+                console.error('[JourneyOverlay] Failed to load car manifest:', err);
+            }
+        };
+        loadManifests();
+    }, []);
 
     // 1. Geocode Events - Only after car is selected and events are loaded
     useEffect(() => {
@@ -174,7 +210,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                     mapInstanceRef.current = null;
                 }
 
-                const startPos = geocodedEvents[0];
+                const startPos = positionRef.current || geocodedEvents[0];
                 const map = L.map(mapContainerRef.current, {
                     zoomControl: false,
                     attributionControl: false,
@@ -194,11 +230,24 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 });
 
                 const carSpriteUrl = getCarSpriteUrl(selectedCar || 'red');
+                const isRedCar = selectedCar === 'red';
+                const redCarData = carManifests['red'];
+                const initialFrame = isRedCar && redCarData ? redCarData.frames[0] : null;
+
                 const carIcon = L.divIcon({
-                    html: `<div class="car-sprite car-${selectedCar || 'red'} frame-0" style="transform: rotate(90deg); background-image: url('${carSpriteUrl}');"></div>`,
+                    html: `<div class="car-sprite car-${selectedCar || 'red'} frame-0" style="
+                        transform: rotate(90deg);
+                        background-image: url('${carSpriteUrl}');
+                        ${isRedCar ? `
+                            width: ${Math.round((initialFrame?.width || 241) * RED_CAR_SCALE)}px;
+                            height: ${Math.round((initialFrame?.height || 290) * RED_CAR_SCALE)}px;
+                            background-position: -${Math.round((initialFrame?.x || 0) * RED_CAR_SCALE)}px -${Math.round((initialFrame?.y || 0) * RED_CAR_SCALE)}px;
+                            background-size: ${Math.round(1024 * RED_CAR_SCALE)}px ${Math.round(1024 * RED_CAR_SCALE)}px;
+                        ` : ''}
+                    "></div>`,
                     className: 'car-icon-marker',
-                    iconSize: [64, 96],
-                    iconAnchor: [32, 48]
+                    iconSize: isRedCar ? [Math.round(241 * RED_CAR_SCALE), Math.round(290 * RED_CAR_SCALE)] : [64, 96],
+                    iconAnchor: isRedCar ? [Math.round(120 * RED_CAR_SCALE), Math.round(145 * RED_CAR_SCALE)] : [32, 48]
                 });
                 carMarkerRef.current = L.marker([startPos.lat, startPos.lon], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
 
@@ -209,9 +258,11 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
 
                 const latlngs: [number, number][] = curvedPath.map(p => [p.lat, p.lon]);
 
-                roadEdgeRef.current = L.polyline(latlngs, { color: '#f5d547', weight: 54, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-                roadBaseRef.current = L.polyline(latlngs, { color: '#333', weight: 50, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-                roadDashRef.current = L.polyline(latlngs, { color: '#fff', weight: 2, opacity: 1, dashArray: '20, 30', lineCap: 'butt' }).addTo(map);
+                roadEdgeRef.current = L.polyline(latlngs, { color: '#f5d547', weight: 44, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                roadBaseRef.current = L.polyline(latlngs, { color: '#1a1a1a', weight: 40, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                roadDashRef.current = L.polyline(latlngs, { color: '#fff', weight: 1.5, opacity: 0.6, dashArray: '20, 30', lineCap: 'butt' }).addTo(map);
+                // Highway glow/depth
+                L.polyline(latlngs, { color: '#000', weight: 50, opacity: 0.2, lineCap: 'round', lineJoin: 'round' }).addTo(map);
 
                 mapInstanceRef.current = map;
                 mapInitializedRef.current = true;
@@ -226,7 +277,10 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         if (geocodedEvents.length > 0 && (gameState === 'TRAVELING' || gameState === 'ARRIVED')) {
             initMap();
         }
+    }, [geocodedEvents.length, selectedCar, gameState]);
 
+    // 2b. Cleanup Map on Unmount ONLY
+    useEffect(() => {
         return () => {
             if (mapInstanceRef.current) {
                 mapInstanceRef.current.remove();
@@ -234,7 +288,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 mapInitializedRef.current = false;
             }
         };
-    }, [geocodedEvents.length, selectedCar, gameState]);
+    }, []);
 
     // Check for fuel out and game over
     useEffect(() => {
@@ -267,32 +321,8 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         }
 
         const currentTarget = geocodedEvents[targetIndex];
-
-        // Calculate distance to target to normalize progress
-        // We are actually simulating movement along the straight line for simplicity
-        // Real routing would require OSRM, which is too complex for this demo
-
         const currentPos = positionRef.current;
-        const distToTarget = getDistance(currentPos, { lat: currentTarget.lat, lon: currentTarget.lon }); // km
-
-        if (distToTarget < 0.1) {
-            // Arrived at waypoint
-            setGameState('ARRIVED');
-            setMessage(ARRIVAL_MESSAGES[Math.floor(Math.random() * ARRIVAL_MESSAGES.length)]);
-
-            setTimeout(() => {
-                if (currentEventIndex < geocodedEvents.length - 2) {
-                    setCurrentEventIndex(prev => prev + 1);
-                    setGameState('TRAVELING');
-                    setMessage('');
-                    // Snap to exact pos
-                    positionRef.current = { lat: currentTarget.lat, lon: currentTarget.lon };
-                } else {
-                    setGameState('FINISHED');
-                }
-            }, 3000);
-            return;
-        }
+        if (!currentPos) return;
 
 
         // Move car based on speed
@@ -360,19 +390,12 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         if (Date.now() - lastFrameTimeRef.current > 100) {
             lastFrameTimeRef.current = Date.now();
             if (carState.isBroken) {
-                // Toggle broken frames 0-1
-                // Assuming broken frames are specialized and fine using the broken logic
-                // But earlier CSS reused frame 0 for broken. 
-                // Let's stick to existing broken logic for now, or just use 0.
                 const next = (spriteFrameRef.current + 1) % 2;
                 spriteFrameRef.current = next;
             } else if (speedKmH > 10) {
-                // User Feedback: Frames 2 and 4 (Indices 1 and 3) look bad.
-                // Restrict to Frame 1 and 3 (Indices 0 and 2).
-                // We need to know which "step" of the allowed frames we are on.
-                // We can just toggle between 0 and 2.
-                const current = spriteFrameRef.current;
-                const next = current === 0 ? 2 : 0;
+                const redCarData = carManifests['red'];
+                const frameCount = (selectedCar === 'red' && redCarData) ? redCarData.frames.length : 4;
+                const next = (spriteFrameRef.current + 1) % frameCount;
                 spriteFrameRef.current = next;
             }
         }
@@ -427,10 +450,24 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
             if (carMarkerRef.current) {
                 const iconEl = carMarkerRef.current.getElement();
                 if (iconEl) {
-                    const inner = iconEl.querySelector('.car-sprite');
+                    const inner = iconEl.querySelector('.car-sprite') as HTMLElement;
                     if (inner) {
-                        // Update class for frame
-                        inner.className = `car-sprite car-${selectedCar || 'red'} ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
+                        const redCarData = carManifests['red'];
+                        if (selectedCar === 'red' && redCarData) {
+                            const frame = redCarData.frames[spriteFrameRef.current];
+                            inner.style.backgroundPosition = `-${Math.round(frame.x * RED_CAR_SCALE)}px -${Math.round(frame.y * RED_CAR_SCALE)}px`;
+                            inner.style.width = `${Math.round(frame.width * RED_CAR_SCALE)}px`;
+                            inner.style.height = `${Math.round(frame.height * RED_CAR_SCALE)}px`;
+                            inner.style.backgroundSize = `${Math.round(1024 * RED_CAR_SCALE)}px ${Math.round(1024 * RED_CAR_SCALE)}px`;
+                            if (carState.isBroken) {
+                                inner.style.filter = 'grayscale(100%) sepia(100%) hue-rotate(0deg) saturate(500%) brightness(0.6)';
+                            } else {
+                                inner.style.filter = 'none';
+                            }
+                        } else {
+                            // Legacy class-based frames for other cars
+                            inner.className = `car-sprite car-${selectedCar || 'red'} ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
+                        }
                         // Update rotation
                         inner.style.transform = `rotate(${rotation}deg)`;
                     }

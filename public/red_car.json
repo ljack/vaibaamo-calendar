@@ -1,0 +1,40 @@
+{
+    "meta": {
+        "image": "red_car.webp",
+        "imageWidth": 1024,
+        "imageHeight": 1024,
+        "frameCount": 4,
+        "layout": "horizontal",
+        "origin": "top-left"
+    },
+    "frames": [
+        {
+            "name": "car_frame_0",
+            "x": 42,
+            "y": 355,
+            "width": 241,
+            "height": 290
+        },
+        {
+            "name": "car_frame_1",
+            "x": 283,
+            "y": 355,
+            "width": 241,
+            "height": 290
+        },
+        {
+            "name": "car_frame_2",
+            "x": 524,
+            "y": 355,
+            "width": 241,
+            "height": 290
+        },
+        {
+            "name": "car_frame_3",
+            "x": 765,
+            "y": 355,
+            "width": 241,
+            "height": 290
+        }
+    ]
+}

@@ -67,9 +67,27 @@ export const generateCurvedPath = (points: { lat: number, lon: number }[], resol
     const curvedPoints: { lat: number, lon: number }[] = [];
 
     for (let i = 0; i < points.length - 1; i++) {
-        const p0 = points[Math.max(0, i - 1)];
         const p1 = points[i];
         const p2 = points[i + 1];
+
+        // Calculate direct distance between points (simple degree distance is fine for logic)
+        const dLat = p2.lat - p1.lat;
+        const dLon = p2.lon - p1.lon;
+        const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+
+        // If points are very far apart (> ~1.5 degrees or ~150km), use linear interpolation
+        // to avoid "spline overshoot" over large areas (like the ocean)
+        if (dist > 1.5) {
+            for (let t = 0; t < 1; t += 1 / resolution) {
+                curvedPoints.push({
+                    lat: p1.lat + dLat * t,
+                    lon: p1.lon + dLon * t
+                });
+            }
+            continue;
+        }
+
+        const p0 = points[Math.max(0, i - 1)];
         const p3 = points[Math.min(points.length - 1, i + 2)];
 
         for (let t = 0; t < 1; t += 1 / resolution) {
