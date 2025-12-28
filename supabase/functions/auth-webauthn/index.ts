@@ -5,7 +5,14 @@ import * as SimpleWebAuthn from "https://esm.sh/@simplewebauthn/server@10.0.0";
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
 };
+
+// Helper to encode Uint8Array to URL-safe Base64
+function toBase64URL(buffer: Uint8Array): string {
+    const base64 = btoa(String.fromCharCode(...buffer));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
 
 serve(async (req) => {
     if (req.method === "OPTIONS") {
@@ -19,6 +26,8 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     const url = new URL(req.url);
     const path = url.pathname.split("/").pop();
+
+    console.log(`[Request] ${req.method} ${path}`);
 
     try {
         // 1. Register Options
@@ -81,28 +90,37 @@ serve(async (req) => {
                 .limit(1)
                 .single();
 
-            if (challengeError || !challengeData) throw new Error("Challenge not found or expired");
+            if (challengeError || !challengeData) {
+                console.error(`[register-verify] Challenge error for user ${user.id}:`, challengeError);
+                throw new Error("Challenge not found or expired");
+            }
 
             const origin = req.headers.get("Origin") || url.origin;
             const originUrl = new URL(origin);
             const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
 
-            console.log(`[register-verify] origin: ${origin}, rpID: ${rpID}`);
+            console.log(`[register-verify] origin: ${origin}, rpID: ${rpID}, challenge: ${challengeData.challenge}`);
 
-            const verification = await SimpleWebAuthn.verifyRegistrationResponse({
-                response: body,
-                expectedChallenge: challengeData.challenge,
-                expectedOrigin: origin,
-                expectedRPID: rpID,
-            });
+            let verification;
+            try {
+                verification = await SimpleWebAuthn.verifyRegistrationResponse({
+                    response: body,
+                    expectedChallenge: challengeData.challenge,
+                    expectedOrigin: origin,
+                    expectedRPID: rpID,
+                });
+            } catch (vErr: any) {
+                console.error(`[register-verify] SimpleWebAuthn error:`, vErr);
+                throw new Error(`Verification library error: ${vErr.message}`);
+            }
 
-            console.log(`[register-verify] verified: ${verification.verified}`);
+            console.log(`[register-verify] verification result:`, JSON.stringify(verification));
 
             if (verification.verified && verification.registrationInfo) {
                 const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
 
-                const encodedID = SimpleWebAuthn.isoBase64.fromUint8Array(credentialID);
-                console.log(`[register-verify] Saving passkey with credentialID: ${encodedID} for user ${user.id}`);
+                const encodedID = toBase64URL(credentialID);
+                console.log(`[register-verify] Success! Saving credentialID: ${encodedID}`);
 
                 const { error: saveError } = await supabase.from("passkeys").insert({
                     user_id: user.id,
@@ -115,7 +133,7 @@ serve(async (req) => {
                 });
 
                 if (saveError) {
-                    console.error(`[register-verify] Save error:`, saveError);
+                    console.error(`[register-verify] Database save error:`, saveError);
                     throw saveError;
                 }
 
@@ -126,7 +144,8 @@ serve(async (req) => {
                     headers: { ...corsHeaders, "Content-Type": "application/json" },
                 });
             }
-            throw new Error("Verification failed");
+            console.error(`[register-verify] Verification failed - result:`, verification);
+            throw new Error("Verification failed to confirm authenticity");
         }
 
         // 3. Login Options
@@ -228,6 +247,7 @@ serve(async (req) => {
 
         return new Response("Not Found", { status: 404, headers: corsHeaders });
     } catch (err: any) {
+        console.error(`[Error] ${path}:`, err);
         return new Response(JSON.stringify({ error: err.message }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
