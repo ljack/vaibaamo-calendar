@@ -8,6 +8,9 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://kpvehddfjxpiztiiinff.supabase.co
+      VITE_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdmVoZGRmanhwaXp0aWlpbmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NzU3MjAsImV4cCI6MjA4MjEzNTcyMH0.cl6Z0mtF1kMaSObfyFaat5W_GTjhtzgOyNCQ4YzsghM
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
