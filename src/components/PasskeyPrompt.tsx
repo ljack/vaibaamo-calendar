@@ -31,9 +31,10 @@ export function PasskeyPrompt() {
             setMessage({ type: 'success', text: 'Avainkoodi rekisteröity onnistuneesti!' })
             // Auto-hide after success
             setTimeout(() => setIsVisible(false), 3000)
-        } catch (error: any) {
+        } catch (error) {
             console.error('Passkey registration error:', error)
-            setMessage({ type: 'error', text: error.message || 'Virhe rekisteröinnissä.' })
+            const errorMessage = error instanceof Error ? error.message : 'Virhe rekisteröinnissä.'
+            setMessage({ type: 'error', text: errorMessage })
         } finally {
             setLoading(false)
         }

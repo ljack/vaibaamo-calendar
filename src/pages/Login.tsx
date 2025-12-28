@@ -52,10 +52,11 @@ export default function Login() {
                     ? 'Kirjautuminen onnistui!'
                     : 'Kirjautumislinkki lähetetty sähköpostiisi!',
             })
-        } catch (error: any) {
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Virhe kirjautumisessa.'
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe kirjautumisessa.',
+                text: errorMessage,
             })
         } finally {
             setLoading(false)
@@ -68,11 +69,12 @@ export default function Login() {
         try {
             await passkeyService.login()
             navigate('/')
-        } catch (error: any) {
+        } catch (error) {
             console.error('Passkey login error:', error)
+            const errorMessage = error instanceof Error ? error.message : 'Virhe avainkoodilla kirjautumisessa.'
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe avainkoodilla kirjautumisessa.',
+                text: errorMessage,
             })
         } finally {
             setLoading(false)
@@ -97,10 +99,11 @@ export default function Login() {
                 type: 'success',
                 text: 'Tili luotu! Vahvista sähköpostisi ja kirjaudu sisään.',
             })
-        } catch (error: any) {
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Virhe rekisteröitymisessä.'
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe rekisteröitymisessä.',
+                text: errorMessage,
             })
         } finally {
             setLoading(false)

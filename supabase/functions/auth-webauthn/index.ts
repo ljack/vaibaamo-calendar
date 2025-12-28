@@ -111,19 +111,26 @@ serve(async (req) => {
 
         // 3. Login Options
         if (path === "login-options") {
-            const body = await req.json(); // May contain email if we want to filter
-
             const options = await SimpleWebAuthn.generateAuthenticationOptions({
                 rpID: url.hostname === "localhost" ? "localhost" : url.hostname,
                 userVerification: "preferred",
             });
 
             // Store challenge (anonymously if needed)
-            await supabase.from("webauthn_challenges").insert({
-                challenge: options.challenge,
-            });
+            const { data: challengeRecord, error: insertError } = await supabase
+                .from("webauthn_challenges")
+                .insert({
+                    challenge: options.challenge,
+                })
+                .select("id")
+                .single();
 
-            return new Response(JSON.stringify(options), {
+            if (insertError || !challengeRecord) {
+                throw new Error("Failed to store challenge");
+            }
+
+            // Return challenge ID alongside options for secure lookup
+            return new Response(JSON.stringify({ ...options, challengeId: challengeRecord.id }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
@@ -132,11 +139,16 @@ serve(async (req) => {
         if (path === "login-verify") {
             const body = await req.json();
 
-            // Get challenge
+            // Validate challengeId is provided
+            if (!body.challengeId) {
+                throw new Error("Challenge ID is required");
+            }
+
+            // Get challenge by ID (more secure than trusting client-provided challenge)
             const { data: challengeData, error: challengeError } = await supabase
                 .from("webauthn_challenges")
                 .select("challenge")
-                .eq("challenge", body.response.challenge) // Ideally we have a better way, but for POC
+                .eq("id", body.challengeId)
                 .gt("expires_at", new Date().toISOString())
                 .single();
 
@@ -185,7 +197,7 @@ serve(async (req) => {
                 if (linkError) throw linkError;
 
                 // Cleanup challenge
-                await supabase.from("webauthn_challenges").delete().eq("challenge", challengeData.challenge);
+                await supabase.from("webauthn_challenges").delete().eq("id", body.challengeId);
 
                 return new Response(JSON.stringify({ verified: true, ...linkData }), {
                     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -195,8 +207,9 @@ serve(async (req) => {
         }
 
         return new Response("Not Found", { status: 404, headers: corsHeaders });
-    } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+        return new Response(JSON.stringify({ error: errorMessage }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
