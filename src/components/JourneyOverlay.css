@@ -279,29 +279,6 @@
 
 /* RED CAR - Base styles (dimensions driven by JS) */
 
-/* BLUE CAR - Custom sizing and positioning (Legacy) */
-.car-sprite.car-blue {
-    width: 64px;
-    height: 96px;
-    background-size: 1024px 256px !important;
-}
-
-.car-sprite.car-blue.frame-0 {
-    background-position: -96px -80px;
-}
-
-.car-sprite.car-blue.frame-1 {
-    background-position: -352px -80px;
-}
-
-.car-sprite.car-blue.frame-2 {
-    background-position: -608px -80px;
-}
-
-.car-sprite.car-blue.frame-3 {
-    background-position: -864px -80px;
-}
-
 /* Highway Road Styling */
 .journey-map .leaflet-overlay-pane path {
     filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));

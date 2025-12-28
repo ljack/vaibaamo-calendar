@@ -41,8 +41,11 @@ interface CarManifest {
     }>;
 }
 
-// Car sprite scaling
-const RED_CAR_SCALE = 0.15;
+// Car sprite scaling configuration
+const CAR_CONFIGS: Record<CarType, { scale: number }> = {
+    red: { scale: 0.15 },
+    blue: { scale: 0.08 } // Scaled down further to fit the road nicely
+};
 
 const getCarSpriteUrl = (carType: CarType): string => {
     if (carType === 'red') return '/red_car.webp';
@@ -240,21 +243,22 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 const isManifestCar = selectedCar === 'red' || selectedCar === 'blue';
                 const manifest = selectedCar ? carManifests[selectedCar] : null;
                 const initialFrame = isManifestCar && manifest ? manifest.frames[1] : null; // Use frame index 1
+                const carScale = CAR_CONFIGS[selectedCar || 'red']?.scale || 0.15;
 
                 const carIcon = L.divIcon({
                     html: `<div class="car-sprite car-${selectedCar || 'red'} ${isManifestCar ? 'frame-1' : 'frame-0'}" style="
                         transform: rotate(90deg);
                         background-image: url('${carSpriteUrl}');
                         ${isManifestCar && manifest ? `
-                            width: ${Math.round((initialFrame?.width || 241) * RED_CAR_SCALE)}px;
-                            height: ${Math.round((initialFrame?.height || 290) * RED_CAR_SCALE)}px;
-                            background-position: -${Math.round((initialFrame?.x || 0) * RED_CAR_SCALE)}px -${Math.round((initialFrame?.y || 0) * RED_CAR_SCALE)}px;
-                            background-size: ${Math.round(manifest.meta.imageWidth * RED_CAR_SCALE)}px ${Math.round(manifest.meta.imageHeight * RED_CAR_SCALE)}px;
+                            width: ${Math.round((initialFrame?.width || 241) * carScale)}px;
+                            height: ${Math.round((initialFrame?.height || 290) * carScale)}px;
+                            background-position: -${Math.round((initialFrame?.x || 0) * carScale)}px -${Math.round((initialFrame?.y || 0) * carScale)}px;
+                            background-size: ${Math.round(manifest.meta.imageWidth * carScale)}px ${Math.round(manifest.meta.imageHeight * carScale)}px;
                         ` : ''}
                     "></div>`,
                     className: 'car-icon-marker',
-                    iconSize: isManifestCar && initialFrame ? [Math.round(initialFrame.width * RED_CAR_SCALE), Math.round(initialFrame.height * RED_CAR_SCALE)] : [64, 96],
-                    iconAnchor: isManifestCar && initialFrame ? [Math.round(initialFrame.width / 2 * RED_CAR_SCALE), Math.round(initialFrame.height / 2 * RED_CAR_SCALE)] : [32, 48]
+                    iconSize: isManifestCar && initialFrame ? [Math.round(initialFrame.width * carScale), Math.round(initialFrame.height * carScale)] : [64, 96],
+                    iconAnchor: isManifestCar && initialFrame ? [Math.round(initialFrame.width / 2 * carScale), Math.round(initialFrame.height / 2 * carScale)] : [32, 48]
                 });
                 carMarkerRef.current = L.marker([startPos.lat, startPos.lon], { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
 
@@ -464,13 +468,14 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                     if (inner) {
                         const manifest = selectedCar ? carManifests[selectedCar] : null;
                         const isManifestCar = selectedCar === 'red' || selectedCar === 'blue';
+                        const carScale = CAR_CONFIGS[selectedCar || 'red']?.scale || 0.15;
 
                         if (isManifestCar && manifest) {
                             const frame = manifest.frames[spriteFrameRef.current];
-                            inner.style.backgroundPosition = `-${Math.round(frame.x * RED_CAR_SCALE)}px -${Math.round(frame.y * RED_CAR_SCALE)}px`;
-                            inner.style.width = `${Math.round(frame.width * RED_CAR_SCALE)}px`;
-                            inner.style.height = `${Math.round(frame.height * RED_CAR_SCALE)}px`;
-                            inner.style.backgroundSize = `${Math.round(manifest.meta.imageWidth * RED_CAR_SCALE)}px ${Math.round(manifest.meta.imageHeight * RED_CAR_SCALE)}px`;
+                            inner.style.backgroundPosition = `-${Math.round(frame.x * carScale)}px -${Math.round(frame.y * carScale)}px`;
+                            inner.style.width = `${Math.round(frame.width * carScale)}px`;
+                            inner.style.height = `${Math.round(frame.height * carScale)}px`;
+                            inner.style.backgroundSize = `${Math.round(manifest.meta.imageWidth * carScale)}px ${Math.round(manifest.meta.imageHeight * carScale)}px`;
                             if (carState.isBroken) {
                                 inner.style.filter = 'grayscale(100%) sepia(100%) hue-rotate(0deg) saturate(500%) brightness(0.6)';
                             } else {
@@ -508,37 +513,66 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', justifyContent: 'center', alignItems: 'center', height: '100%', padding: '40px' }}>
                     <h1 style={{ fontSize: '2.5rem', margin: 0 }}>Choose Your Vehicle</h1>
                     <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {AVAILABLE_CARS.map(car => (
-                            <button
-                                key={car}
-                                onClick={() => setSelectedCar(car)}
-                                style={{
-                                    padding: '30px 40px',
-                                    fontSize: '1.2rem',
-                                    background: car === 'red' ? '#e74c3c' : '#3498db',
-                                    color: 'white',
-                                    border: '3px solid ' + (car === 'red' ? '#c0392b' : '#2980b9'),
-                                    borderRadius: '12px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold',
-                                    transition: 'transform 0.2s',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '15px',
-                                    minWidth: '200px'
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                            >
-                                <div style={{ fontSize: '3rem' }}>
-                                    {car === 'red' ? '🚗' : '🚘'}
-                                </div>
-                                <div style={{ textTransform: 'capitalize', fontSize: '1.3rem' }}>
-                                    {car} Car
-                                </div>
-                            </button>
-                        ))}
+                        {AVAILABLE_CARS.map(car => {
+                            const manifest = carManifests[car];
+                            const frame = manifest?.frames[1];
+                            const scale = CAR_CONFIGS[car].scale;
+                            const spriteUrl = getCarSpriteUrl(car);
+
+                            return (
+                                <button
+                                    key={car}
+                                    onClick={() => setSelectedCar(car)}
+                                    style={{
+                                        padding: '30px 40px',
+                                        fontSize: '1.2rem',
+                                        background: car === 'red' ? '#e74c3c' : '#3498db',
+                                        color: 'white',
+                                        border: '3px solid ' + (car === 'red' ? '#c0392b' : '#2980b9'),
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold',
+                                        transition: 'transform 0.2s',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '15px',
+                                        minWidth: '220px',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                                >
+                                    <div style={{
+                                        height: '100px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        {manifest && frame ? (
+                                            <div style={{
+                                                width: `${Math.round(frame.width * scale * 2.5)}px`,
+                                                height: `${Math.round(frame.height * scale * 2.5)}px`,
+                                                backgroundImage: `url('${spriteUrl}')`,
+                                                backgroundPosition: `-${Math.round(frame.x * scale * 2.5)}px -${Math.round(frame.y * scale * 2.5)}px`,
+                                                backgroundSize: `${Math.round(manifest.meta.imageWidth * scale * 2.5)}px ${Math.round(manifest.meta.imageHeight * scale * 2.5)}px`,
+                                                backgroundRepeat: 'no-repeat',
+                                                imageRendering: 'auto',
+                                                transform: 'rotate(0deg)'
+                                            }} />
+                                        ) : (
+                                            <div style={{ fontSize: '3rem' }}>
+                                                {car === 'red' ? '🚗' : '🚘'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ textTransform: 'capitalize', fontSize: '1.3rem' }}>
+                                        {car} Car
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                     <button
                         onClick={onClose}
