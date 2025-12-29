@@ -16,11 +16,13 @@ export const passkeyService = {
     /**
      * Register a new Passkey for the current user
      */
-    register: async () => {
+    register: async (displayName?: string) => {
         const supabase = getSupabase();
 
         // 1. Get registration options from Edge Function
-        const { data: regOptions, error: regError } = await supabase.functions.invoke(`${FUNCTION_NAME}/register-options`);
+        const { data: regOptions, error: regError } = await supabase.functions.invoke(`${FUNCTION_NAME}/register-options`, {
+            body: { displayName }
+        });
         if (regError) throw regError;
 
         // 2. Start WebAuthn registration

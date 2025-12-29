@@ -8,7 +8,7 @@ export function PasskeyPrompt() {
     const { t } = useTranslation()
     const { user, loading: authLoading, passkeySupported, hasPasskey, refreshPasskeyStatus } = useAuth()
     const [isVisible, setIsVisible] = useState(false)
-    const [loading, setLoading] = useState(false)
+    const [loadingAction, setLoadingAction] = useState<'legacy' | 'supakeys' | null>(null)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [hasSupakey, setHasSupakey] = useState(false)
 
@@ -56,10 +56,10 @@ export function PasskeyPrompt() {
     }
 
     const handleRegister = async () => {
-        setLoading(true)
+        setLoadingAction('legacy')
         setMessage(null)
         try {
-            await passkeyService.register()
+            await passkeyService.register(`${user?.email} (Standard)`)
 
             await refreshPasskeyStatus()
             setMessage({ type: 'success', text: t('passkey.successRegister') })
@@ -69,18 +69,21 @@ export function PasskeyPrompt() {
             console.error('Passkey registration error:', error)
             setMessage({ type: 'error', text: error.message || t('passkey.errorRegister') })
         } finally {
-            setLoading(false)
+            setLoadingAction(null)
         }
     }
 
     const handleSupakeysRegister = async () => {
-        setLoading(true)
+        setLoadingAction('supakeys')
         setMessage(null)
         try {
             if (!user?.email) throw new Error("Ei sähköpostia saatavilla user-objektista")
 
             const passkeys = getPasskeys()
-            const { success, error } = await passkeys.register({ email: user.email })
+            const { success, error } = await passkeys.register({
+                email: user.email,
+                displayName: `${user.email} (Supakeys)`
+            })
 
             if (error) throw new Error(error.message)
 
@@ -93,7 +96,7 @@ export function PasskeyPrompt() {
             console.error('Supakeys registration error:', error)
             setMessage({ type: 'error', text: error.message || t('passkey.errorSupakeysRegister') })
         } finally {
-            setLoading(false)
+            setLoadingAction(null)
         }
     }
 
@@ -137,21 +140,29 @@ export function PasskeyPrompt() {
                             <>
                                 <button
                                     onClick={handleRegister}
-                                    disabled={loading || hasPasskey}
+                                    disabled={!!loadingAction || hasPasskey}
                                     className={`flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50 
-                                    ${hasPasskey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    ${hasPasskey || (loadingAction && loadingAction !== 'legacy') ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     data-testid="passkey-register-button"
                                 >
-                                    {loading ? t('passkey.registerButtonLoading') : hasPasskey ? t('passkey.passkeyInUse') : t('passkey.registerButton')}
+                                    {loadingAction === 'legacy'
+                                        ? t('passkey.registerButtonLoading')
+                                        : hasPasskey
+                                            ? t('passkey.passkeyInUse')
+                                            : t('passkey.registerButton')}
                                 </button>
                                 <button
                                     onClick={handleSupakeysRegister}
-                                    disabled={loading || hasSupakey}
+                                    disabled={!!loadingAction || hasSupakey}
                                     className={`flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                                    ${hasSupakey ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-400'}`}
+                                    ${hasSupakey || (loadingAction && loadingAction !== 'supakeys') ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-400'}`}
                                     data-testid="supakeys-register-button"
                                 >
-                                    {loading ? '...' : hasSupakey ? t('passkey.supakeysInUse') : 'Supakeys'}
+                                    {loadingAction === 'supakeys'
+                                        ? t('passkey.registerButtonLoading')
+                                        : hasSupakey
+                                            ? t('passkey.supakeysInUse')
+                                            : 'Supakeys'}
                                 </button>
                                 <button
                                     onClick={handleDismiss}

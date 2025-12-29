@@ -26,7 +26,7 @@ export async function handleRegisterStart(
     clientIP: string,
     origin: string
 ): Promise<ApiResponse> {
-    const { rpId, rpName, email } = data;
+    const { rpId, rpName, email, displayName } = data;
 
     const ipBlocked = await supabaseAdmin.rpc('check_passkey_rate_limit', {
         p_identifier: clientIP, p_identifier_type: 'ip', p_endpoint: endpoint, p_max_attempts: RATE_LIMITS.ip.maxAttempts
@@ -38,12 +38,9 @@ export async function handleRegisterStart(
     }
 
     // Check if user already exists in auth.users to maintain consistent User ID (and thus UserHandle)
-    const { data: existingAuthUser } = await supabaseAdmin
-        .schema('auth')
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
+    // Use robust listUsers() lookup
+    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    const existingAuthUser = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
     // If user exists, use their ID to generate a consistent WebAuthn User Handle.
     // Otherwise, generate a random one (new user).
@@ -63,7 +60,7 @@ export async function handleRegisterStart(
         rpName: rpName as string,
         rpID: rpId as string,
         userName: email as string,
-        userDisplayName: email as string,
+        userDisplayName: (displayName as string) || (email as string),
         userID: new TextEncoder().encode(webauthnUserId),
         attestationType: 'none',
         excludeCredentials,
@@ -126,21 +123,37 @@ export async function handleRegisterFinish(
         // Postgres bytea format
         const publicKeyHex = '\\x' + uint8ArrayToHex(publicKeyBytes);
 
+
         let userId: string;
-        const { data: existingUser } = await supabaseAdmin
-            .schema('auth')
-            .from('users')
-            .select('id')
-            .eq('email', challenge.email)
-            .single();
+
+
+        // Robust user lookup using Auth Admin API first
+        // Note: listUsers isn't ideal for single lookup by email but it's reliable. 
+        // Better might be to try createUser and catch specific error, or use listUsers with filter? 
+        // listUsers doesn't support server-side filtering by email in all versions, depends on the library version.
+        // We can use listUsers() and find in array, but that's inefficient for many users.
+        // Let's stick to direct DB query but handle it better, or maybe we really were missing permissions?
+        // Service role should have permissions.
+
+        // Let's try to verify if the user exists by listing. 
+        // Actually, the most robust way:
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = users.find(u => u.email?.toLowerCase() === challenge.email.toLowerCase());
 
         if (existingUser) {
             userId = existingUser.id;
         } else {
-            const { data: newUser } = await supabaseAdmin.auth.admin.createUser({
-                email: challenge.email, email_confirm: true
+            console.log(`[register-finish] User not found for ${challenge.email}, creating new user.`);
+            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                email: challenge.email,
+                email_confirm: true
             });
-            userId = newUser.user!.id;
+
+            if (createError || !newUser.user) {
+                console.error('[register-finish] Failed to create user:', createError);
+                throw new Error('Failed to create user for passkey registration');
+            }
+            userId = newUser.user.id;
         }
 
         const authenticatorName = (data as { authenticatorName?: string }).authenticatorName || null;

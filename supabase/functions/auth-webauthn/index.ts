@@ -42,6 +42,16 @@ serve(async (req) => {
             if (userRes.error) throw userRes.error;
             const user = userRes.data.user;
 
+            let displayName = user.email!;
+            try {
+                const body = await req.json();
+                if (body && body.displayName) {
+                    displayName = body.displayName;
+                }
+            } catch (_e) {
+                // Body likely empty or invalid JSON, ignore
+            }
+
             const origin = req.headers.get("Origin") || url.origin;
             const originUrl = new URL(origin);
             const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
@@ -57,6 +67,7 @@ serve(async (req) => {
                 rpID,
                 userID: new TextEncoder().encode(user.id),
                 userName: user.email!,
+                userDisplayName: displayName,
                 attestationType: "none",
                 excludeCredentials: existingPasskeys?.map((pk: any) => ({
                     id: pk.credential_id,
