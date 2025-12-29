@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
+import { getPasskeys } from '../lib/supakeys'
 
 export function PasskeyPrompt() {
     const { user, loading: authLoading, passkeySupported, hasPasskey, refreshPasskeyStatus } = useAuth()
@@ -27,6 +28,12 @@ export function PasskeyPrompt() {
         setMessage(null)
         try {
             await passkeyService.register()
+
+            // Also try registering with Supakeys (best effort)
+            // Ideally we'd migrate fully, but for now we dual-register if possible
+            // or provide a separate button. Let's start with just standard registration
+            // as requested "register current implementation".
+
             await refreshPasskeyStatus()
             setMessage({ type: 'success', text: 'Avainkoodi rekisteröity onnistuneesti!' })
             // Auto-hide after success
@@ -34,6 +41,29 @@ export function PasskeyPrompt() {
         } catch (error: any) {
             console.error('Passkey registration error:', error)
             setMessage({ type: 'error', text: error.message || 'Virhe rekisteröinnissä.' })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSupakeysRegister = async () => {
+        setLoading(true)
+        setMessage(null)
+        try {
+            if (!user?.email) throw new Error("Ei sähköpostia saatavilla user-objektista")
+
+            const passkeys = getPasskeys()
+            const { success, error } = await passkeys.register({ email: user.email })
+
+            if (error) throw new Error(error.message)
+
+            if (success) {
+                setMessage({ type: 'success', text: 'Supakey rekisteröity onnistuneesti!' })
+                setTimeout(() => setIsVisible(false), 3000)
+            }
+        } catch (error: any) {
+            console.error('Supakeys registration error:', error)
+            setMessage({ type: 'error', text: error.message || 'Virhe Supakeys-rekisteröinnissä.' })
         } finally {
             setLoading(false)
         }
@@ -70,6 +100,13 @@ export function PasskeyPrompt() {
                                     className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50"
                                 >
                                     {loading ? 'Rekisteröidään...' : 'Ota käyttöön'}
+                                </button>
+                                <button
+                                    onClick={handleSupakeysRegister}
+                                    disabled={loading}
+                                    className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-400"
+                                >
+                                    {loading ? '...' : 'Supakeys'}
                                 </button>
                                 <button
                                     onClick={handleDismiss}

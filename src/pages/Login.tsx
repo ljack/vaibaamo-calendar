@@ -104,35 +104,7 @@ export default function Login() {
         }
     }
 
-    const handleSupakeysRegister = async () => {
-        setLoading(true)
-        setMessage(null)
-        try {
-            if (!email) throw new Error("Sähköposti vaaditaan rekisteröintiin")
 
-            const passkeys = getPasskeys()
-            // We pass user_handle map or similar if needed? Documentation says just email.
-            // If user exists, it might verify ownership?
-            const { success, error } = await passkeys.register({ email })
-
-            if (error) throw new Error(error.message)
-
-            if (success) {
-                setMessage({
-                    type: 'success',
-                    text: 'Avainkoodi rekisteröity ja tili luotu! Voit nyt kirjautua sisään.'
-                })
-            }
-        } catch (error: any) {
-            console.error('Supakeys register error:', error)
-            setMessage({
-                type: 'error',
-                text: error.message || 'Virhe Supakeys-rekisteröinnissä.',
-            })
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const handleGoogleLogin = async () => {
         setLoading(true)
@@ -302,17 +274,9 @@ export default function Login() {
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
-                                        onClick={handleSupakeysRegister}
-                                        disabled={loading || !email}
-                                        className="flex-1 rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
-                                    >
-                                        Rekisteröi avain
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={handleSupakeysLogin}
                                         disabled={loading}
-                                        className="flex-1 rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
+                                        className="w-full rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
                                     >
                                         Kirjaudu avaimella
                                     </button>
