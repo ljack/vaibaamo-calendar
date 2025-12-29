@@ -95,7 +95,7 @@ describe('EventsList Timeout Handling', () => {
         )
 
         // Wait for error message
-        await waitFor(() => expect(screen.getByText(/Yhteys aikakatkaistiin/i)).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('events.errorTimeout')).toBeInTheDocument())
 
         // Initial getSession call comes from auth init, extra call comes from timeout recovery.
         expect(supabase.auth.getSession).toHaveBeenCalledTimes(2)
@@ -202,7 +202,7 @@ describe('EventsList auth fallback and timeout', () => {
         })
         vi.useRealTimers()
 
-        await waitFor(() => expect(screen.getByText(/Istunto on vanhentunut/i)).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('events.errorSession')).toBeInTheDocument())
         expect(checkSession).toHaveBeenCalled()
     })
 })

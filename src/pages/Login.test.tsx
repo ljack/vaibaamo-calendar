@@ -44,11 +44,11 @@ describe('Login', () => {
 
         render(<Login />)
 
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'test@example.com' },
         })
 
-        fireEvent.click(screen.getByRole('button', { name: /Lähetä kirjautumislinkki/i }))
+        fireEvent.click(screen.getByRole('button', { name: 'login.submitSendLink' }))
 
         await waitFor(() => {
             expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({
@@ -66,15 +66,15 @@ describe('Login', () => {
 
         render(<Login />)
 
-        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.click(screen.getByLabelText('login.usePassword'))
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'test@example.com' },
         })
-        fireEvent.change(screen.getByPlaceholderText('Salasana'), {
+        fireEvent.change(screen.getByPlaceholderText('login.passwordPlaceholder'), {
             target: { value: 'secret' },
         })
 
-        fireEvent.click(screen.getByRole('button', { name: /Kirjaudu sisään/i }))
+        fireEvent.click(screen.getByRole('button', { name: 'login.submitLogin' }))
 
         await waitFor(() => {
             expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
@@ -89,15 +89,15 @@ describe('Login', () => {
 
         render(<Login />)
 
-        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.click(screen.getByLabelText('login.usePassword'))
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'new@example.com' },
         })
-        fireEvent.change(screen.getByPlaceholderText('Salasana'), {
+        fireEvent.change(screen.getByPlaceholderText('login.passwordPlaceholder'), {
             target: { value: 'new-pass' },
         })
 
-        fireEvent.click(screen.getByRole('button', { name: /Luo tili salasanalla/i }))
+        fireEvent.click(screen.getByRole('button', { name: 'login.createAccount' }))
 
         await waitFor(() => {
             expect(supabase.auth.signUp).toHaveBeenCalledWith({
@@ -110,16 +110,16 @@ describe('Login', () => {
     it('shows error when password is missing', async () => {
         render(<Login />)
 
-        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.click(screen.getByLabelText('login.usePassword'))
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'test@example.com' },
         })
 
-        const form = screen.getByRole('button', { name: /Kirjaudu sisään/i }).closest('form')
+        const form = screen.getByRole('button', { name: 'login.submitLogin' }).closest('form')
         fireEvent.submit(form!)
 
         await waitFor(() => {
-            expect(screen.getByText(/Salasana puuttuu/i)).toBeInTheDocument()
+            expect(screen.getByText('login.errorMissingPassword')).toBeInTheDocument()
         })
     })
 
@@ -130,15 +130,15 @@ describe('Login', () => {
 
         render(<Login />)
 
-        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.click(screen.getByLabelText('login.usePassword'))
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'test@example.com' },
         })
-        fireEvent.change(screen.getByPlaceholderText('Salasana'), {
+        fireEvent.change(screen.getByPlaceholderText('login.passwordPlaceholder'), {
             target: { value: 'secret' },
         })
 
-        fireEvent.click(screen.getByRole('button', { name: /Kirjaudu sisään/i }))
+        fireEvent.click(screen.getByRole('button', { name: 'login.submitLogin' }))
 
         await waitFor(() => {
             expect(screen.getByText(/bad credentials/i)).toBeInTheDocument()
@@ -152,15 +152,15 @@ describe('Login', () => {
 
         render(<Login />)
 
-        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.click(screen.getByLabelText('login.usePassword'))
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'new@example.com' },
         })
-        fireEvent.change(screen.getByPlaceholderText('Salasana'), {
+        fireEvent.change(screen.getByPlaceholderText('login.passwordPlaceholder'), {
             target: { value: 'new-pass' },
         })
 
-        fireEvent.click(screen.getByRole('button', { name: /Luo tili salasanalla/i }))
+        fireEvent.click(screen.getByRole('button', { name: 'login.createAccount' }))
 
         await waitFor(() => {
             expect(screen.getByText(/signup failed/i)).toBeInTheDocument()
@@ -184,7 +184,7 @@ describe('Login', () => {
         } as any)
 
         render(<Login />)
-        expect(screen.getByText(/Kirjaudu avainkoodilla/i)).toBeInTheDocument()
+        expect(screen.getByText('login.loginPasskey')).toBeInTheDocument()
     })
 
     it('hides passkey login button when not supported', () => {
@@ -194,7 +194,7 @@ describe('Login', () => {
         } as any)
 
         render(<Login />)
-        expect(screen.queryByText(/Kirjaudu avainkoodilla/i)).not.toBeInTheDocument()
+        expect(screen.queryByText('login.loginPasskey')).not.toBeInTheDocument()
     })
 
     it('handles passkey login success', async () => {
@@ -205,7 +205,7 @@ describe('Login', () => {
         vi.mocked(passkeyService.login).mockResolvedValue({ user: {} } as any)
 
         render(<Login />)
-        fireEvent.click(screen.getByText(/Kirjaudu avainkoodilla/i))
+        fireEvent.click(screen.getByText('login.loginPasskey'))
 
         await waitFor(() => {
             expect(passkeyService.login).toHaveBeenCalled()
@@ -221,7 +221,7 @@ describe('Login', () => {
         vi.mocked(passkeyService.login).mockRejectedValue(new Error('Passkey failed'))
 
         render(<Login />)
-        fireEvent.click(screen.getByText(/Kirjaudu avainkoodilla/i))
+        fireEvent.click(screen.getByText('login.loginPasskey'))
 
         await waitFor(() => {
             expect(screen.getByText(/Passkey failed/i)).toBeInTheDocument()
@@ -232,7 +232,7 @@ describe('Login', () => {
         vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: null } as any)
 
         render(<Login />)
-        fireEvent.click(screen.getByText(/Kirjaudu Googlella/i))
+        fireEvent.click(screen.getByText(/login.loginGoogle/i))
 
         await waitFor(() => {
             expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
@@ -245,7 +245,7 @@ describe('Login', () => {
         vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: new Error('Google failed') } as any)
 
         render(<Login />)
-        fireEvent.click(screen.getByText(/Kirjaudu Googlella/i))
+        fireEvent.click(screen.getByText(/login.loginGoogle/i))
 
         await waitFor(() => {
             expect(screen.getByText(/Google failed/i)).toBeInTheDocument()
@@ -255,16 +255,16 @@ describe('Login', () => {
     it('shows error when signup password is missing', async () => {
         render(<Login />)
 
-        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
-        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+        fireEvent.click(screen.getByLabelText('login.usePassword'))
+        fireEvent.change(screen.getByLabelText('login.emailLabel'), {
             target: { value: 'new@example.com' },
         })
         // Leave password empty
 
-        fireEvent.click(screen.getByRole('button', { name: /Luo tili salasanalla/i }))
+        fireEvent.click(screen.getByRole('button', { name: 'login.createAccount' }))
 
         await waitFor(() => {
-            expect(screen.getByText(/Salasana puuttuu/i)).toBeInTheDocument()
+            expect(screen.getByText('login.errorMissingPassword')).toBeInTheDocument()
         })
     })
 })
