@@ -5,7 +5,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
 import { getPasskeys } from '../lib/supakeys'
 
+import { useTranslation } from 'react-i18next'
+
 export default function Login() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, passkeySupported } = useAuth()
     const [email, setEmail] = useState('')
@@ -28,7 +31,7 @@ export default function Login() {
         try {
             if (usePassword) {
                 if (!password) {
-                    throw new Error('Salasana puuttuu.')
+                    throw new Error(t('login.errorMissingPassword'))
                 }
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
@@ -50,13 +53,13 @@ export default function Login() {
             setMessage({
                 type: 'success',
                 text: usePassword
-                    ? 'Kirjautuminen onnistui!'
-                    : 'Kirjautumislinkki lähetetty sähköpostiisi!',
+                    ? t('login.successLogin')
+                    : t('login.successLink'),
             })
         } catch (error: any) {
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe kirjautumisessa.',
+                text: error.message || t('login.errorGeneric'),
             })
         } finally {
             setLoading(false)
@@ -73,7 +76,7 @@ export default function Login() {
             console.error('Passkey login error:', error)
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe avainkoodilla kirjautumisessa.',
+                text: error.message || t('login.errorPasskey'),
             })
         } finally {
             setLoading(false)
@@ -97,7 +100,7 @@ export default function Login() {
             console.error('Supakeys login error:', error)
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe Supakeys-kirjautumisessa.',
+                text: error.message || t('login.errorSupakeys'),
             })
         } finally {
             setLoading(false)
@@ -121,7 +124,7 @@ export default function Login() {
             console.error('Google login error:', error)
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe Google-kirjautumisessa.',
+                text: error.message || t('login.errorGoogle'),
             })
         } finally {
             setLoading(false)
@@ -134,7 +137,7 @@ export default function Login() {
 
         try {
             if (!password) {
-                throw new Error('Salasana puuttuu.')
+                throw new Error(t('login.errorMissingPassword'))
             }
             const { error } = await supabase.auth.signUp({
                 email,
@@ -144,12 +147,12 @@ export default function Login() {
 
             setMessage({
                 type: 'success',
-                text: 'Tili luotu! Vahvista sähköpostisi ja kirjaudu sisään.',
+                text: t('login.successSignup'),
             })
         } catch (error: any) {
             setMessage({
                 type: 'error',
-                text: error.message || 'Virhe rekisteröitymisessä.',
+                text: error.message || t('login.errorSignup'),
             })
         } finally {
             setLoading(false)
@@ -165,17 +168,17 @@ export default function Login() {
             <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg">
                 <div>
                     <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-                        Kirjaudu Vaibaamoon
+                        {t('login.title')}
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
-                        Käytämme salasanatonta kirjautumista.
+                        {t('login.subtitle')}
                     </p>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleLogin}>
                     <div className="-space-y-px rounded-md shadow-sm">
                         <div>
                             <label htmlFor="email-address" className="sr-only">
-                                Sähköpostiosoite
+                                {t('login.emailLabel')}
                             </label>
                             <input
                                 id="email-address"
@@ -186,14 +189,14 @@ export default function Login() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="relative block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                placeholder="Sähköpostiosoite"
+                                placeholder={t('login.emailPlaceholder')}
                                 data-testid="login-email-input"
                             />
                         </div>
                         {usePassword && (
                             <div className="mt-3">
                                 <label htmlFor="password" className="sr-only">
-                                    Salasana
+                                    {t('login.passwordLabel')}
                                 </label>
                                 <input
                                     id="password"
@@ -204,7 +207,7 @@ export default function Login() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="relative block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                    placeholder="Salasana"
+                                    placeholder={t('login.passwordPlaceholder')}
                                     data-testid="login-password-input"
                                 />
                             </div>
@@ -220,7 +223,7 @@ export default function Login() {
                                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                                 data-testid="login-use-password-checkbox"
                             />
-                            Käytä salasanaa
+                            {t('login.usePassword')}
                         </label>
                     </div>
 
@@ -244,10 +247,10 @@ export default function Login() {
                             data-testid="login-submit-button"
                         >
                             {loading
-                                ? 'Lähetetään...'
+                                ? t('login.submitSending')
                                 : usePassword
-                                    ? 'Kirjaudu sisään'
-                                    : 'Lähetä kirjautumislinkki'}
+                                    ? t('login.submitLogin')
+                                    : t('login.submitSendLink')}
                         </button>
                     </div>
 
@@ -258,7 +261,7 @@ export default function Login() {
                                     <div className="w-full border-t border-gray-300"></div>
                                 </div>
                                 <div className="relative flex justify-center text-sm">
-                                    <span className="bg-white px-2 text-gray-500">Tai käytä</span>
+                                    <span className="bg-white px-2 text-gray-500">{t('login.orUse')}</span>
                                 </div>
                             </div>
 
@@ -271,7 +274,7 @@ export default function Login() {
                                 <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zM7 7a3 3 0 116 0v2H7V7zm3 11a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                                 </svg>
-                                Kirjaudu avainkoodilla
+                                {t('login.loginPasskey')}
                             </button>
 
                             <div className="pt-4 border-t border-gray-200 mt-4">
@@ -283,7 +286,7 @@ export default function Login() {
                                         disabled={loading}
                                         className="w-full rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
                                     >
-                                        Kirjaudu avaimella
+                                        {t('login.loginSupakeys')}
                                     </button>
                                 </div>
                             </div>
@@ -296,7 +299,7 @@ export default function Login() {
                                 <div className="w-full border-t border-gray-300"></div>
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="bg-white px-2 text-gray-500">Tai käytä</span>
+                                <span className="bg-white px-2 text-gray-500">{t('login.orUse')}</span>
                             </div>
                         </div>
 
@@ -324,7 +327,7 @@ export default function Login() {
                                     fill="#EA4335"
                                 />
                             </svg>
-                            Kirjaudu Googlella
+                            {t('login.loginGoogle')}
                         </button>
                     </div>
 
@@ -337,7 +340,7 @@ export default function Login() {
                                 className="group relative flex w-full justify-center rounded-md border border-indigo-600 py-2.5 px-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 disabled:opacity-70"
                                 data-testid="signup-password-button"
                             >
-                                Luo tili salasanalla
+                                {t('login.createAccount')}
                             </button>
                         </div>
                     )}

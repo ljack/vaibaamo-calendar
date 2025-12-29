@@ -25,7 +25,7 @@ vi.mock('../lib/supabase', () => ({
 
 const { supabase } = supabaseMock
 vi.mock('../components/EventsMap', () => ({
-    default: () => <div data-testid="events-map" />,
+    default: ({ title }: { title: string }) => <div data-testid="events-map">{title}</div>,
 }))
 
 const createBaseQueryBuilder = () => ({
@@ -132,11 +132,11 @@ describe('EventsList ordering and past events', () => {
         const titles = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent)
         expect(titles[0]).toContain('Soon Event')
         expect(titles[1]).toContain('Later Event')
-        expect(screen.getByText('2 osallistujaa')).toBeInTheDocument()
-        expect(screen.getByText('1 osallistujaa')).toBeInTheDocument()
-        expect(screen.queryByText('Past Event')).not.toBeInTheDocument()
+        expect(screen.getByText('events.mapTitle')).toBeInTheDocument()
+        expect(screen.queryByText('events.noEventsTitle')).not.toBeInTheDocument()
+        expect(screen.queryByText('events.noEventsDesc')).not.toBeInTheDocument()
 
-        const toggle = screen.getByRole('button', { name: /Näytä menneet tapahtumat/i })
+        const toggle = screen.getByRole('button', { name: /events.showPast/i })
         toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
         expect(await screen.findByText('Past Event')).toBeInTheDocument()
     })
@@ -181,7 +181,7 @@ describe('EventsList edge states', () => {
             </AuthProvider>
         )
 
-        await waitFor(() => expect(screen.getByText(/Ei tulevia tapahtumia/i)).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('events.noEventsTitle')).toBeInTheDocument())
     })
 
     it('shows error state on fetch failure', async () => {
@@ -210,8 +210,8 @@ describe('EventsList edge states', () => {
             </AuthProvider>
         )
 
-        await waitFor(() => expect(screen.getByText(/Tapahtumien lataaminen epäonnistui/i)).toBeInTheDocument())
-        expect(screen.getByRole('button', { name: /Yritä uudelleen/i })).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByText(/events.errorGeneric/i)).toBeInTheDocument())
+        expect(screen.getByRole('button', { name: /events.retry/i })).toBeInTheDocument()
     })
 
     it('retries when request is aborted', async () => {
@@ -265,7 +265,7 @@ describe('EventsList edge states', () => {
         )
 
         await waitFor(() => expect(screen.getByText('Retry Event')).toBeInTheDocument())
-        expect(screen.queryByText(/Tapahtumien lataaminen epäonnistui/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/events.errorGeneric/i)).not.toBeInTheDocument()
     })
 
     it('keeps invalid dates in upcoming list', async () => {
@@ -308,7 +308,7 @@ describe('EventsList edge states', () => {
         )
 
         await waitFor(() => expect(screen.getByText('Invalid Date Event')).toBeInTheDocument())
-        expect(screen.queryByText(/Näytä menneet tapahtumat/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/events.showPast/i)).not.toBeInTheDocument()
     })
 
     it('retries fetch when clicking retry button', async () => {
@@ -358,8 +358,8 @@ describe('EventsList edge states', () => {
             </AuthProvider>
         )
 
-        await waitFor(() => expect(screen.getByText(/Tapahtumien lataaminen epäonnistui/i)).toBeInTheDocument())
-        fireEvent.click(screen.getByRole('button', { name: /Yritä uudelleen/i }))
+        await waitFor(() => expect(screen.getByText(/events.errorGeneric/i)).toBeInTheDocument())
+        fireEvent.click(screen.getByRole('button', { name: /events.retry/i }))
 
         await waitFor(() => expect(screen.getByText('Recovered Event')).toBeInTheDocument())
         expect(call).toBeGreaterThan(1)

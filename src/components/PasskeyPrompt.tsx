@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
 import { getPasskeys } from '../lib/supakeys'
+import { useTranslation } from 'react-i18next'
 
 export function PasskeyPrompt() {
+    const { t } = useTranslation()
     const { user, loading: authLoading, passkeySupported, hasPasskey, refreshPasskeyStatus } = useAuth()
     const [isVisible, setIsVisible] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -60,12 +62,12 @@ export function PasskeyPrompt() {
             await passkeyService.register()
 
             await refreshPasskeyStatus()
-            setMessage({ type: 'success', text: 'Avainkoodi rekisteröity onnistuneesti!' })
+            setMessage({ type: 'success', text: t('passkey.successRegister') })
             // Auto-hide after success
             setTimeout(() => setIsVisible(false), 3000)
         } catch (error: any) {
             console.error('Passkey registration error:', error)
-            setMessage({ type: 'error', text: error.message || 'Virhe rekisteröinnissä.' })
+            setMessage({ type: 'error', text: error.message || t('passkey.errorRegister') })
         } finally {
             setLoading(false)
         }
@@ -84,12 +86,12 @@ export function PasskeyPrompt() {
 
             if (success) {
                 setHasSupakey(true)
-                setMessage({ type: 'success', text: 'Supakey rekisteröity onnistuneesti!' })
+                setMessage({ type: 'success', text: t('passkey.successSupakeysRegister') })
                 setTimeout(() => setIsVisible(false), 3000)
             }
         } catch (error: any) {
             console.error('Supakeys registration error:', error)
-            setMessage({ type: 'error', text: error.message || 'Virhe Supakeys-rekisteröinnissä.' })
+            setMessage({ type: 'error', text: error.message || t('passkey.errorSupakeysRegister') })
         } finally {
             setLoading(false)
         }
@@ -114,13 +116,13 @@ export function PasskeyPrompt() {
                         <p className="ml-3 font-medium text-white truncate">
                             {hasPasskey || hasSupakey ? (
                                 <>
-                                    <span className="md:hidden">Käytät turvallista avainkoodia!</span>
-                                    <span className="hidden md:inline">Onneksi olkoon! Käytät phishing-vapaata, kryptografisen turvallista Passkey-kirjautumista.</span>
+                                    <span className="md:hidden">{t('passkey.congratsMobile')}</span>
+                                    <span className="hidden md:inline">{t('passkey.congratsDesktop')}</span>
                                 </>
                             ) : (
                                 <>
-                                    <span className="md:hidden">Kirjaudu nopeammin avainkoodilla!</span>
-                                    <span className="hidden md:inline">Ota käyttöön avainkoodi (Passkey) nopeampaa kirjautumista varten.</span>
+                                    <span className="md:hidden">{t('passkey.promoMobile')}</span>
+                                    <span className="hidden md:inline">{t('passkey.promoDesktop')}</span>
                                 </>
                             )}
                         </p>
@@ -140,7 +142,7 @@ export function PasskeyPrompt() {
                                     ${hasPasskey ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     data-testid="passkey-register-button"
                                 >
-                                    {loading ? 'Rekisteröidään...' : hasPasskey ? 'Passkey käytössä' : 'Ota käyttöön'}
+                                    {loading ? t('passkey.registerButtonLoading') : hasPasskey ? t('passkey.passkeyInUse') : t('passkey.registerButton')}
                                 </button>
                                 <button
                                     onClick={handleSupakeysRegister}
@@ -149,13 +151,13 @@ export function PasskeyPrompt() {
                                     ${hasSupakey ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-400'}`}
                                     data-testid="supakeys-register-button"
                                 >
-                                    {loading ? '...' : hasSupakey ? 'Supakeys käytössä' : 'Supakeys'}
+                                    {loading ? '...' : hasSupakey ? t('passkey.supakeysInUse') : 'Supakeys'}
                                 </button>
                                 <button
                                     onClick={handleDismiss}
                                     className="-mr-1 flex p-2 rounded-md hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-white sm:-mr-2"
                                 >
-                                    <span className="sr-only">Sulje</span>
+                                    <span className="sr-only">{t('passkey.dismiss')}</span>
                                     <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>

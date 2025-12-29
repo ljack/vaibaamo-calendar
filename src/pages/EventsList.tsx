@@ -4,8 +4,10 @@ import type { Event } from '../types'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import EventsMap from '../components/EventsMap'
+import { useTranslation } from 'react-i18next'
 
 export default function EventsList() {
+    const { t } = useTranslation()
     const { loading: authLoading, checkSession } = useAuth()
     const [events, setEvents] = useState<Event[]>([])
     const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({})
@@ -133,12 +135,12 @@ export default function EventsList() {
                 console.log('Request timed out, checking session validity...')
                 const isSessionValid = await checkSession()
                 if (!isSessionValid) {
-                    setError('Istunto on vanhentunut. Kirjaudu sisään uudelleen.')
+                    setError(t('events.errorSession'))
                 } else {
-                    setError('Yhteys aikakatkaistiin. Tarkista internetyhteytesi.')
+                    setError(t('events.errorTimeout'))
                 }
             } else {
-                setError('Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.')
+                setError(t('events.errorGeneric'))
             }
         } finally {
             console.log('Finished loading state')
@@ -206,7 +208,7 @@ export default function EventsList() {
                     onClick={() => fetchEvents()}
                     className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
                 >
-                    Yritä uudelleen
+                    {t('events.retry')}
                 </button>
             </div>
         )
@@ -215,8 +217,8 @@ export default function EventsList() {
     if (events.length === 0) {
         return (
             <div className="text-center py-12">
-                <h3 className="mt-2 text-sm font-semibold text-gray-900">Ei tulevia tapahtumia</h3>
-                <p className="mt-1 text-sm text-gray-500">Tarkista myöhemmin uudelleen!</p>
+                <h3 className="mt-2 text-sm font-semibold text-gray-900">{t('events.noEventsTitle')}</h3>
+                <p className="mt-1 text-sm text-gray-500">{t('events.noEventsDesc')}</p>
             </div>
         )
     }
@@ -239,7 +241,7 @@ export default function EventsList() {
                         <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
                             <div className="flex items-center">
                                 <span className="mr-1.5">📅</span>
-                                {new Date(event.start_time).toLocaleDateString('fi-FI')}
+                                {new Date(event.start_time).toLocaleDateString(t('common.dateLocale', { defaultValue: 'fi-FI' }))}
                             </div>
                             <div className="flex items-center">
                                 <span className="mr-1.5">📍</span>
@@ -249,7 +251,7 @@ export default function EventsList() {
                                 <span className="mr-1.5">👥</span>
                                 {event.max_participants
                                     ? `${participantCounts[event.id] || 0} / ${event.max_participants}`
-                                    : `${participantCounts[event.id] || 0} osallistujaa`}
+                                    : `${participantCounts[event.id] || 0} ${t('events.participants')}`}
                             </div>
                         </div>
                     </div>
@@ -263,22 +265,22 @@ export default function EventsList() {
             <div className="md:flex md:items-center md:justify-between">
                 <div className="min-w-0 flex-1">
                     <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                        Tulevat tapahtumat
+                        {t('events.upcomingTitle')}
                     </h2>
                 </div>
             </div>
 
             <EventsMap
                 events={upcomingEvents}
-                title="Tulevat tapahtumat kartalla"
+                title={t('events.mapTitle')}
             />
 
             {upcomingEvents.length ? (
                 renderEvents(upcomingEvents)
             ) : (
                 <div className="text-center py-8">
-                    <h3 className="text-sm font-semibold text-gray-900">Ei tulevia tapahtumia</h3>
-                    <p className="mt-1 text-sm text-gray-500">Tarkista myöhemmin uudelleen!</p>
+                    <h3 className="text-sm font-semibold text-gray-900">{t('events.noEventsTitle')}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{t('events.noEventsDesc')}</p>
                 </div>
             )}
 
@@ -288,7 +290,7 @@ export default function EventsList() {
                         onClick={() => setShowPast((prev) => !prev)}
                         className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
                     >
-                        {showPast ? 'Piilota menneet tapahtumat' : `Näytä menneet tapahtumat (${pastEvents.length})`}
+                        {showPast ? t('events.hidePast') : `${t('events.showPast')} (${pastEvents.length})`}
                     </button>
                     {showPast && renderEvents(pastEvents)}
                 </div>

@@ -30,7 +30,7 @@ describe('Layout', () => {
             </MemoryRouter>
         )
 
-        expect(screen.getByText(/Kirjaudu sisään/i)).toBeInTheDocument()
+        expect(screen.getByText('layout.login')).toBeInTheDocument()
     })
 
     it('shows admin actions when logged in as admin', () => {
@@ -46,8 +46,8 @@ describe('Layout', () => {
             </MemoryRouter>
         )
 
-        expect(screen.getByText(/\+ Luo tapahtuma/i)).toBeInTheDocument()
-        expect(screen.getByText(/Kirjaudu ulos/i)).toBeInTheDocument()
+        expect(screen.getByText('layout.createEvent')).toBeInTheDocument()
+        expect(screen.getByText('layout.logout')).toBeInTheDocument()
     })
 
     it('calls signOut and redirects on logout', async () => {
@@ -70,7 +70,7 @@ describe('Layout', () => {
             </MemoryRouter>
         )
 
-        screen.getByText('Kirjaudu ulos').click()
+        screen.getByText('layout.logout').click()
 
         await Promise.resolve()
         expect(signOut).toHaveBeenCalled()
@@ -97,7 +97,7 @@ describe('Layout', () => {
             </MemoryRouter>
         )
 
-        fireEvent.click(screen.getByText('Kirjaudu ulos'))
+        fireEvent.click(screen.getByText('layout.logout'))
 
         await Promise.resolve()
         expect(signOut).toHaveBeenCalled()
