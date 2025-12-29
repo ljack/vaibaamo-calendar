@@ -55,8 +55,28 @@ import { useCarPhysics } from '../hooks/useCarPhysics';
 
 describe('JourneyOverlay', () => {
     const mockEvents = [
-        { id: '1', title: 'Event 1', location: 'Loc 1', start_time: '2023-01-01', end_time: '2023-01-01' },
-        { id: '2', title: 'Event 2', location: 'Loc 2', start_time: '2023-01-02', end_time: '2023-01-02' },
+        {
+            id: '1',
+            title: 'Event 1',
+            location: 'Loc 1',
+            start_time: '2023-01-01',
+            end_time: '2023-01-01',
+            description: 'Desc 1',
+            max_participants: 10,
+            created_at: '2023-01-01',
+            // Add other mandatory fields if any based on the error.
+            // The error says: description, max_participants, created_at
+        },
+        {
+            id: '2',
+            title: 'Event 2',
+            location: 'Loc 2',
+            start_time: '2023-01-02',
+            end_time: '2023-01-02',
+            description: 'Desc 2',
+            max_participants: 10,
+            created_at: '2023-01-01',
+        },
     ];
     const mockOnClose = vi.fn();
 
@@ -70,7 +90,7 @@ describe('JourneyOverlay', () => {
         ]);
 
         // Mock fetch for car manifests
-        global.fetch = vi.fn(() =>
+        const mockFetch = vi.fn(() =>
             Promise.resolve({
                 ok: true,
                 json: () => Promise.resolve({
@@ -78,15 +98,17 @@ describe('JourneyOverlay', () => {
                     frames: [{ x: 0, y: 0, width: 50, height: 50 }, { x: 50, y: 0, width: 50, height: 50 }]
                 }),
             })
-        ) as any;
+        );
+        vi.stubGlobal('fetch', mockFetch);
     });
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.unstubAllGlobals();
     });
 
     it('renders car selection screen initially', async () => {
-        render(<JourneyOverlay events={mockEvents} onClose={mockOnClose} />);
+        render(<JourneyOverlay events={mockEvents as any} onClose={mockOnClose} />);
 
         await waitFor(() => {
             expect(screen.getByText('Choose Your Vehicle')).toBeInTheDocument();
