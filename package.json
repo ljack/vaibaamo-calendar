@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:integration": "npx playwright test",
     "sync-events": "node scripts/sync-events.js"
   },
