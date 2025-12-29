@@ -59,11 +59,6 @@ export function PasskeyPrompt() {
         try {
             await passkeyService.register()
 
-            // Also try registering with Supakeys (best effort)
-            // Ideally we'd migrate fully, but for now we dual-register if possible
-            // or provide a separate button. Let's start with just standard registration
-            // as requested "register current implementation".
-
             await refreshPasskeyStatus()
             setMessage({ type: 'success', text: 'Avainkoodi rekisteröity onnistuneesti!' })
             // Auto-hide after success
@@ -143,6 +138,7 @@ export function PasskeyPrompt() {
                                     disabled={loading || hasPasskey}
                                     className={`flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50 
                                     ${hasPasskey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    data-testid="passkey-register-button"
                                 >
                                     {loading ? 'Rekisteröidään...' : hasPasskey ? 'Passkey käytössä' : 'Ota käyttöön'}
                                 </button>
@@ -151,6 +147,7 @@ export function PasskeyPrompt() {
                                     disabled={loading || hasSupakey}
                                     className={`flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
                                     ${hasSupakey ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-400'}`}
+                                    data-testid="supakeys-register-button"
                                 >
                                     {loading ? '...' : hasSupakey ? 'Supakeys käytössä' : 'Supakeys'}
                                 </button>

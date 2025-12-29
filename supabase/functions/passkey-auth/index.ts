@@ -18,6 +18,7 @@ interface ApiResponse<T = unknown> {
   error?: { code: string; message: string };
 }
 
+// Balance between security (short window) and UX (enough time to complete ceremony)
 const CHALLENGE_TTL_MINUTES = 5;
 const SUPPORTED_ALGORITHMS = [-7, -257];
 const RATE_LIMITS = { ip: { maxAttempts: 5, windowMinutes: 1 }, email: { maxAttempts: 10, windowMinutes: 1 } };
@@ -95,7 +96,10 @@ serve(async (req: Request) => {
         const ipBlocked = await supabaseAdmin.rpc('check_passkey_rate_limit', {
           p_identifier: clientIP, p_identifier_type: 'ip', p_endpoint: endpoint, p_max_attempts: RATE_LIMITS.ip.maxAttempts
         });
-        if (ipBlocked.error || ipBlocked.data) {
+        if (ipBlocked.error) {
+          console.error('Rate limit check failed:', ipBlocked.error);
+          // Fail open to avoid blocking legitimate users on DB glitches, but log it
+        } else if (ipBlocked.data) {
           result = error('RATE_LIMITED', 'Too many requests');
           break;
         }
@@ -170,8 +174,13 @@ serve(async (req: Request) => {
           const publicKeyHex = '\\x' + uint8ArrayToHex(publicKeyBytes);
 
           let userId: string;
-          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-          const existingUser = existingUsers?.users?.find((u) => u.email === challenge.email);
+          // Use direct DB query to auth schema to avoid listUsers() pagination limit (default 50)
+          const { data: existingUser } = await supabaseAdmin
+            .schema('auth')
+            .from('users')
+            .select('id')
+            .eq('email', challenge.email)
+            .single();
 
           if (existingUser) {
             userId = existingUser.id;
@@ -229,7 +238,9 @@ serve(async (req: Request) => {
         const ipBlocked = await supabaseAdmin.rpc('check_passkey_rate_limit', {
           p_identifier: clientIP, p_identifier_type: 'ip', p_endpoint: endpoint, p_max_attempts: RATE_LIMITS.ip.maxAttempts
         });
-        if (ipBlocked.error || ipBlocked.data) {
+        if (ipBlocked.error) {
+          console.error('Rate limit check failed:', ipBlocked.error);
+        } else if (ipBlocked.data) {
           result = error('RATE_LIMITED', 'Too many requests');
           break;
         }
@@ -238,8 +249,14 @@ serve(async (req: Request) => {
         let userEmail = email as string | undefined;
 
         if (email) {
-          const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-          const user = users?.users?.find((u) => u.email === email);
+          // Robust lookup instead of listUsers()
+          const { data: user } = await supabaseAdmin
+            .schema('auth')
+            .from('users')
+            .select('id')
+            .eq('email', email)
+            .single();
+
           if (!user) {
             result = error('CREDENTIAL_NOT_FOUND', 'No passkey found for this email');
             break;

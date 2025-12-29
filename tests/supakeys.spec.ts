@@ -113,16 +113,16 @@ test.describe('Supakeys Integration', () => {
         await page.goto('/login?test-mode=true'); // Assume test-mode creates a clean state if implemented
 
         // 2. Perform Standard Login (Email/Password or Email/MagicLink)
-        await page.fill('input[name="email"]', 'test-user-' + Date.now() + '@example.com');
+        await page.fill('input[data-testid="login-email-input"]', 'test-user-' + Date.now() + '@example.com');
 
         // Enable password mode first
-        await page.check('input[type="checkbox"]'); // "Käytä salasanaa"
+        await page.check('input[data-testid="login-use-password-checkbox"]');
 
         // Now fill password
-        await page.fill('input[name="password"]', 'password123');
+        await page.fill('input[data-testid="login-password-input"]', 'password123');
 
         // Click "Luo tili salasanalla" which appears after password mode is enabled
-        await page.click('button:has-text("Luo tili salasanalla")');
+        await page.click('button[data-testid="signup-password-button"]');
 
         // Wait for redirect to dashboard/home
         await expect(page).toHaveURL('/');
@@ -130,12 +130,12 @@ test.describe('Supakeys Integration', () => {
         // 3. Trigger Passkey Prompt
         // The prompt appears automatically for authenticated users without passkeys.
         // We might need to wait for checks to complete.
-        const prompt = page.locator('text=Ota käyttöön avainkoodi (Passkey)');
-        await expect(prompt).toBeVisible({ timeout: 10000 });
+        const promptButton = page.locator('button[data-testid="passkey-register-button"]');
+        await expect(promptButton).toBeVisible({ timeout: 10000 });
 
         // 4. Click "Ota käyttöön" (Get Started)
         // This triggers handleRegister -> passkeyService.register() AND handleSupakeysRegister
-        await page.click('button:has-text("Ota käyttöön")');
+        await promptButton.click();
 
         // 5. Verification
         // Since we have a Virtual Authenticator with isUserVerified: true,
