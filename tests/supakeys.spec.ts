@@ -35,15 +35,84 @@ test.describe('Supakeys Integration', () => {
     });
 
     test('should allow user to login and register a Passkey using Supakeys logic', async ({ page }) => {
+        // Mock Supabase Auth: SignUp
+        await page.route('**/auth/v1/signup', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    access_token: 'fake-jwt-token',
+                    token_type: 'bearer',
+                    expires_in: 3600,
+                    refresh_token: 'fake-refresh-token',
+                    user: {
+                        id: 'test-user-123',
+                        aud: 'authenticated',
+                        role: 'authenticated',
+                        email: 'test@example.com',
+                        confirmed_at: new Date().toISOString(),
+                    }
+                })
+            });
+        });
+
+        // Mock Supabase Auth: User/Session checks
+        await page.route('**/auth/v1/user', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    id: 'test-user-123',
+                    aud: 'authenticated',
+                    role: 'authenticated',
+                    email: 'test@example.com'
+                })
+            });
+        });
+
+        // Mock Profile/Admin check
+        await page.route('**/rest/v1/profiles*', async route => {
+            await route.fulfill({ status: 200, body: JSON.stringify([]) });
+        });
+
+        // Mock Passkey List (initially empty)
+        await page.route('**/rest/v1/passkeys*', async route => {
+            // This handles getPasskeys() -> count and list
+            await route.fulfill({
+                status: 200,
+                headers: { 'Content-Range': '0-0/0' },
+                body: JSON.stringify([])
+            });
+        });
+
+        // Mock Supakeys Registration Options
+        await page.route('**/functions/v1/passkey-auth/register/options', async route => {
+            await route.fulfill({
+                status: 200,
+                body: JSON.stringify({
+                    id: 'mock-challenge-id',
+                    challenge: 'mock-challenge-string',
+                    rp: { name: 'Vaibaamo Calendar', id: 'localhost' },
+                    user: { id: 'test-user-123', name: 'test@example.com', displayName: 'test@example.com' },
+                    pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                    timeout: 60000,
+                    attestation: 'none'
+                })
+            });
+        });
+
+        // Mock Supakeys Registration Finish
+        await page.route('**/functions/v1/passkey-auth/register/finish', async route => {
+            await route.fulfill({
+                status: 200,
+                body: JSON.stringify({ success: true, passkey: { id: 'new-passkey-id' } })
+            });
+        });
+
         // 1. Visit Login Page
         await page.goto('/login?test-mode=true'); // Assume test-mode creates a clean state if implemented
 
         // 2. Perform Standard Login (Email/Password or Email/MagicLink)
-        // Here we simulate a login by using a test account if available, 
-        // or effectively we reuse an existing flow. 
-        // For CI, we typically seed a user or use a magic link.
-        // For this example, let's assume we can login with a test credential:
-
         await page.fill('input[name="email"]', 'test-user-' + Date.now() + '@example.com');
 
         // Enable password mode first
@@ -71,11 +140,8 @@ test.describe('Supakeys Integration', () => {
         // 5. Verification
         // Since we have a Virtual Authenticator with isUserVerified: true,
         // the browser prompt "clicks itself" immediately.
-        // We wait for success message.
+        // We wait for checking the success message.
+        // PasskeyPrompt shows "Avainkoodi rekisteröity onnistuneesti!" on success
         await expect(page.locator('text=Avainkoodi rekisteröity onnistuneesti')).toBeVisible();
-
-        // 6. Verify Supakeys Logic (Optional specific message if distinct)
-        // "Supakey rekisteröity onnistuneesti!" might appear if the Promise.all settles or specific event fires
-        // But the main "Avainkoodi" message covers the general success.
     });
 });
