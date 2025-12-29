@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
+import { getPasskeys } from '../lib/supakeys'
 
 export default function Login() {
     const navigate = useNavigate()
@@ -78,6 +79,32 @@ export default function Login() {
             setLoading(false)
         }
     }
+
+    const handleSupakeysLogin = async () => {
+        setLoading(true)
+        setMessage(null)
+        try {
+            const passkeys = getPasskeys()
+            const { session, error } = await passkeys.signIn()
+
+            if (error) throw new Error(error.message)
+
+            if (session) {
+                // Ideally auth state listener handles redirect, but we can do it here too
+                navigate('/')
+            }
+        } catch (error: any) {
+            console.error('Supakeys login error:', error)
+            setMessage({
+                type: 'error',
+                text: error.message || 'Virhe Supakeys-kirjautumisessa.',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+
 
     const handleGoogleLogin = async () => {
         setLoading(true)
@@ -160,6 +187,7 @@ export default function Login() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="relative block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                 placeholder="Sähköpostiosoite"
+                                data-testid="login-email-input"
                             />
                         </div>
                         {usePassword && (
@@ -177,6 +205,7 @@ export default function Login() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="relative block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     placeholder="Salasana"
+                                    data-testid="login-password-input"
                                 />
                             </div>
                         )}
@@ -189,6 +218,7 @@ export default function Login() {
                                 checked={usePassword}
                                 onChange={(e) => setUsePassword(e.target.checked)}
                                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                data-testid="login-use-password-checkbox"
                             />
                             Käytä salasanaa
                         </label>
@@ -200,6 +230,7 @@ export default function Login() {
                                 ? 'bg-green-50 text-green-700'
                                 : 'bg-red-50 text-red-700'
                                 }`}
+                            data-testid="login-message"
                         >
                             {message.text}
                         </div>
@@ -210,6 +241,7 @@ export default function Login() {
                             type="submit"
                             disabled={loading}
                             className="group relative flex w-full justify-center rounded-md bg-indigo-600 py-2.5 px-3 text-sm font-semibold text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-70"
+                            data-testid="login-submit-button"
                         >
                             {loading
                                 ? 'Lähetetään...'
@@ -241,6 +273,20 @@ export default function Login() {
                                 </svg>
                                 Kirjaudu avainkoodilla
                             </button>
+
+                            <div className="pt-4 border-t border-gray-200 mt-4">
+                                <p className="text-xs text-center text-gray-400 mb-2">Supakeys Integrations</p>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleSupakeysLogin}
+                                        disabled={loading}
+                                        className="w-full rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
+                                    >
+                                        Kirjaudu avaimella
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -289,6 +335,7 @@ export default function Login() {
                                 disabled={loading}
                                 onClick={handleSignup}
                                 className="group relative flex w-full justify-center rounded-md border border-indigo-600 py-2.5 px-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 disabled:opacity-70"
+                                data-testid="signup-password-button"
                             >
                                 Luo tili salasanalla
                             </button>
