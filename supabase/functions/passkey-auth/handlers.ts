@@ -37,11 +37,25 @@ export async function handleRegisterStart(
         return error('RATE_LIMITED', 'Too many requests');
     }
 
-    const webauthnUserId = generateWebAuthnUserId();
-    const { data: existingUser } = await supabaseAdmin.from('passkey_credentials')
-        .select('id').eq('webauthn_user_id', webauthnUserId).limit(1);
+    // Check if user already exists in auth.users to maintain consistent User ID (and thus UserHandle)
+    const { data: existingAuthUser } = await supabaseAdmin
+        .schema('auth')
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
 
-    const excludeCredentials = existingUser?.map((c: { id: string }) => ({
+    // If user exists, use their ID to generate a consistent WebAuthn User Handle.
+    // Otherwise, generate a random one (new user).
+    // Note: generateWebAuthnUserId() without an argument generates a random Base64URL string.
+    // If an argument (like existingAuthUser.id) is provided, it returns that string directly.
+    const webauthnUserId = existingAuthUser?.id || generateWebAuthnUserId();
+
+    // We can now query for existing credentials using the stable webauthnUserId
+    const { data: existingUserCreds } = await supabaseAdmin.from('passkey_credentials')
+        .select('id').eq('webauthn_user_id', webauthnUserId);
+
+    const excludeCredentials = existingUserCreds?.map((c: { id: string }) => ({
         id: c.id, type: 'public-key' as const
     })) || [];
 

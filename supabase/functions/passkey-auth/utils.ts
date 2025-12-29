@@ -54,7 +54,11 @@ export function hexToUint8Array(hex: string): Uint8Array {
     return bytes;
 }
 
-export function generateWebAuthnUserId(): string {
+export function generateWebAuthnUserId(existingUserId?: string): string {
+    if (existingUserId) {
+        // Return UUID directly to match Legacy implementation (which encodes the UUID string to bytes)
+        return existingUserId;
+    }
     const bytes = new Uint8Array(32);
     crypto.getRandomValues(bytes);
     return uint8ArrayToBase64Url(bytes);
