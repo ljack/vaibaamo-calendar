@@ -10,6 +10,8 @@ import type { Event } from '../types'
 import { VaibaamoLogo } from './Logo'
 import { useTranslation } from 'react-i18next'
 
+import { LanguageSelector } from './LanguageSelector'
+
 function JourneyFeature({
     isOpen,
     onClose,
@@ -78,6 +80,7 @@ export default function Layout() {
                             </Link>
                         </div>
                         <div className="flex items-center space-x-4">
+                            <LanguageSelector />
                             {isAdmin && (
                                 <Link
                                     to="/events/new"
