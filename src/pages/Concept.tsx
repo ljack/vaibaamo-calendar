@@ -45,7 +45,7 @@ export default function Concept() {
                             Vaibaamo
                         </h1>
                         <p className="mt-6 text-lg leading-8 text-gray-600">
-                            Vaibaamo on Vibe koodaus tapahtuma. Näissä tapahtumissa keskustellaan AI:sta yleisesti, AI koodauksesta ja vaihdetaan tietoja.
+                            Vaibaamo on <strong>Vibe-koodaustapahtuma</strong>. Näissä tapahtumissa keskustellaan tekoälystä yleisesti, AI-koodauksesta ja jaetaan osaamista.
                         </p>
                         <div className="mt-10 flex items-center justify-center gap-x-6">
                             <Link
