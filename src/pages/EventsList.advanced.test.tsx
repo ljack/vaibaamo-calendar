@@ -95,6 +95,7 @@ describe('EventsList Timeout Handling', () => {
         )
 
         // Wait for error message
+
         await waitFor(() => expect(screen.getByText('events.errorTimeout')).toBeInTheDocument())
 
         // Initial getSession call comes from auth init, extra call comes from timeout recovery.
