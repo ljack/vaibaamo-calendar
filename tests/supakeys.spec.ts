@@ -130,18 +130,19 @@ test.describe('Supakeys Integration', () => {
         // 3. Trigger Passkey Prompt
         // The prompt appears automatically for authenticated users without passkeys.
         // We might need to wait for checks to complete.
-        const promptButton = page.locator('button[data-testid="passkey-register-button"]');
+        // For Supakeys integration test, we must click the Supakeys button
+        const promptButton = page.locator('button[data-testid="supakeys-register-button"]');
         await expect(promptButton).toBeVisible({ timeout: 10000 });
 
-        // 4. Click "Ota käyttöön" (Get Started)
-        // This triggers handleRegister -> passkeyService.register() AND handleSupakeysRegister
+        // 4. Click "Supakeys" (Register)
+        // This triggers handleSupakeysRegister -> supakeys.register()
         await promptButton.click();
 
         // 5. Verification
         // Since we have a Virtual Authenticator with isUserVerified: true,
         // the browser prompt "clicks itself" immediately.
         // We wait for checking the success message.
-        // PasskeyPrompt shows "Avainkoodi rekisteröity onnistuneesti!" on success
-        await expect(page.locator('text=Avainkoodi rekisteröity onnistuneesti')).toBeVisible();
+        // PasskeyPrompt shows "Supakey rekisteröity onnistuneesti!" on success
+        await expect(page.locator('text=Supakey rekisteröity onnistuneesti!')).toBeVisible();
     });
 });
