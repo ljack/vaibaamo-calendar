@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import EventsList from './EventsList'
 import { AuthProvider } from '../contexts/AuthContext'
@@ -9,6 +9,7 @@ const supabaseMock = vi.hoisted(() => {
     const supabase = {
         auth: {
             getSession: vi.fn(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
         },
         from: vi.fn(),
@@ -36,6 +37,7 @@ const createBaseQueryBuilder = () => ({
     in: vi.fn().mockReturnThis(),
     single: vi.fn(),
     abortSignal: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     then: vi.fn().mockImplementation((resolve: any) => resolve({ data: null, error: null, count: 0 })),
 })
 
@@ -53,9 +55,11 @@ describe('EventsList Timeout Handling', () => {
         vi.mocked(supabase.auth.getSession).mockResolvedValue({
             data: { session: { user: { id: '123' } } },
             error: null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         vi.mocked(supabase.auth.onAuthStateChange).mockReturnValue({
             data: { subscription: { unsubscribe: vi.fn() } },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
     })
 
@@ -66,15 +70,19 @@ describe('EventsList Timeout Handling', () => {
 
             if (table === 'events') {
                 queryBuilder.abortSignal.mockRejectedValue(new Error('Request timed out'))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return queryBuilder as any
             }
             if (table === 'participants') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return createParticipantsMock() as any
             }
             if (table === 'profiles') {
                 queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return queryBuilder as any
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return queryBuilder as any
         })
 
@@ -121,6 +129,7 @@ describe('EventsList auth fallback and timeout', () => {
         vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
             loading: true,
             checkSession: vi.fn().mockResolvedValue(true),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
 
         vi.mocked(supabase.from).mockImplementation((table: string) => {
@@ -128,11 +137,14 @@ describe('EventsList auth fallback and timeout', () => {
 
             if (table === 'events') {
                 queryBuilder.abortSignal.mockResolvedValue({ data: events, error: null })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return queryBuilder as any
             }
             if (table === 'participants') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return createParticipantsMock([{ event_id: 'fallback' }]) as any
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return queryBuilder as any
         })
 
@@ -167,11 +179,14 @@ describe('EventsList auth fallback and timeout', () => {
                         reject(signal.reason || new Error('Request timed out after 10s'))
                     }, { once: true })
                 }))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return queryBuilder as any
             }
             if (table === 'participants') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return createParticipantsMock() as any
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return queryBuilder as any
         })
 
@@ -195,6 +210,7 @@ describe('EventsList auth fallback and timeout', () => {
 describe('EventsList additional coverage', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: { id: '123' } } }, error: null } as any)
     })
 
@@ -207,12 +223,15 @@ describe('EventsList additional coverage', () => {
             const query = createBaseQueryBuilder()
             if (table === 'events') {
                 query.abortSignal.mockResolvedValue({ data: events, error: null })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return query as any
             }
             if (table === 'participants') {
                 query.in.mockResolvedValue({ data: null, error: { message: 'PartFail' } })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return query as any
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return query as any
         })
 
@@ -228,8 +247,10 @@ describe('EventsList additional coverage', () => {
             const query = createBaseQueryBuilder()
             if (table === 'events') {
                 query.abortSignal.mockResolvedValue({ data: null, error: { message: 'AbortError' } })
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return query as any
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return query as any
         })
 
@@ -248,8 +269,10 @@ describe('EventsList additional coverage', () => {
                 const err = new Error('AbortError')
                 err.name = 'AbortError'
                 query.abortSignal.mockRejectedValue(err)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return query as any
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return query as any
         })
 

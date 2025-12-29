@@ -1,9 +1,8 @@
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import EventsList from './EventsList'
 import { AuthProvider } from '../contexts/AuthContext'
 import { BrowserRouter } from 'react-router-dom'
-import * as AuthContext from '../contexts/AuthContext'
 
 const supabaseMock = vi.hoisted(() => {
     const supabase = {

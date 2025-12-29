@@ -1,0 +1,32 @@
+name: Verify Build and Tests
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true # Warning for now, ideally should block
+        
+      - name: Type Check & Build
+        run: npm run build
+        
+      - name: Unit Tests
+        run: npm run test:coverage
