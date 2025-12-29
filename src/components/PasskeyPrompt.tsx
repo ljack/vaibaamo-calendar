@@ -85,7 +85,7 @@ export function PasskeyPrompt() {
                         {t('passkey.promoDesktop')}
                     </h2>
                     <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
-                        Secure your account with cryptographic keys. Works on mobile and desktop.
+                        {t('passkey.promoSubtitle')}
                     </p>
                 </div>
 
@@ -102,10 +102,10 @@ export function PasskeyPrompt() {
                                 </h3>
                                 <p className="text-sm text-green-700">
                                     {hasSupakey && hasPasskey
-                                        ? "Both Standard and Supakeys are active."
+                                        ? t('passkey.statusBoth')
                                         : hasSupakey
-                                            ? "Supakeys active."
-                                            : "Standard Passkey active."
+                                            ? t('passkey.statusSupakeys')
+                                            : t('passkey.statusStandard')
                                     }
                                 </p>
                             </div>
@@ -114,7 +114,7 @@ export function PasskeyPrompt() {
                             onClick={() => setShowManager(true)}
                             className="bg-white text-green-700 hover:bg-green-50 border border-green-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
                         >
-                            Manage Passkeys
+                            {t('passkey.manageButton')}
                         </button>
                     </div>
                 )}
@@ -128,18 +128,18 @@ export function PasskeyPrompt() {
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
                                 🔑
                             </div>
-                            {hasPasskey && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Active</span>}
+                            {hasPasskey && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">{t('passkey.activeLabel')}</span>}
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Standard Passkey</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('passkey.standardTitle')}</h3>
                         <p className="text-gray-500 text-sm mb-4 min-h-[40px]">
-                            Basic passkey support. Reliable and simple way to log in.
+                            {t('passkey.standardDesc')}
                         </p>
                         <button
                             onClick={handleRegister}
                             disabled={loadingAction !== null || hasPasskey}
                             className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${hasPasskey
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
                                 }`}
                         >
                             {loadingAction === 'legacy' ? t('passkey.registerButtonLoading') : hasPasskey ? t('passkey.passkeyInUse') : t('passkey.registerButton')}
@@ -153,21 +153,21 @@ export function PasskeyPrompt() {
                             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl">
                                 ✨
                             </div>
-                            {hasSupakey && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Active</span>}
+                            {hasSupakey && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">{t('passkey.activeLabel')}</span>}
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Supakeys</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('passkey.supakeysTitle')}</h3>
                         <p className="text-gray-500 text-sm mb-4 min-h-[40px]">
-                            Advanced passkey features with enhanced device support and reliability.
+                            {t('passkey.supakeysDesc')}
                         </p>
                         <button
                             onClick={handleSupakeysRegister}
                             disabled={loadingAction !== null || hasSupakey}
                             className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${hasSupakey
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                                    : 'bg-purple-600 text-white hover:bg-purple-700 shadow-sm'
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                : 'bg-purple-600 text-white hover:bg-purple-700 shadow-sm'
                                 }`}
                         >
-                            {loadingAction === 'supakeys' ? t('passkey.registerButtonLoading') : hasSupakey ? t('passkey.supakeysInUse') : "Enable Supakeys"}
+                            {loadingAction === 'supakeys' ? t('passkey.registerButtonLoading') : hasSupakey ? t('passkey.supakeysInUse') : t('passkey.supakeysButton')}
                         </button>
                     </div>
                 </div>

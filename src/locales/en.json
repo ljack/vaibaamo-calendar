@@ -51,7 +51,26 @@
         "registerButtonLoading": "Registering...",
         "passkeyInUse": "Passkey valid",
         "supakeysInUse": "Supakeys valid",
-        "dismiss": "Close"
+        "dismiss": "Close",
+        "promoSubtitle": "Secure your account with cryptographic keys. Works on mobile and desktop.",
+        "statusBoth": "Both Standard and Supakeys are active.",
+        "statusSupakeys": "Supakeys active.",
+        "statusStandard": "Standard Passkey active.",
+        "manageButton": "Manage Passkeys",
+        "activeLabel": "Active",
+        "standardTitle": "Standard Passkey",
+        "standardDesc": "Basic passkey support. Reliable and simple way to log in.",
+        "supakeysTitle": "Supakeys",
+        "supakeysDesc": "Advanced passkey features with enhanced device support and reliability.",
+        "supakeysButton": "Enable Supakeys",
+        "manageModalTitle": "Manage Passkeys",
+        "noPasskeys": "No passkeys found.",
+        "addedLabel": "Added:",
+        "lastUsedLabel": "Last used:",
+        "delete": "Delete",
+        "closeButton": "Close",
+        "confirmDelete": "Are you sure you want to delete this passkey?",
+        "errorDelete": "Failed to delete passkey"
     },
     "concept": {
         "hero": {

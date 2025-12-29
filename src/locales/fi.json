@@ -51,7 +51,26 @@
         "registerButtonLoading": "Rekisteröidään...",
         "passkeyInUse": "Passkey käytössä",
         "supakeysInUse": "Supakeys käytössä",
-        "dismiss": "Sulje"
+        "dismiss": "Sulje",
+        "promoSubtitle": "Suojaa tilisi kryptografisilla avaimilla. Toimii mobiilissa ja työpöydällä.",
+        "statusBoth": "Sekä Standard että Supakeys ovat aktiivisia.",
+        "statusSupakeys": "Supakeys aktiivinen.",
+        "statusStandard": "Standard Passkey aktiivinen.",
+        "manageButton": "Hallitse koodiavaimia",
+        "activeLabel": "Aktiivinen",
+        "standardTitle": "Standard Passkey",
+        "standardDesc": "Perus koodiavain. Luotettava ja yksinkertainen tapa kirjautua.",
+        "supakeysTitle": "Supakeys",
+        "supakeysDesc": "Edistynyt koodiavain, jossa parempi laitetuki ja luotettavuus.",
+        "supakeysButton": "Ota käyttöön Supakeys",
+        "manageModalTitle": "Hallitse koodiavaimia",
+        "noPasskeys": "Ei koodiavaimia.",
+        "addedLabel": "Lisätty:",
+        "lastUsedLabel": "Käytetty viimeksi:",
+        "delete": "Poista",
+        "closeButton": "Sulje",
+        "confirmDelete": "Oletko varma että haluat poistaa tämän koodiavaimen?",
+        "errorDelete": "Virhe poistettaessa"
     },
     "concept": {
         "hero": {

@@ -82,7 +82,7 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
     }, []);
 
     const handleDelete = async (item: PasskeyItem) => {
-        if (!confirm(t('common.confirmDelete', 'Are you sure you want to delete this passkey?'))) return;
+        if (!confirm(t('passkey.confirmDelete'))) return;
 
         try {
             if (item.type === 'legacy') {
@@ -94,7 +94,7 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
             // Refresh list
             await fetchPasskeys();
         } catch (e: any) {
-            alert(t('common.errorDelete', 'Failed to delete passkey') + ': ' + e.message);
+            alert(t('passkey.errorDelete') + ': ' + e.message);
         }
     };
 
@@ -102,7 +102,7 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="text-xl font-cal text-gray-900">Manage Passkeys</h2>
+                    <h2 className="text-xl font-cal text-gray-900">{t('passkey.manageModalTitle')}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         ✕
                     </button>
@@ -110,12 +110,12 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
 
                 <div className="p-6 overflow-y-auto">
                     {loading ? (
-                        <div className="text-center py-8 text-gray-500">Loading...</div>
+                        <div className="text-center py-8 text-gray-500">{t('common.loading')}</div>
                     ) : error ? (
                         <div className="text-center py-8 text-red-500">{error}</div>
                     ) : passkeys.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
-                            No passkeys found.
+                            {t('passkey.noPasskeys')}
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -130,11 +130,11 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
                                             </span>
                                         </div>
                                         <div className="text-xs text-gray-500 mt-1">
-                                            Added: {new Date(pk.created_at).toLocaleDateString()}
+                                            {t('passkey.addedLabel')} {new Date(pk.created_at).toLocaleDateString()}
                                         </div>
                                         {pk.last_used_at && (
                                             <div className="text-xs text-gray-400">
-                                                Last used: {new Date(pk.last_used_at).toLocaleDateString()}
+                                                {t('passkey.lastUsedLabel')} {new Date(pk.last_used_at).toLocaleDateString()}
                                             </div>
                                         )}
                                     </div>
@@ -142,7 +142,7 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
                                         onClick={() => handleDelete(pk)}
                                         className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors text-sm font-medium"
                                     >
-                                        Delete
+                                        {t('passkey.delete')}
                                     </button>
                                 </div>
                             ))}
@@ -155,7 +155,7 @@ export const PasskeyManager: React.FC<PasskeyManagerProps> = ({ onClose }) => {
                         onClick={onClose}
                         className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                     >
-                        Close
+                        {t('passkey.closeButton')}
                     </button>
                 </div>
             </div>
