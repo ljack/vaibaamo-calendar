@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
+import { getPasskeys } from '../lib/supakeys'
 
 export default function Login() {
     const navigate = useNavigate()
@@ -73,6 +74,60 @@ export default function Login() {
             setMessage({
                 type: 'error',
                 text: error.message || 'Virhe avainkoodilla kirjautumisessa.',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSupakeysLogin = async () => {
+        setLoading(true)
+        setMessage(null)
+        try {
+            const passkeys = getPasskeys()
+            const { session, error } = await passkeys.signIn()
+
+            if (error) throw new Error(error.message)
+
+            if (session) {
+                // Ideally auth state listener handles redirect, but we can do it here too
+                navigate('/')
+            }
+        } catch (error: any) {
+            console.error('Supakeys login error:', error)
+            setMessage({
+                type: 'error',
+                text: error.message || 'Virhe Supakeys-kirjautumisessa.',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSupakeysRegister = async () => {
+        setLoading(true)
+        setMessage(null)
+        try {
+            if (!email) throw new Error("Sähköposti vaaditaan rekisteröintiin")
+
+            const passkeys = getPasskeys()
+            // We pass user_handle map or similar if needed? Documentation says just email.
+            // If user exists, it might verify ownership?
+            const { success, error } = await passkeys.register({ email })
+
+            if (error) throw new Error(error.message)
+
+            if (success) {
+                setMessage({
+                    type: 'success',
+                    text: 'Avainkoodi rekisteröity ja tili luotu! Voit nyt kirjautua sisään.'
+                })
+            }
+        } catch (error: any) {
+            console.error('Supakeys register error:', error)
+            setMessage({
+                type: 'error',
+                text: error.message || 'Virhe Supakeys-rekisteröinnissä.',
             })
         } finally {
             setLoading(false)
@@ -241,6 +296,28 @@ export default function Login() {
                                 </svg>
                                 Kirjaudu avainkoodilla
                             </button>
+
+                            <div className="pt-4 border-t border-gray-200 mt-4">
+                                <p className="text-xs text-center text-gray-400 mb-2">Supakeys Integrations</p>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleSupakeysRegister}
+                                        disabled={loading || !email}
+                                        className="flex-1 rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
+                                    >
+                                        Rekisteröi avain
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSupakeysLogin}
+                                        disabled={loading}
+                                        className="flex-1 rounded-md border border-purple-300 py-2 px-3 text-xs font-semibold text-purple-700 hover:bg-purple-50 flex items-center justify-center whitespace-nowrap"
+                                    >
+                                        Kirjaudu avaimella
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
