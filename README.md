@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+# 🗓️ Vaibaamo Calendar
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Vaibaamo Calendar is a high-performance, modern event management application built with **React 19**, **Vite**, and **Supabase**. It features cutting-edge authentication methods like **Passkeys (WebAuthn)**, robust event synchronization, and an interactive spatial experience called the **Konami Journey**.
 
-Currently, two official plugins are available:
+![Vaibaamo Homepage](/Users/jarkko/.gemini/antigravity/brain/57acdb41-035f-49b9-8fd4-c3c17a091ff7/vaibaamo_homepage_loaded_events_1766968439007.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Key Features
 
-## React Compiler
+### 🔐 Next-Gen Authentication
+- **Passkeys (WebAuthn)**: Passwordless security using biometric or hardware keys.
+- **Google OAuth**: Seamless login with automatic email synchronization to user profiles.
+- **Role-Based Access**: Granular permissions for Admins, Creators, and Participants.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 📅 Event Management
+- **Full CRUD**: Create, edit, and delete events with rich descriptions and metadata.
+- **Registration**: Real-time participant tracking and status management.
+- **Admin Dashboard**: Specialized views for event creators and administrators to see participant details (including emails).
 
-## Expanding the ESLint configuration
+### 📍 Interactive Spatial Features
+- **Leaflet Maps**: Integrated maps showing precise locations for all upcoming events.
+- **Konami Journey**: A unique easter egg experience that generates dynamic routes to events with premium car animations.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### ⚙️ Deep Supabase Integration
+- **Edge Functions**: Secure custom logic for WebAuthn and complex automations.
+- **RLS (Row Level Security)**: Production-grade data isolation at the database level.
+- **Real-time Sync**: User profiles stay synchronized with authentication metadata.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🛠️ Technology Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Frontend**: [React 19](https://react.dev), [Vite](https://vitejs.dev), [Tailwind CSS 4](https://tailwindcss.com), [React Router 7](https://reactrouter.com)
+- **Backend/DB**: [Supabase](https://supabase.com) (PostgreSQL, Edge Functions, Auth, Storage)
+- **Testing**: [Playwright](https://playwright.dev) (E2E), [Vitest](https://vitest.dev) (Unit)
+- **Maps**: [Leaflet](https://leafletjs.com)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🏁 Getting Started
+
+### Prerequisites
+- Node.js (Latest LTS)
+- Supabase Project
+
+### Installation
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables in `.env.local`:
+   ```bash
+   VITE_SUPABASE_URL=your_project_url
+   VITE_SUPABASE_ANON_KEY=your_anon_key
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+## 🧪 Testing
+
+Run unit tests:
+```bash
+npm test
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Run E2E integration tests:
+```bash
+npm run test:integration
 ```
+
+---
+Built with ❤️ by the Vaibaamo Team.
