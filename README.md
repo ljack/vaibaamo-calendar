@@ -2,7 +2,7 @@
 
 Vaibaamo Calendar is a high-performance, modern event management application built with **React 19**, **Vite**, and **Supabase**. It features cutting-edge authentication methods like **Passkeys (WebAuthn)**, robust event synchronization, and an interactive spatial experience called the **Konami Journey**.
 
-![Vaibaamo Homepage](/Users/jarkko/.gemini/antigravity/brain/57acdb41-035f-49b9-8fd4-c3c17a091ff7/vaibaamo_homepage_loaded_events_1766968439007.png)
+![Vaibaamo Homepage](./docs/screenshots/homepage.png)
 
 ## 🚀 Key Features
 
