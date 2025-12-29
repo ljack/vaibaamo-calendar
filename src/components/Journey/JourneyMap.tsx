@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { loadLeaflet } from '../../lib/leafletLoader';
 import { generateCurvedPath, getDistance, generateNearbyPOI } from '../../lib/journeyUtils';
 import { useCarPhysics } from '../../hooks/useCarPhysics';
@@ -27,13 +28,19 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     onClose
 }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mapInstanceRef = useRef<any>(null);
     const mapInitializedRef = useRef(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const carMarkerRef = useRef<any>(null);
     const isZoomingRef = useRef(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const roadEdgeRef = useRef<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const roadBaseRef = useRef<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const roadDashRef = useRef<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const LRef = useRef<any>(null);
 
     const positionRef = useRef<{ lat: number; lon: number } | null>(

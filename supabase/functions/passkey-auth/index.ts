@@ -64,7 +64,7 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify(result), {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
-  } catch (e) {
+  } catch (_) {
     return new Response(JSON.stringify(error('UNKNOWN_ERROR', 'Internal server error')), {
       status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
