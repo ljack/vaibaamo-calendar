@@ -1,0 +1,92 @@
+{
+    "common": {
+        "loading": "Ladataan...",
+        "error": "Virhe",
+        "dateLocale": "fi-FI"
+    },
+    "layout": {
+        "concept": "Konsepti",
+        "createEvent": "+ Luo tapahtuma",
+        "logout": "Kirjaudu ulos",
+        "login": "Kirjaudu sisään",
+        "footer": "Vaibaamo.",
+        "startJourney": "Aloita matka"
+    },
+    "login": {
+        "title": "Kirjaudu Vaibaamoon",
+        "subtitle": "Käytämme salasanatonta kirjautumista.",
+        "emailLabel": "Sähköpostiosoite",
+        "emailPlaceholder": "Sähköpostiosoite",
+        "passwordLabel": "Salasana",
+        "passwordPlaceholder": "Salasana",
+        "usePassword": "Käytä salasanaa",
+        "submitSending": "Lähetetään...",
+        "submitLogin": "Kirjaudu sisään",
+        "submitSendLink": "Lähetä kirjautumislinkki",
+        "orUse": "Tai käytä",
+        "loginPasskey": "Kirjaudu avainkoodilla",
+        "loginSupakeys": "Kirjaudu Supakeysillä",
+        "loginGoogle": "Kirjaudu Googlella",
+        "createAccount": "Luo tili salasanalla",
+        "successLogin": "Kirjautuminen onnistui!",
+        "successLink": "Kirjautumislinkki lähetetty sähköpostiisi!",
+        "errorMissingPassword": "Salasana puuttuu.",
+        "errorGeneric": "Kirjautumisvirhe.",
+        "errorPasskey": "Avainkoodivirhe.",
+        "errorSupakeys": "Supakeys-virhe.",
+        "errorGoogle": "Google-kirjautumisvirhe.",
+        "errorSignup": "Rekisteröintivirhe.",
+        "successSignup": "Tili luotu! Vahvista sähköpostisi ja kirjaudu sisään."
+    },
+    "passkey": {
+        "successRegister": "Avainkoodi rekisteröity onnistuneesti!",
+        "errorRegister": "Virhe rekisteröinnissä.",
+        "successSupakeysRegister": "Supakey rekisteröity onnistuneesti!",
+        "errorSupakeysRegister": "Virhe Supakeys-rekisteröinnissä.",
+        "congratsMobile": "Käytät turvallista avainkoodia!",
+        "congratsDesktop": "Onneksi olkoon! Käytät phishing-vapaata, kryptografisen turvallista Passkey-kirjautumista.",
+        "promoMobile": "Kirjaudu nopeammin avainkoodilla!",
+        "promoDesktop": "Ota käyttöön avainkoodi (Passkey) nopeampaa kirjautumista varten.",
+        "registerButton": "Ota käyttöön",
+        "registerButtonLoading": "Rekisteröidään...",
+        "passkeyInUse": "Passkey käytössä",
+        "supakeysInUse": "Supakeys käytössä",
+        "dismiss": "Sulje"
+    },
+    "concept": {
+        "hero": {
+            "title": "Vaibaamo",
+            "desc": "Vaibaamo on Vibe-koodaustapahtuma. Näissä tapahtumissa keskustellaan tekoälystä yleisesti, AI-koodauksesta ja jaetaan osaamista.",
+            "browseEvents": "Selaa tapahtumia",
+            "createNew": "Luo uusi"
+        },
+        "features": {
+            "philosophy": "Filosofia",
+            "whatIsIt": "Mistä on kyse?",
+            "origin": "Vaibaamo syntyi sanaleikistä: Vibe + Aamo (kuten sana 'koodaamo' tai 'hautomö').",
+            "definition": "Se on paikka (\"-aamo\"), jossa hyvä fiilis (\"vibe\") ja tekoälykoodaus kohtaavat. Tavoitteena on luoda rento ympäristö oppimiselle ja verkostoitumiselle.",
+            "eventsTitle": "Tapahtumat keskiössä",
+            "eventsDesc": "Löydä tulevat tapahtumat helposti aikajärjestyksessä. Ei turhaa säätöä, vain olennaiset tiedot: missä, milloin ja ketä on tulossa.",
+            "communityTitle": "Yhteisöllisyys",
+            "communityDesc": "Näe ketkä ovat ilmoittautuneet ja liity mukaan. Vaibaamo tekee osallistumisesta helppoa ja sosiaalista.",
+            "mapTitle": "Kartat ja Sijainnit",
+            "mapDesc": "Integroitu karttanäkymä auttaa hahmottamaan, missä tapahtuu. Klikkaa itsesi suoraan perille.",
+            "techTitle": "Sähköinen ja Nopea",
+            "techDesc": "Rakennettu modernilla teknologialla (React, Supabase, Vite) nopeaa ja responsiivista käyttökokemusta varten. Ja ehkä sieltä löytyy jotain muutakin... (vinkki: π)"
+        },
+        "credits": "© 2025 Vaibaamo Project. Rakennettu rakkaudella ja koodilla."
+    },
+    "events": {
+        "upcomingTitle": "Tulevat tapahtumat",
+        "mapTitle": "Tulevat tapahtumat kartalla",
+        "noEventsTitle": "Ei tulevia tapahtumia",
+        "noEventsDesc": "Tarkista myöhemmin uudelleen!",
+        "showPast": "Näytä menneet tapahtumat",
+        "hidePast": "Piilota menneet tapahtumat",
+        "participants": "osallistujaa",
+        "retry": "Yritä uudelleen",
+        "errorGeneric": "Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.",
+        "errorTimeout": "Yhteys aikakatkaistiin. Tarkista internetyhteytesi.",
+        "errorSession": "Istunto on vanhentunut. Kirjaudu sisään uudelleen."
+    }
+}

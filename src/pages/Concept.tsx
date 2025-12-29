@@ -1,5 +1,6 @@
 
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 // Inline icons to avoid unknown module error
 function CalendarIcon({ className }: { className?: string }) {
@@ -35,6 +36,7 @@ function ZapIcon({ className }: { className?: string }) {
 }
 
 export default function Concept() {
+    const { t } = useTranslation()
     return (
         <div className="bg-white">
             {/* Hero Section */}
@@ -42,20 +44,20 @@ export default function Concept() {
                 <div className="mx-auto max-w-2xl py-12 sm:py-24 lg:py-24">
                     <div className="text-center">
                         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-                            Vaibaamo
+                            {t('concept.hero.title')}
                         </h1>
                         <p className="mt-6 text-lg leading-8 text-gray-600">
-                            Vaibaamo on <strong>Vibe-koodaustapahtuma</strong>. Näissä tapahtumissa keskustellaan tekoälystä yleisesti, AI-koodauksesta ja jaetaan osaamista.
+                            {t('concept.hero.desc')}
                         </p>
                         <div className="mt-10 flex items-center justify-center gap-x-6">
                             <Link
                                 to="/"
                                 className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200"
                             >
-                                Selaa tapahtumia
+                                {t('concept.hero.browseEvents')}
                             </Link>
                             <Link to="/events/new" className="text-sm font-semibold leading-6 text-gray-900">
-                                Luo uusi <span aria-hidden="true">→</span>
+                                {t('concept.hero.createNew')} <span aria-hidden="true">→</span>
                             </Link>
                         </div>
                     </div>
@@ -66,15 +68,15 @@ export default function Concept() {
             <div className="py-24 sm:py-32 bg-gray-50 rounded-3xl mx-4 sm:mx-8 mb-16">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="mx-auto max-w-2xl lg:text-center">
-                        <h2 className="text-base font-semibold leading-7 text-indigo-600">Filosofia</h2>
+                        <h2 className="text-base font-semibold leading-7 text-indigo-600">{t('concept.features.philosophy')}</h2>
                         <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                            Mistä on kyse?
+                            {t('concept.features.whatIsIt')}
                         </p>
                         <p className="mt-6 text-lg leading-8 text-gray-600">
-                            Vaibaamo syntyi sanaleikistä: <strong>Vibe</strong> + <strong>Aamo</strong> (kuten sana 'koodaamo' tai 'hautomö').
+                            {t('concept.features.origin')}
                         </p>
                         <p className="mt-6 text-lg leading-8 text-gray-600">
-                            Se on paikka ("-aamo"), jossa hyvä fiilis ("vibe") ja tekoälykoodaus kohtaavat. Tavoitteena on luoda rento ympäristö oppimiselle ja verkostoitumiselle.
+                            {t('concept.features.definition')}
                         </p>
                     </div>
                     <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
@@ -84,10 +86,10 @@ export default function Concept() {
                                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
                                         <CalendarIcon className="h-6 w-6 text-white" />
                                     </div>
-                                    Tapahtumat keskiössä
+                                    {t('concept.features.eventsTitle')}
                                 </dt>
                                 <dd className="mt-2 text-base leading-7 text-gray-600">
-                                    Löydä tulevat tapahtumat helposti aikajärjestyksessä. Ei turhaa säätöä, vain olennaiset tiedot: missä, milloin ja ketä on tulossa.
+                                    {t('concept.features.eventsDesc')}
                                 </dd>
                             </div>
                             <div className="relative pl-16">
@@ -95,10 +97,10 @@ export default function Concept() {
                                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
                                         <UsersIcon className="h-6 w-6 text-white" />
                                     </div>
-                                    Yhteisöllisyys
+                                    {t('concept.features.communityTitle')}
                                 </dt>
                                 <dd className="mt-2 text-base leading-7 text-gray-600">
-                                    Näe ketkä ovat ilmoittautuneet ja liity mukaan. Vaibaamo tekee osallistumisesta helppoa ja sosiaalista.
+                                    {t('concept.features.communityDesc')}
                                 </dd>
                             </div>
                             <div className="relative pl-16">
@@ -106,10 +108,10 @@ export default function Concept() {
                                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
                                         <MapIcon className="h-6 w-6 text-white" />
                                     </div>
-                                    Kartat ja Sijainnit
+                                    {t('concept.features.mapTitle')}
                                 </dt>
                                 <dd className="mt-2 text-base leading-7 text-gray-600">
-                                    Integroitu karttanäkymä auttaa hahmottamaan, missä tapahtuu. Klikkaa itsesi suoraan perille.
+                                    {t('concept.features.mapDesc')}
                                 </dd>
                             </div>
                             <div className="relative pl-16">
@@ -117,10 +119,10 @@ export default function Concept() {
                                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
                                         <ZapIcon className="h-6 w-6 text-white" />
                                     </div>
-                                    Sähköinen ja Nopea
+                                    {t('concept.features.techTitle')}
                                 </dt>
                                 <dd className="mt-2 text-base leading-7 text-gray-600">
-                                    Rakennettu modernilla teknologialla (React, Supabase, Vite) nopeaa ja responsiivista käyttökokemusta varten. Ja ehkä sieltä löytyy jotain muutakin... (vinkki: π)
+                                    {t('concept.features.techDesc')}
                                 </dd>
                             </div>
                         </dl>
@@ -132,7 +134,7 @@ export default function Concept() {
             < div className="border-t border-gray-200 py-12 px-6" >
                 <div className="mx-auto max-w-7xl text-center">
                     <p className="text-sm text-gray-500">
-                        &copy; 2025 Vaibaamo Project. Rakennettu rakkaudella ja koodilla.
+                        {t('concept.credits')}
                     </p>
                 </div>
             </div >

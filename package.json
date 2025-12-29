@@ -18,9 +18,12 @@
     "@supabase/supabase-js": "^2.87.1",
     "@types/leaflet": "^1.9.21",
     "canvas": "^3.2.0",
+    "i18next": "^25.7.3",
+    "i18next-browser-languagedetector": "^8.2.0",
     "leaflet": "^1.9.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^16.5.0",
     "react-router-dom": "^7.10.1",
     "supakeys": "^0.1.7"
   },

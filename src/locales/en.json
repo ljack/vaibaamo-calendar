@@ -1,0 +1,92 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "dateLocale": "en-US"
+    },
+    "layout": {
+        "concept": "Concept",
+        "createEvent": "+ Create Event",
+        "logout": "Log out",
+        "login": "Log in",
+        "footer": "Vaibaamo.",
+        "startJourney": "Start Journey"
+    },
+    "login": {
+        "title": "Log in to Vaibaamo",
+        "subtitle": "We use passwordless login.",
+        "emailLabel": "Email address",
+        "emailPlaceholder": "Email address",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "Password",
+        "usePassword": "Use password",
+        "submitSending": "Sending...",
+        "submitLogin": "Log in",
+        "submitSendLink": "Send login link",
+        "orUse": "Or use",
+        "loginPasskey": "Log in with Passkey",
+        "loginSupakeys": "Log in with Supakeys",
+        "loginGoogle": "Log in with Google",
+        "createAccount": "Create account with password",
+        "successLogin": "Login successful!",
+        "successLink": "Login link sent to your email!",
+        "errorMissingPassword": "Password missing.",
+        "errorGeneric": "Login error.",
+        "errorPasskey": "Passkey login error.",
+        "errorSupakeys": "Supakeys login error.",
+        "errorGoogle": "Google login error.",
+        "errorSignup": "Registration error.",
+        "successSignup": "Account created! Verify your email and log in."
+    },
+    "passkey": {
+        "successRegister": "Passkey registered successfully!",
+        "errorRegister": "Registration error.",
+        "successSupakeysRegister": "Supakey registered successfully!",
+        "errorSupakeysRegister": "Supakeys registration error.",
+        "congratsMobile": "You are using a secure passkey!",
+        "congratsDesktop": "Congratulations! You are using phishing-resistant, cryptographically secure Passkey login.",
+        "promoMobile": "Log in faster with a passkey!",
+        "promoDesktop": "Enable Passkey for faster login.",
+        "registerButton": "Enable",
+        "registerButtonLoading": "Registering...",
+        "passkeyInUse": "Passkey valid",
+        "supakeysInUse": "Supakeys valid",
+        "dismiss": "Close"
+    },
+    "concept": {
+        "hero": {
+            "title": "Vaibaamo",
+            "desc": "Vaibaamo is a Vibe Coding event. In these events, we discuss AI in general, share AI coding knowledge, and learn together.",
+            "browseEvents": "Browse Events",
+            "createNew": "Create New"
+        },
+        "features": {
+            "philosophy": "Philosophy",
+            "whatIsIt": "What is it?",
+            "origin": "Vaibaamo was born from a wordplay: Vibe + Aamo (like 'koodaamo' or 'hautomö').",
+            "definition": "It is a place ('-aamo') where good vibes and AI coding meet. The goal is to create a relaxed environment for learning and networking.",
+            "eventsTitle": "Events in Focus",
+            "eventsDesc": "Find upcoming events easily in chronological order. No fuss, just essential info: where, when, and who is coming.",
+            "communityTitle": "Community",
+            "communityDesc": "See who has signed up and join in. Vaibaamo makes participation easy and social.",
+            "mapTitle": "Maps and Locations",
+            "mapDesc": "Integrated map view helps you visualize where things are happening. Click your way directly there.",
+            "techTitle": "Electric and Fast",
+            "techDesc": "Built with modern technology (React, Supabase, Vite) for a fast and responsive user experience. And maybe there's something else... (hint: π)"
+        },
+        "credits": "© 2025 Vaibaamo Project. Built with love and code."
+    },
+    "events": {
+        "upcomingTitle": "Upcoming Events",
+        "mapTitle": "Upcoming Events on Map",
+        "noEventsTitle": "No upcoming events",
+        "noEventsDesc": "Check back later!",
+        "showPast": "Show past events",
+        "hidePast": "Hide past events",
+        "participants": "participants",
+        "retry": "Try again",
+        "errorGeneric": "Failed to load events. Please try again later.",
+        "errorTimeout": "Connection timed out. Check your internet connection.",
+        "errorSession": "Session expired. Please log in again."
+    }
+}

@@ -8,6 +8,7 @@ import { PasskeyPrompt } from './PasskeyPrompt'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../types'
 import { VaibaamoLogo } from './Logo'
+import { useTranslation } from 'react-i18next'
 
 function JourneyFeature({
     isOpen,
@@ -41,6 +42,7 @@ function JourneyFeature({
 
 export default function Layout() {
     const { user, isAdmin, signOut } = useAuth()
+    const { t } = useTranslation()
     const konamiTriggered = useKonamiCode()
     const [journeyOpen, setJourneyOpen] = useState(false)
 
@@ -72,7 +74,7 @@ export default function Layout() {
                                 <VaibaamoLogo />
                             </Link>
                             <Link to="/concept" className="text-gray-500 hover:text-gray-900 font-medium">
-                                Konsepti
+                                {t('layout.concept')}
                             </Link>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -81,7 +83,7 @@ export default function Layout() {
                                     to="/events/new"
                                     className="text-gray-900 hover:text-indigo-600 font-medium text-sm"
                                 >
-                                    + Luo tapahtuma
+                                    {t('layout.createEvent')}
                                 </Link>
                             )}
                             {user ? (
@@ -101,7 +103,7 @@ export default function Layout() {
                                         }}
                                         className="ml-4 px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                     >
-                                        Kirjaudu ulos
+                                        {t('layout.logout')}
                                     </button>
                                 </>
                             ) : (
@@ -109,7 +111,7 @@ export default function Layout() {
                                     to="/login"
                                     className="text-indigo-600 hover:text-indigo-900 font-medium"
                                 >
-                                    Kirjaudu sisään
+                                    {t('layout.login')}
                                 </Link>
                             )}
                         </div>
@@ -133,7 +135,7 @@ export default function Layout() {
             <footer className="bg-white border-t border-gray-200 py-6">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
                     <div className="flex items-center gap-4">
-                        <span>&copy; {new Date().getFullYear()} Vaibaamo.</span>
+                        <span>&copy; {new Date().getFullYear()} {t('layout.footer')}</span>
                         <a
                             href="https://github.com/ljack/vaibaamo-calendar"
                             target="_blank"
@@ -146,10 +148,11 @@ export default function Layout() {
                             GitHub
                         </a>
                     </div>
+
                     <button
                         onClick={() => setJourneyOpen(true)}
                         className="text-xs text-gray-300 hover:text-gray-500 transition-colors duration-300 cursor-pointer"
-                        title="Start Journey"
+                        title={t('layout.startJourney')}
                     >
                         π
                     </button>
