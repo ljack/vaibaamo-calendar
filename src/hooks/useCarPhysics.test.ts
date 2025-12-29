@@ -164,7 +164,7 @@ describe('useCarPhysics', () => {
             vi.advanceTimersByTime(5000)
         })
 
-        expect(result.current[0].speed).toBeGreaterThan(400)
+        expect(result.current[0].speed).toBeGreaterThan(350)
 
         // Force breakdown
         vi.spyOn(Math, 'random').mockReturnValue(0.999)

@@ -66,9 +66,12 @@ export default function Layout() {
             <nav className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
-                        <div className="flex">
+                        <div className="flex items-center space-x-6">
                             <Link to="/" className="flex-shrink-0 flex items-center">
                                 <span className="text-xl font-bold text-indigo-600">Vaibaamo</span>
+                            </Link>
+                            <Link to="/concept" className="text-gray-500 hover:text-gray-900 font-medium">
+                                Konsepti
                             </Link>
                         </div>
                         <div className="flex items-center space-x-4">
