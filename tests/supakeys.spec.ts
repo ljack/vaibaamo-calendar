@@ -45,10 +45,14 @@ test.describe('Supakeys Integration', () => {
         // For this example, let's assume we can login with a test credential:
 
         await page.fill('input[name="email"]', 'test-user-' + Date.now() + '@example.com');
+
+        // Enable password mode first
+        await page.check('input[type="checkbox"]'); // "Käytä salasanaa"
+
+        // Now fill password
         await page.fill('input[name="password"]', 'password123');
 
-        // Note: Assuming "Luo tili salasanalla" is visible or we toggle it
-        await page.check('input[type="checkbox"]'); // "Käytä salasanaa"
+        // Click "Luo tili salasanalla" which appears after password mode is enabled
         await page.click('button:has-text("Luo tili salasanalla")');
 
         // Wait for redirect to dashboard/home
