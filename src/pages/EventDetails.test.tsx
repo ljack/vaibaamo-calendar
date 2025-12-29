@@ -324,4 +324,119 @@ describe('EventDetails', () => {
         expect(screen.getByText('alice@example.com')).toBeInTheDocument()
         expect(screen.getByText('bob@example.com')).toBeInTheDocument()
     })
+
+    it('renders event details for unauthenticated user (email list hidden)', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: null,
+            isAdmin: false,
+            loading: false,
+            signOut: vi.fn(),
+        } as any)
+
+        const event = {
+            id: 'event-public',
+            title: 'Public Event',
+            description: 'Desc',
+            start_time: new Date().toISOString(),
+            end_time: new Date().toISOString(),
+            location: 'Helsinki',
+            max_participants: 10,
+            created_at: new Date().toISOString(),
+            creator_id: 'creator',
+        }
+
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const query = createBaseQueryBuilder()
+            if (table === 'events') {
+                query._data = event
+                return query as any
+            }
+            if (table === 'participants') {
+                // Counts
+                query._count = 0
+                return query as any
+            }
+            return query as any
+        })
+
+        render(<MemoryRouter initialEntries={['/events/event-public']}><Routes><Route path="/events/:id" element={<EventDetails />} /></Routes></MemoryRouter>)
+
+        await waitFor(() => expect(screen.getByText('Public Event')).toBeInTheDocument())
+        expect(screen.queryByText('Ilmoittautuneet')).not.toBeInTheDocument()
+        expect(screen.queryByText('alex@example.com')).not.toBeInTheDocument()
+    })
+
+    it('handles registration error with alert', async () => {
+        const user = { id: 'u1' }
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({ user, isAdmin: false, loading: false } as any)
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { })
+
+        const event = { id: 'ev-reg-fail', title: 'Reg Fail', creator_id: 'c1', start_time: new Date().toISOString(), end_time: new Date().toISOString(), created_at: new Date().toISOString() }
+
+        let calls = 0
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const q = createBaseQueryBuilder()
+            if (table === 'events') { q._data = event; return q as any }
+            if (table === 'participants') {
+                calls++
+                // 1. count, 2. check status -> return null (not regged)
+                if (calls <= 2) { q._data = null; q._count = 0; return q as any }
+                // 3. insert -> fail
+                q.insert.mockReturnValue({
+                    then: vi.fn((cb) => cb({ data: null, error: { message: 'RegFailed' } }))
+                } as any)
+                return q as any
+            }
+            return q as any
+        })
+
+        // Ensure insert mock above works or adjust createBaseQueryBuilder to allow overriding insert behavior dynamicly?
+        // createBaseQueryBuilder returns object with mocked methods.
+        // My implementation above overrides insert return value.
+
+        render(<MemoryRouter initialEntries={['/events/ev-reg-fail']}><Routes><Route path="/events/:id" element={<EventDetails />} /></Routes></MemoryRouter>)
+
+        const btn = await screen.findByText(/Ilmoittaudu mukaan/i)
+        fireEvent.click(btn)
+
+        await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('RegFailed')))
+    })
+
+    it('handles cancellation error with alert', async () => {
+        const user = { id: 'u1' }
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({ user, isAdmin: false, loading: false } as any)
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { })
+        const event = { id: 'ev-cancel-fail', title: 'Cancel Fail', creator_id: 'c1', start_time: new Date().toISOString(), end_time: new Date().toISOString(), created_at: new Date().toISOString() }
+
+        let calls = 0
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const q = createBaseQueryBuilder()
+            if (table === 'events') { q._data = event; return q as any }
+            if (table === 'participants') {
+                // 1 count, 2 check status -> return VALID participant logic
+                calls++
+                if (calls <= 2) {
+                    q._data = { id: 'p1', status: 'registered' } // User is registered
+                    // Override 'single' to return this
+                    q.single.mockReturnValue({ then: (cb: any) => cb({ data: q._data, error: null }) })
+                    return q as any
+                }
+                // 3 delete -> fail
+                // delete().eq(...)
+                q.delete.mockReturnThis()
+                q.eq.mockReturnValue({
+                    then: vi.fn((cb) => cb({ data: null, error: { message: 'CancelFailed' } }))
+                } as any)
+                return q as any
+            }
+            return q as any
+        })
+
+        render(<MemoryRouter initialEntries={['/events/ev-cancel-fail']}><Routes><Route path="/events/:id" element={<EventDetails />} /></Routes></MemoryRouter>)
+
+        const btn = await screen.findByText(/Peru ilmoittautuminen/i)
+        fireEvent.click(btn)
+
+        await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('CancelFailed')))
+    })
 })

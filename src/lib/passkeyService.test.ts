@@ -190,4 +190,23 @@ describe('passkeyService', () => {
             await expect(passkeyService.login()).rejects.toThrow('auth fail')
         })
     })
+
+    it('throws error if login options fetch fails', async () => {
+        vi.mocked(mockSupabase.functions.invoke).mockResolvedValueOnce({
+            data: null,
+            error: new Error('login options fail')
+        })
+
+        await expect(passkeyService.login()).rejects.toThrow('login options fail')
+    })
+
+    it('throws error if login verification fails', async () => {
+        vi.mocked(mockSupabase.functions.invoke)
+            .mockResolvedValueOnce({ data: { challenge: 'abc' }, error: null })
+            .mockResolvedValueOnce({ data: null, error: new Error('login verify fail') })
+
+        vi.mocked(startAuthentication).mockResolvedValue({} as any)
+
+        await expect(passkeyService.login()).rejects.toThrow('login verify fail')
+    })
 })

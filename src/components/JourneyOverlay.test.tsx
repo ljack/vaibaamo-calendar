@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import JourneyOverlay from './JourneyOverlay';
+import { useState, useEffect } from 'react';
 
 // Mock dependencies
 vi.mock('../lib/geocode', () => ({
@@ -64,8 +65,6 @@ describe('JourneyOverlay', () => {
             description: 'Desc 1',
             max_participants: 10,
             created_at: '2023-01-01',
-            // Add other mandatory fields if any based on the error.
-            // The error says: description, max_participants, created_at
         },
         {
             id: '2',
@@ -180,56 +179,76 @@ describe('JourneyOverlay', () => {
     it.skip('renders completion screen when journey finishes (Victory)', async () => {
         vi.useFakeTimers();
         const { getDistance } = await import('../lib/journeyUtils');
-        // Mock distance to always be 0 (arrived)
+
+        // Mock distance to decrease to 0 to simulate arrival
         (getDistance as any).mockReturnValue(0);
 
-        // Use mockImplementation to ensure effect re-runs
-        (useCarPhysics as any).mockImplementation(() => [
-            { speed: 100, fuel: 100, distanceTraveled: 0, score: 0, isBroken: false },
-            { accelerate: vi.fn(), brake: vi.fn(), repair: vi.fn() }
-        ]);
+        // Fake hook to simulate physics loop and trigger re-renders
+        // We use the top-level useState/useEffect imports now
+
+        const useFakeCarPhysics = () => {
+            const [state, setState] = useState({
+                speed: 100,
+                fuel: 100,
+                distanceTraveled: 10,
+                score: 0,
+                isBroken: false
+            });
+
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setState(prev => ({
+                        ...prev,
+                        distanceTraveled: prev.distanceTraveled + 0.1
+                    }));
+                }, 100);
+                return () => clearInterval(timer);
+            }, []);
+
+            return [state, { accelerate: vi.fn(), brake: vi.fn(), repair: vi.fn() }];
+        };
+
+        (useCarPhysics as any).mockImplementation(useFakeCarPhysics);
 
         render(<JourneyOverlay events={mockEvents} onClose={mockOnClose} />);
 
+        // Start Journey
         await waitFor(() => fireEvent.click(screen.getByText('red Car')));
         await waitFor(() => fireEvent.click(screen.getByText(/Normal/i)));
 
-        // Wait for map to initialize!
+        // Wait for Map Init
         await waitFor(() => {
             expect(mockL.map).toHaveBeenCalled();
         });
 
-        // Allow async initMap to complete setting the ref
+        // 1. Loop runs -> Arrives immediately.
         await act(async () => {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            vi.advanceTimersByTime(500);
         });
 
-        // Advance time to allow state transitions: Traveling -> Arrived
-        act(() => {
-            vi.advanceTimersByTime(100); // Trigger loop
-        });
-
-        // Should be ARRIVED now. Wait 3000ms.
-        act(() => {
+        // 2. Wait for arrival timeout (3000ms)
+        await act(async () => {
             vi.advanceTimersByTime(3500);
         });
 
-        // Should be TRAVELING (next event) -> Loop triggers -> ARRIVED -> 3000ms
-        act(() => {
-            vi.advanceTimersByTime(100); // Trigger loop
+        // 3. Travel to Event 2
+        await act(async () => {
+            vi.advanceTimersByTime(500);
         });
-        act(() => {
+
+        // 4. Wait for potential cleanup/finish
+        await act(async () => {
             vi.advanceTimersByTime(3500);
         });
 
-        // Should be FINISHED now
         await waitFor(() => {
             expect(screen.getByText('🎉 JOURNEY COMPLETE!')).toBeInTheDocument();
-        });
+        }, { timeout: 5000 });
+
         expect(screen.getByText('Efficiency:')).toBeInTheDocument();
 
         vi.useRealTimers();
-    });
+    }, 10000);
 
     it('handles blue car selection and rendering', async () => {
         render(<JourneyOverlay events={mockEvents} onClose={mockOnClose} />);

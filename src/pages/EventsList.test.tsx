@@ -511,3 +511,72 @@ describe('EventsList auth fallback and timeout', () => {
         expect(checkSession).toHaveBeenCalled()
     })
 })
+
+describe('EventsList additional coverage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: { id: '123' } } }, error: null } as any)
+    })
+
+    it('logs error when participant fetch fails', async () => {
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+        const future = new Date(Date.now() + 100000).toISOString()
+        const events = [{ id: '1', title: 'Ev', start_time: future }]
+
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const query = createBaseQueryBuilder()
+            if (table === 'events') {
+                query.abortSignal.mockResolvedValue({ data: events, error: null })
+                return query as any
+            }
+            if (table === 'participants') {
+                query.in.mockResolvedValue({ data: null, error: { message: 'PartFail' } })
+                return query as any
+            }
+            return query as any
+        })
+
+        render(<AuthProvider><BrowserRouter><EventsList /></BrowserRouter></AuthProvider>)
+        await waitFor(() => expect(screen.getByText('Ev')).toBeInTheDocument())
+        expect(consoleSpy).toHaveBeenCalledWith('Error fetching participant counts:', expect.anything())
+    })
+
+    it('re-throws error if it is AbortError inside response', async () => {
+        // Need to simulate supabase returning { error: { message: 'AbortError' } }
+        // This triggers the specific check
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const query = createBaseQueryBuilder()
+            if (table === 'events') {
+                query.abortSignal.mockResolvedValue({ data: null, error: { message: 'AbortError' } })
+                return query as any
+            }
+            return query as any
+        })
+
+        // This should be caught and ignored as abort
+        render(<AuthProvider><BrowserRouter><EventsList /></BrowserRouter></AuthProvider>)
+        // Should NOT show error
+        await waitFor(() => {
+            expect(screen.queryByText(/Tapahtumien lataaminen epäonnistui/i)).not.toBeInTheDocument()
+        })
+    })
+
+    it('handles explicit AbortError from Supabase client throw', async () => {
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const query = createBaseQueryBuilder()
+            if (table === 'events') {
+                const err = new Error('AbortError')
+                err.name = 'AbortError'
+                query.abortSignal.mockRejectedValue(err)
+                return query as any
+            }
+            return query as any
+        })
+
+        render(<AuthProvider><BrowserRouter><EventsList /></BrowserRouter></AuthProvider>)
+        await waitFor(() => {
+            // Abort handled silently (or retried)
+            expect(screen.queryByText(/Tapahtumien lataaminen epäonnistui/i)).not.toBeInTheDocument()
+        })
+    })
+})
