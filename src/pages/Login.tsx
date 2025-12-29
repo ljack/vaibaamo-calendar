@@ -173,6 +173,17 @@ export default function Login() {
                     <p className="mt-2 text-center text-sm text-gray-600">
                         {t('login.subtitle')}
                     </p>
+
+                    {/* TL;DR Onboarding Flow */}
+                    <div className="mt-6 bg-blue-50 border border-blue-100 rounded-lg p-4 text-xs text-blue-800">
+                        <p className="font-semibold mb-2">{t('login.tldrTitle')}</p>
+                        <ul className="space-y-1">
+                            <li>{t('login.tldrStep1')}</li>
+                            <li>{t('login.tldrStep2')}</li>
+                            <li>{t('login.tldrStep3')}</li>
+                            <li>{t('login.tldrStep4')}</li>
+                        </ul>
+                    </div>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleLogin}>
                     <div className="-space-y-px rounded-md shadow-sm">
@@ -214,7 +225,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="absolute opacity-0 w-1 h-1 overflow-hidden">
                         <label className="flex items-center gap-2 text-sm text-gray-700">
                             <input
                                 type="checkbox"

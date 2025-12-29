@@ -36,7 +36,12 @@
         "errorSupakeys": "Supakeys-virhe.",
         "errorGoogle": "Google-kirjautumisvirhe.",
         "errorSignup": "Rekisteröintivirhe.",
-        "successSignup": "Tili luotu! Vahvista sähköpostisi ja kirjaudu sisään."
+        "successSignup": "Tili luotu! Vahvista sähköpostisi ja kirjaudu sisään.",
+        "tldrTitle": "Uusi käyttäjä?",
+        "tldrStep1": "1. Tilaa kirjautumislinkki sähköpostiin",
+        "tldrStep2": "2. Kirjaudu linkistä sisään",
+        "tldrStep3": "3. Ota koodiavain käyttöön (Passkey)",
+        "tldrStep4": "4. Kirjaudu jatkossa helposti koodiavaimella"
     },
     "passkey": {
         "successRegister": "Koodiavain rekisteröity onnistuneesti!",

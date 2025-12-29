@@ -36,7 +36,12 @@
         "errorSupakeys": "Supakeys login error.",
         "errorGoogle": "Google login error.",
         "errorSignup": "Registration error.",
-        "successSignup": "Account created! Verify your email and log in."
+        "successSignup": "Account created! Verify your email and log in.",
+        "tldrTitle": "New here?",
+        "tldrStep1": "1. Request login link via email",
+        "tldrStep2": "2. Log in using the link",
+        "tldrStep3": "3. Enable Passkey",
+        "tldrStep4": "4. Log in with Passkey next time"
     },
     "passkey": {
         "successRegister": "Passkey registered successfully!",
