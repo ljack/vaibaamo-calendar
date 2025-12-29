@@ -4,6 +4,7 @@ create table profiles (
   full_name text,
   avatar_url text,
   role text default 'user',
+  email text,
   updated_at timestamp with time zone
 );
 
@@ -28,6 +29,7 @@ create table events (
   end_time timestamp with time zone not null,
   location text,
   max_participants int,
+  creator_id uuid references profiles default auth.uid(),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -44,6 +46,11 @@ create policy "Admins can create events." on events
 create policy "Admins can update events." on events
   for update using (
     exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+  );
+
+create policy "Creators can update events." on events
+  for update using (
+    auth.uid() = creator_id
   );
 
 -- Create a table for participants
@@ -71,8 +78,8 @@ create policy "Users can update their own status." on participants
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name, avatar_url)
-  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+  insert into public.profiles (id, full_name, avatar_url, email)
+  values (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url', new.email);
   return new;
 end;
 $$ language plpgsql security definer;
