@@ -290,7 +290,22 @@ serve(async (req) => {
             throw new Error("Verification failed");
         }
 
+        // 5. List Passkeys (Legacy)
+        if (path === "list-passkeys") {
+            const userRes = await supabase.auth.getUser(authHeader?.split(" ")[1]);
+            if (userRes.error) throw userRes.error;
+            return await handleListPasskeys(supabase, userRes.data.user, corsHeaders);
+        }
+
+        // 6. Remove Passkey (Legacy)
+        if (path === "remove-passkey") {
+            const userRes = await supabase.auth.getUser(authHeader?.split(" ")[1]);
+            if (userRes.error) throw userRes.error;
+            return await handleRemovePasskey(req, supabase, userRes.data.user, corsHeaders);
+        }
+
         return new Response("Not Found", { status: 404, headers: corsHeaders });
+
     } catch (err: any) {
         console.error(`[Error] ${path}:`, err);
         return new Response(JSON.stringify({ error: err.message }), {
@@ -299,3 +314,34 @@ serve(async (req) => {
         });
     }
 });
+
+async function handleListPasskeys(supabase: any, user: any, corsHeaders: any) {
+    const { data: passkeys, error } = await supabase
+        .from("passkeys")
+        .select("id, created_at, last_used_at, credential_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return new Response(JSON.stringify({ passkeys }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+}
+
+async function handleRemovePasskey(req: Request, supabase: any, user: any, corsHeaders: any) {
+    const { id } = await req.json();
+    if (!id) throw new Error("Missing passkey ID");
+
+    const { error } = await supabase
+        .from("passkeys")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+    if (error) throw error;
+
+    return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+}

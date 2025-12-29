@@ -76,5 +76,26 @@ export const passkeyService = {
         }
 
         throw new Error('Login failed: Verification succeeded but no login link returned');
+    },
+
+    /**
+     * List registered passkeys
+     */
+    list: async () => {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.functions.invoke(`${FUNCTION_NAME}/list-passkeys`);
+        if (error) throw error;
+        return data.passkeys;
+    },
+
+    /**
+     * Remove a passkey by ID
+     */
+    remove: async (id: string) => {
+        const supabase = getSupabase();
+        const { error } = await supabase.functions.invoke(`${FUNCTION_NAME}/remove-passkey`, {
+            body: { id }
+        });
+        if (error) throw error;
     }
 };

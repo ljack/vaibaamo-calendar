@@ -3,59 +3,34 @@ import { useAuth } from '../contexts/AuthContext'
 import { passkeyService } from '../lib/passkeyService'
 import { getPasskeys } from '../lib/supakeys'
 import { useTranslation } from 'react-i18next'
+import { PasskeyManager } from './PasskeyManager';
 
 export function PasskeyPrompt() {
     const { t } = useTranslation()
-    const { user, loading: authLoading, passkeySupported, hasPasskey, refreshPasskeyStatus } = useAuth()
-    const [isVisible, setIsVisible] = useState(false)
+    const { user, hasPasskey, refreshPasskeyStatus } = useAuth()
     const [loadingAction, setLoadingAction] = useState<'legacy' | 'supakeys' | null>(null)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [hasSupakey, setHasSupakey] = useState(false)
+    const [showManager, setShowManager] = useState(false)
 
     useEffect(() => {
         const checkSupakeys = async () => {
-            if (user) {
-                const passkeysClient = getPasskeys()
-                const { passkeys, error } = await passkeysClient.listPasskeys()
-                if (passkeys && passkeys.length > 0) {
+            if (!user) return
+            try {
+                const passkeys = getPasskeys()
+                const { passkeys: list } = await passkeys.listPasskeys()
+                if (list && list.length > 0) {
                     setHasSupakey(true)
                 }
-                if (error) {
-                    console.error('Error listing supakeys:', error)
-                }
+            } catch (e) {
+                console.error("Error checking supakeys:", e)
             }
         }
         checkSupakeys()
-    }, [user])
-
-    useEffect(() => {
-        const isDismissed = localStorage.getItem('passkey_prompt_dismissed') === 'true'
-        // If user has passkey, show the banner regardless of dismissal (or use a different state for "congrats" banner)
-        // Check logic: 
-        // 1. Not loading
-        // 2. User logged in
-        // 3. Passkey supported
-        // 4. (No passkey AND not dismissed) OR (Has passkey = show secure banner)
-
-        if (!authLoading && user && passkeySupported) {
-            if (hasPasskey || hasSupakey) {
-                setIsVisible(true) // Show "Secure" banner
-            } else if (!isDismissed) {
-                setIsVisible(true) // Show "Setup" banner
-            } else {
-                setIsVisible(false)
-            }
-        } else {
-            setIsVisible(false)
-        }
-    }, [user, authLoading, passkeySupported, hasPasskey, hasSupakey])
-
-    const handleDismiss = () => {
-        localStorage.setItem('passkey_prompt_dismissed', 'true')
-        setIsVisible(false)
-    }
+    }, [user, loadingAction])
 
     const handleRegister = async () => {
+        if (!user) return
         setLoadingAction('legacy')
         setMessage(null)
         try {
@@ -63,17 +38,16 @@ export function PasskeyPrompt() {
 
             await refreshPasskeyStatus()
             setMessage({ type: 'success', text: t('passkey.successRegister') })
-            // Auto-hide after success
-            setTimeout(() => setIsVisible(false), 3000)
         } catch (error: any) {
             console.error('Passkey registration error:', error)
-            setMessage({ type: 'error', text: error.message || t('passkey.errorRegister') })
+            setMessage({ type: 'error', text: t('passkey.errorRegister') })
         } finally {
             setLoadingAction(null)
         }
     }
 
     const handleSupakeysRegister = async () => {
+        if (!user) return
         setLoadingAction('supakeys')
         setMessage(null)
         try {
@@ -90,7 +64,6 @@ export function PasskeyPrompt() {
             if (success) {
                 setHasSupakey(true)
                 setMessage({ type: 'success', text: t('passkey.successSupakeysRegister') })
-                setTimeout(() => setIsVisible(false), 3000)
             }
         } catch (error: any) {
             console.error('Supakeys registration error:', error)
@@ -100,84 +73,117 @@ export function PasskeyPrompt() {
         }
     }
 
-    if (!isVisible) return null
+    if (!user) return null
 
     return (
-        <div className="bg-indigo-600 shadow-lg">
-            <div className="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between flex-wrap">
-                    <div className="w-0 flex-1 flex items-center">
-                        <span className={`flex p-2 rounded-lg ${hasPasskey || hasSupakey ? 'bg-green-800' : 'bg-indigo-800'}`}>
-                            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                {hasPasskey || hasSupakey ? (
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                ) : (
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                                )}
-                            </svg>
-                        </span>
-                        <p className="ml-3 font-medium text-white truncate">
-                            {hasPasskey || hasSupakey ? (
-                                <>
-                                    <span className="md:hidden">{t('passkey.congratsMobile')}</span>
-                                    <span className="hidden md:inline">{t('passkey.congratsDesktop')}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span className="md:hidden">{t('passkey.promoMobile')}</span>
-                                    <span className="hidden md:inline">{t('passkey.promoDesktop')}</span>
-                                </>
-                            )}
+        <div className="bg-white border-b border-gray-200">
+            <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+
+                {/* Header Section */}
+                <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                        {t('passkey.promoDesktop')}
+                    </h2>
+                    <p className="mt-2 text-gray-500 max-w-2xl mx-auto">
+                        Secure your account with cryptographic keys. Works on mobile and desktop.
+                    </p>
+                </div>
+
+                {/* Status & Manager Banner */}
+                {(hasPasskey || hasSupakey) && (
+                    <div className="mb-8 p-4 bg-green-50 rounded-xl border border-green-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-xl">🛡️</span>
+                            </div>
+                            <div>
+                                <h3 className="text-base font-semibold text-green-900">
+                                    {window.innerWidth < 768 ? t('passkey.congratsMobile') : t('passkey.congratsDesktop')}
+                                </h3>
+                                <p className="text-sm text-green-700">
+                                    {hasSupakey && hasPasskey
+                                        ? "Both Standard and Supakeys are active."
+                                        : hasSupakey
+                                            ? "Supakeys active."
+                                            : "Standard Passkey active."
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowManager(true)}
+                            className="bg-white text-green-700 hover:bg-green-50 border border-green-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
+                        >
+                            Manage Passkeys
+                        </button>
+                    </div>
+                )}
+
+                {/* Registration Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Legacy / Standard Card */}
+                    <div className={`relative p-6 rounded-2xl border transition-all ${hasPasskey ? 'bg-gray-50 border-gray-100 opacity-80' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
+                        }`}>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
+                                🔑
+                            </div>
+                            {hasPasskey && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Active</span>}
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Standard Passkey</h3>
+                        <p className="text-gray-500 text-sm mb-4 min-h-[40px]">
+                            Basic passkey support. Reliable and simple way to log in.
                         </p>
+                        <button
+                            onClick={handleRegister}
+                            disabled={loadingAction !== null || hasPasskey}
+                            className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${hasPasskey
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                }`}
+                        >
+                            {loadingAction === 'legacy' ? t('passkey.registerButtonLoading') : hasPasskey ? t('passkey.passkeyInUse') : t('passkey.registerButton')}
+                        </button>
                     </div>
 
-                    <div className="order-3 mt-2 flex-shrink-0 w-full sm:order-2 sm:mt-0 sm:w-auto flex items-center gap-3">
-                        {message ? (
-                            <span className={`text-sm font-bold ${message.type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
-                                {message.text}
-                            </span>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={handleRegister}
-                                    disabled={!!loadingAction || hasPasskey}
-                                    className={`flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50 
-                                    ${hasPasskey || (loadingAction && loadingAction !== 'legacy') ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    data-testid="passkey-register-button"
-                                >
-                                    {loadingAction === 'legacy'
-                                        ? t('passkey.registerButtonLoading')
-                                        : hasPasskey
-                                            ? t('passkey.passkeyInUse')
-                                            : t('passkey.registerButton')}
-                                </button>
-                                <button
-                                    onClick={handleSupakeysRegister}
-                                    disabled={!!loadingAction || hasSupakey}
-                                    className={`flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                                    ${hasSupakey || (loadingAction && loadingAction !== 'supakeys') ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-500 hover:bg-indigo-400'}`}
-                                    data-testid="supakeys-register-button"
-                                >
-                                    {loadingAction === 'supakeys'
-                                        ? t('passkey.registerButtonLoading')
-                                        : hasSupakey
-                                            ? t('passkey.supakeysInUse')
-                                            : 'Supakeys'}
-                                </button>
-                                <button
-                                    onClick={handleDismiss}
-                                    className="-mr-1 flex p-2 rounded-md hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-white sm:-mr-2"
-                                >
-                                    <span className="sr-only">{t('passkey.dismiss')}</span>
-                                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </>
-                        )}
+                    {/* Supakeys Card */}
+                    <div className={`relative p-6 rounded-2xl border transition-all ${hasSupakey ? 'bg-gray-50 border-gray-100 opacity-80' : 'bg-white border-purple-100 hover:border-purple-300 hover:shadow-md'
+                        }`}>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl">
+                                ✨
+                            </div>
+                            {hasSupakey && <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Active</span>}
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Supakeys</h3>
+                        <p className="text-gray-500 text-sm mb-4 min-h-[40px]">
+                            Advanced passkey features with enhanced device support and reliability.
+                        </p>
+                        <button
+                            onClick={handleSupakeysRegister}
+                            disabled={loadingAction !== null || hasSupakey}
+                            className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${hasSupakey
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                    : 'bg-purple-600 text-white hover:bg-purple-700 shadow-sm'
+                                }`}
+                        >
+                            {loadingAction === 'supakeys' ? t('passkey.registerButtonLoading') : hasSupakey ? t('passkey.supakeysInUse') : "Enable Supakeys"}
+                        </button>
                     </div>
                 </div>
+
+                {/* Message Toast/Alert */}
+                {message && (
+                    <div className={`mt-6 p-4 rounded-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-100' : 'bg-red-50 text-red-800 border border-red-100'
+                        }`}>
+                        <span>{message.type === 'success' ? '✅' : '⚠️'}</span>
+                        <span className="font-medium text-sm">{message.text}</span>
+                    </div>
+                )}
             </div>
+
+            {/* Passkey Manager Modal */}
+            {showManager && <PasskeyManager onClose={() => setShowManager(false)} />}
         </div>
     )
 }
