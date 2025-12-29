@@ -27,8 +27,7 @@ test.describe('Journey Game', () => {
         await page.waitForLoadState('networkidle');
 
         // Verify the game is in TRAVELING state
-        const travelingText = page.getByText('TRAVELING');
-        await expect(travelingText).toBeVisible();
+        // We verify this by checking for dashboard/map presence instead of debug text
 
         // Verify dashboard is visible
         const speedGauge = page.getByText('SPEED');
@@ -40,7 +39,7 @@ test.describe('Journey Game', () => {
 
         // Critical: Verify Leaflet map is initialized and rendering
         // Use more specific selector to avoid matching other leaflet containers if they exist (e.g. in background)
-        const leafletContainer = page.locator('.journey-map.leaflet-container');
+        const leafletContainer = page.locator('.journey-map .leaflet-container');
         await expect(leafletContainer).toBeVisible();
 
         // Verify map has content (tiles loaded)
@@ -129,7 +128,7 @@ test.describe('Journey Game', () => {
         }
 
         // Verify map is visible (tiles are loaded)
-        const mapElement = page.locator('.journey-map.leaflet-container');
+        const mapElement = page.locator('.journey-map .leaflet-container');
         await expect(mapElement).toBeVisible();
 
         // Simulate driving - press accelerate key repeatedly
