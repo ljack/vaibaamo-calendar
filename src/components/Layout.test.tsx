@@ -8,6 +8,10 @@ vi.mock('./UpdateNotification', () => ({
     UpdateNotification: () => null,
 }))
 
+vi.mock('./PasskeyPrompt', () => ({
+    PasskeyPrompt: () => null,
+}))
+
 describe('Layout', () => {
     beforeEach(() => {
         vi.clearAllMocks()

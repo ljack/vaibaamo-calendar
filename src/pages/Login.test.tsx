@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import Login from './Login'
 import { supabase } from '../lib/supabase'
 import * as AuthContext from '../contexts/AuthContext'
+import { passkeyService } from '../lib/passkeyService'
 
 vi.mock('../lib/supabase', () => ({
     supabase: {
@@ -10,7 +11,14 @@ vi.mock('../lib/supabase', () => ({
             signInWithOtp: vi.fn(),
             signInWithPassword: vi.fn(),
             signUp: vi.fn(),
+            signInWithOAuth: vi.fn(),
         },
+    },
+}))
+
+vi.mock('../lib/passkeyService', () => ({
+    passkeyService: {
+        login: vi.fn(),
     },
 }))
 
@@ -167,5 +175,96 @@ describe('Login', () => {
         render(<Login />)
 
         expect(mockedNavigate).toHaveBeenCalledWith('/')
+    })
+
+    it('shows passkey login button when supported', () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: null,
+            passkeySupported: true,
+        } as any)
+
+        render(<Login />)
+        expect(screen.getByText(/Kirjaudu avainkoodilla/i)).toBeInTheDocument()
+    })
+
+    it('hides passkey login button when not supported', () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: null,
+            passkeySupported: false,
+        } as any)
+
+        render(<Login />)
+        expect(screen.queryByText(/Kirjaudu avainkoodilla/i)).not.toBeInTheDocument()
+    })
+
+    it('handles passkey login success', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: null,
+            passkeySupported: true,
+        } as any)
+        vi.mocked(passkeyService.login).mockResolvedValue({ user: {} } as any)
+
+        render(<Login />)
+        fireEvent.click(screen.getByText(/Kirjaudu avainkoodilla/i))
+
+        await waitFor(() => {
+            expect(passkeyService.login).toHaveBeenCalled()
+            expect(mockedNavigate).toHaveBeenCalledWith('/')
+        })
+    })
+
+    it('handles passkey login failure', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: null,
+            passkeySupported: true,
+        } as any)
+        vi.mocked(passkeyService.login).mockRejectedValue(new Error('Passkey failed'))
+
+        render(<Login />)
+        fireEvent.click(screen.getByText(/Kirjaudu avainkoodilla/i))
+
+        await waitFor(() => {
+            expect(screen.getByText(/Passkey failed/i)).toBeInTheDocument()
+        })
+    })
+
+    it('handles google login success', async () => {
+        vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: null } as any)
+
+        render(<Login />)
+        fireEvent.click(screen.getByText(/Kirjaudu Googlella/i))
+
+        await waitFor(() => {
+            expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(expect.objectContaining({
+                provider: 'google'
+            }))
+        })
+    })
+
+    it('handles google login failure', async () => {
+        vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ error: new Error('Google failed') } as any)
+
+        render(<Login />)
+        fireEvent.click(screen.getByText(/Kirjaudu Googlella/i))
+
+        await waitFor(() => {
+            expect(screen.getByText(/Google failed/i)).toBeInTheDocument()
+        })
+    })
+
+    it('shows error when signup password is missing', async () => {
+        render(<Login />)
+
+        fireEvent.click(screen.getByLabelText(/Käytä salasanaa/i))
+        fireEvent.change(screen.getByLabelText(/Sähköpostiosoite/i), {
+            target: { value: 'new@example.com' },
+        })
+        // Leave password empty
+
+        fireEvent.click(screen.getByRole('button', { name: /Luo tili salasanalla/i }))
+
+        await waitFor(() => {
+            expect(screen.getByText(/Salasana puuttuu/i)).toBeInTheDocument()
+        })
     })
 })

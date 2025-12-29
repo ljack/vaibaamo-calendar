@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { AuthProvider, useAuth } from './AuthContext'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { initAuthOnce } from '../lib/authBootstrap'
@@ -62,13 +62,19 @@ describe('AuthProvider Regression Test', () => {
             initialized: true,
             timedOut: false,
         } as any)
-        mocks.from.mockImplementation(() => ({
-            select: () => ({
-                eq: () => ({
-                    single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
+        mocks.from.mockImplementation((table: string) => {
+            const queryBuilder = {
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                order: vi.fn().mockReturnThis(),
+                single: vi.fn().mockImplementation(async () => {
+                    if (table === 'profiles') return { data: { role: 'user' }, error: null };
+                    return { data: null, error: null };
                 }),
-            }),
-        }))
+                then: (resolve: any) => resolve({ data: null, error: null, count: 0 }),
+            }
+            return queryBuilder
+        })
     })
 
     afterEach(() => {
@@ -332,13 +338,15 @@ describe('AuthProvider Regression Test', () => {
             return <div>{isAdmin ? 'Admin' : 'User'}</div>
         }
 
-        mocks.from.mockImplementation(() => ({
-            select: () => ({
-                eq: () => ({
-                    single: () => Promise.resolve({ data: { role: 'admin' }, error: null }),
-                }),
-            }),
-        }))
+        mocks.from.mockImplementation(() => {
+            const queryBuilder = {
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                single: vi.fn().mockResolvedValue({ data: { role: 'admin' }, error: null }),
+                then: (resolve: any) => resolve({ data: { role: 'admin' }, error: null }),
+            }
+            return queryBuilder
+        })
 
         render(
             <AuthProvider>
@@ -364,13 +372,15 @@ describe('AuthProvider Regression Test', () => {
             return <div>{isAdmin ? 'Admin' : 'User'}</div>
         }
 
-        mocks.from.mockImplementation(() => ({
-            select: () => ({
-                eq: () => ({
-                    single: () => Promise.reject(new Error('bad role lookup')),
-                }),
-            }),
-        }))
+        mocks.from.mockImplementation(() => {
+            const queryBuilder = {
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                single: vi.fn().mockRejectedValue(new Error('bad role lookup')),
+                then: (resolve: any) => resolve({ data: null, error: new Error('bad role lookup') }),
+            }
+            return queryBuilder
+        })
 
         render(
             <AuthProvider>
@@ -402,7 +412,9 @@ describe('AuthProvider Regression Test', () => {
             </AuthProvider>
         )
 
-        await vi.runAllTimersAsync()
+        await act(async () => {
+            await vi.runAllTimersAsync()
+        })
         vi.useRealTimers()
 
         await waitFor(() => {
@@ -424,14 +436,15 @@ describe('AuthProvider Regression Test', () => {
         })
     })
 
-    it('returns false when checkSession throws', async () => {
+    it('handles checkSession throwing error', async () => {
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
         vi.mocked(initAuthOnce).mockResolvedValue({
             session: { user: { id: '123' } },
             user: { id: '123' },
             initialized: true,
             timedOut: false,
         } as any)
-        mocks.getSession.mockRejectedValue(new Error('offline'))
+        mocks.getSession.mockRejectedValue(new Error('fail'))
         mocks.signOut.mockResolvedValue({})
 
         render(
@@ -449,5 +462,64 @@ describe('AuthProvider Regression Test', () => {
         await waitFor(() => {
             expect(mocks.signOut).toHaveBeenCalled()
         })
+        errorSpy.mockRestore()
+    })
+
+    it('sets passkeySupported when WebAuthn is available', async () => {
+        const platformSupported = vi.fn().mockResolvedValue(true)
+        Object.defineProperty(window, 'PublicKeyCredential', {
+            value: {
+                isUserVerifyingPlatformAuthenticatorAvailable: platformSupported
+            },
+            configurable: true,
+            writable: true
+        })
+
+        const PasskeyStatus = () => {
+            const { passkeySupported } = useAuth()
+            return <div>{passkeySupported ? 'Supported' : 'Not Supported'}</div>
+        }
+
+        render(
+            <AuthProvider>
+                <PasskeyStatus />
+            </AuthProvider>
+        )
+
+        await waitFor(() => expect(screen.getByText('Supported')).toBeInTheDocument())
+    })
+
+    it('cleans up state when auth event listener receives null session', async () => {
+        let authCallback: ((event: string, session: any) => void) | null = null
+        mocks.onAuthStateChange.mockImplementation(((cb: (event: string, session: any) => void) => {
+            authCallback = cb
+            return { data: { subscription: { unsubscribe: vi.fn() } } }
+        }) as any)
+
+        render(
+            <AuthProvider>
+                <TestComponent />
+            </AuthProvider>
+        )
+
+        await waitFor(() => expect(screen.getByText('Logged Out')).toBeInTheDocument())
+
+        // Simulate login event
+        await act(async () => {
+            if (authCallback) {
+                authCallback('SIGNED_IN', { user: { id: '456' } })
+            }
+        })
+
+        await waitFor(() => expect(screen.getByText('Logged In')).toBeInTheDocument())
+
+        // Simulate logout event (null session)
+        await act(async () => {
+            if (authCallback) {
+                authCallback('SIGNED_OUT', null)
+            }
+        })
+
+        await waitFor(() => expect(screen.getByText('Logged Out')).toBeInTheDocument())
     })
 })

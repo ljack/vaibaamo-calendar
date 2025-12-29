@@ -29,13 +29,21 @@ vi.mock('../components/EventsMap', () => ({
     default: () => <div data-testid="events-map" />,
 }))
 
-const createParticipantsMock = (rows: Array<{ event_id: string }> = []) => ({
-    select: () => ({
-        eq: () => ({
-            in: () => Promise.resolve({ data: rows, error: null }),
-        }),
-    }),
+const createBaseQueryBuilder = () => ({
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    single: vi.fn(),
+    abortSignal: vi.fn(),
+    then: vi.fn().mockImplementation((resolve: any) => resolve({ data: null, error: null, count: 0 })),
 })
+
+const createParticipantsMock = (rows: Array<{ event_id: string }> = []) => {
+    const queryBuilder = createBaseQueryBuilder()
+    queryBuilder.in.mockResolvedValue({ data: rows, error: null })
+    return queryBuilder
+}
 
 describe('EventsList Timeout Handling', () => {
     beforeEach(() => {
@@ -54,28 +62,20 @@ describe('EventsList Timeout Handling', () => {
     it('triggers session check on timeout error', async () => {
         // Mock Events fetch to timeout
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => Promise.reject(new Error('Request timed out'))
-                        })
-                    })
-                } as any
+                queryBuilder.abortSignal.mockRejectedValue(new Error('Request timed out'))
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock()
+                return createParticipantsMock() as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null })
-                        })
-                    })
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return { select: vi.fn() } as any
+            return queryBuilder as any
         })
 
         render(
@@ -147,32 +147,24 @@ describe('EventsList ordering and past events', () => {
         ]
 
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => Promise.resolve({ data: events, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockResolvedValue({ data: events, error: null })
+                return queryBuilder as any
             }
             if (table === 'participants') {
                 return createParticipantsMock([
                     { event_id: 'soon' },
                     { event_id: 'soon' },
                     { event_id: 'later' },
-                ])
+                ]) as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         render(
@@ -213,28 +205,20 @@ describe('EventsList edge states', () => {
 
     it('shows empty state when no events are returned', async () => {
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => Promise.resolve({ data: [], error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockResolvedValue({ data: [], error: null })
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock()
+                return createParticipantsMock() as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         render(
@@ -250,28 +234,20 @@ describe('EventsList edge states', () => {
 
     it('shows error state on fetch failure', async () => {
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => Promise.resolve({ data: null, error: new Error('boom') }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockResolvedValue({ data: null, error: new Error('boom') })
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock()
+                return createParticipantsMock() as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         render(
@@ -303,37 +279,29 @@ describe('EventsList edge states', () => {
 
         let call = 0
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => {
-                                call += 1
-                                if (call === 1) {
-                                    const abortError = Object.assign(new Error('AbortError: signal is aborted'), {
-                                        name: 'AbortError',
-                                    })
-                                    return Promise.reject(abortError)
-                                }
-                                return Promise.resolve({ data: events, error: null })
-                            },
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockImplementation(() => {
+                    call += 1
+                    if (call === 1) {
+                        const abortError = Object.assign(new Error('AbortError: signal is aborted'), {
+                            name: 'AbortError',
+                        })
+                        return Promise.reject(abortError)
+                    }
+                    return Promise.resolve({ data: events, error: null })
+                })
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock([{ event_id: 'retry' }])
+                return createParticipantsMock([{ event_id: 'retry' }]) as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         render(
@@ -363,28 +331,20 @@ describe('EventsList edge states', () => {
         ]
 
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => Promise.resolve({ data: events, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockResolvedValue({ data: events, error: null })
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock([{ event_id: 'invalid' }])
+                return createParticipantsMock([{ event_id: 'invalid' }]) as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         render(
@@ -416,34 +376,26 @@ describe('EventsList edge states', () => {
 
         let call = 0
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => {
-                                call += 1
-                                if (call === 1) {
-                                    return Promise.resolve({ data: null, error: new Error('boom') })
-                                }
-                                return Promise.resolve({ data: events, error: null })
-                            },
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockImplementation(() => {
+                    call += 1
+                    if (call === 1) {
+                        return Promise.resolve({ data: null, error: new Error('boom') })
+                    }
+                    return Promise.resolve({ data: events, error: null })
+                })
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock([{ event_id: 'recovered' }])
+                return createParticipantsMock([{ event_id: 'recovered' }]) as any
             }
             if (table === 'profiles') {
-                return {
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: { role: 'user' }, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.single.mockResolvedValue({ data: { role: 'user' }, error: null })
+                return queryBuilder as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         render(
@@ -492,19 +444,16 @@ describe('EventsList auth fallback and timeout', () => {
         } as any)
 
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: () => Promise.resolve({ data: events, error: null }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockResolvedValue({ data: events, error: null })
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock([{ event_id: 'fallback' }])
+                return createParticipantsMock([{ event_id: 'fallback' }]) as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         vi.useFakeTimers()
@@ -530,23 +479,20 @@ describe('EventsList auth fallback and timeout', () => {
         } as any)
 
         vi.mocked(supabase.from).mockImplementation((table: string) => {
+            const queryBuilder = createBaseQueryBuilder()
+
             if (table === 'events') {
-                return {
-                    select: () => ({
-                        order: () => ({
-                            abortSignal: (signal: AbortSignal) => new Promise((_resolve, reject) => {
-                                signal.addEventListener('abort', () => {
-                                    reject(signal.reason ?? new Error('Request timed out after 10s'))
-                                }, { once: true })
-                            }),
-                        }),
-                    }),
-                } as any
+                queryBuilder.abortSignal.mockImplementation((signal: AbortSignal) => new Promise((_resolve, reject) => {
+                    signal.addEventListener('abort', () => {
+                        reject(signal.reason || new Error('Request timed out after 10s'))
+                    }, { once: true })
+                }))
+                return queryBuilder as any
             }
             if (table === 'participants') {
-                return createParticipantsMock()
+                return createParticipantsMock() as any
             }
-            return {} as any
+            return queryBuilder as any
         })
 
         vi.useFakeTimers()
