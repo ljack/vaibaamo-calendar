@@ -66,7 +66,7 @@ serve(async (req) => {
                 rpName: "Vaibaamo Calendar",
                 rpID,
                 userID: new TextEncoder().encode(user.id),
-                userName: user.email!,
+                userName: displayName,
                 userDisplayName: displayName,
                 attestationType: "none",
                 excludeCredentials: existingPasskeys?.map((pk: any) => ({

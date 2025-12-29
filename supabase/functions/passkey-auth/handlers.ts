@@ -59,7 +59,7 @@ export async function handleRegisterStart(
     const options = await generateRegistrationOptions({
         rpName: rpName as string,
         rpID: rpId as string,
-        userName: email as string,
+        userName: (displayName as string) || (email as string),
         userDisplayName: (displayName as string) || (email as string),
         userID: new TextEncoder().encode(webauthnUserId),
         attestationType: 'none',
