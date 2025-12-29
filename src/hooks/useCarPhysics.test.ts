@@ -160,9 +160,12 @@ describe('useCarPhysics', () => {
         act(() => {
             controls.accelerate()
         })
-        await act(async () => {
-            vi.advanceTimersByTime(5000)
-        })
+        // Advance time in chunks to ensure rAF loop fires consistently
+        for (let i = 0; i < 50; i++) {
+            await act(async () => {
+                vi.advanceTimersByTime(100)
+            })
+        }
 
         expect(result.current[0].speed).toBeGreaterThan(350)
 
