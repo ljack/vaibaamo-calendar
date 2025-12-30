@@ -241,11 +241,17 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
         if (positionRef.current) {
             const nextNode = pathRef.current[pathNodeIndexRef.current] || currentTarget;
-            const dLat = nextNode.lat - currentPos.lat;
-            const dLon = nextNode.lon - currentPos.lon;
-            const rads = Math.atan2(dLat, dLon);
-            const degs = rads * (180 / Math.PI);
-            const rotation = 90 - degs;
+
+            let rotation = 0;
+            if (mapInstanceRef.current) {
+                const p1 = mapInstanceRef.current.latLngToLayerPoint([currentPos.lat, currentPos.lon]);
+                const p2 = mapInstanceRef.current.latLngToLayerPoint([nextNode.lat, nextNode.lon]);
+                const dy = p2.y - p1.y;
+                const dx = p2.x - p1.x;
+                const rads = Math.atan2(dy, dx);
+                const degs = rads * (180 / Math.PI);
+                rotation = degs + 90;
+            }
 
             if (mapInstanceRef.current && !isZoomingRef.current && carMarkerRef.current) {
                 carMarkerRef.current.setLatLng([positionRef.current.lat, positionRef.current.lon]);
