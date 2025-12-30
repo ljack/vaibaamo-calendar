@@ -23,7 +23,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     const urlDifficulty = urlParams.get('difficulty') as DifficultyMode | null;
 
     const initialCar = (urlCar ? urlCar.toLowerCase() : null) as CarType | null;
-    const initialDifficulty = (urlDifficulty || null) as DifficultyMode | null;
+    const initialDifficulty = (urlDifficulty ? urlDifficulty.toLowerCase() : null) as DifficultyMode | null;
 
     // State
     const [selectedCar, setSelectedCar] = useState<CarType | null>(initialCar);
