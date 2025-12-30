@@ -80,6 +80,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const lastPoiCheckRef = useRef(0);
     const spriteFrameRef = useRef((selectedCar === 'red' || selectedCar === 'blue') ? 1 : 0);
     const lastFrameTimeRef = useRef(0);
+    const poiQueueRef = useRef<PoiType[]>([]);
 
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
@@ -90,6 +91,27 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const mapDistanceTraveledRef = useRef(0);
     const [distanceTraveled, setDistanceTraveled] = useState(0);
     const [carState, controls] = useCarPhysics(difficulty);
+
+    // Helper to get next POI type from a shuffled queue
+    const getNextPoiType = (isDemo: boolean): PoiType => {
+        if (poiQueueRef.current.length === 0) {
+            // Refill queue
+            let newQueue: PoiType[];
+            if (isDemo) {
+                newQueue = ['PEE_BREAK', 'SHOP_RUN', 'WRONG_TURN', 'MOB_ATTACK'];
+            } else {
+                newQueue = POI_DEFINITIONS.map(d => d.type);
+            }
+
+            // Fisher-Yates shuffle
+            for (let i = newQueue.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newQueue[i], newQueue[j]] = [newQueue[j], newQueue[i]];
+            }
+            poiQueueRef.current = newQueue;
+        }
+        return poiQueueRef.current.pop() as PoiType;
+    };
 
     // Initialize Map
     useEffect(() => {
@@ -346,15 +368,13 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
         if (Date.now() - lastPoiCheckRef.current > checkInterval && speedKmH > speedThreshold) {
             lastPoiCheckRef.current = Date.now();
             if (Math.random() < triggerChance) {
-                let poi;
-                if (demoMode) {
-                    const demoTypes: PoiType[] = ['PEE_BREAK', 'SHOP_RUN', 'WRONG_TURN', 'MOB_ATTACK'];
-                    const randomType = demoTypes[Math.floor(Math.random() * demoTypes.length)];
-                    const def = POI_DEFINITIONS.find(d => d.type === randomType);
-                    poi = def ? { message: def.message, type: randomType, location: { lat: 0, lon: 0 } } : generateNearbyPOI();
-                } else {
-                    poi = generateNearbyPOI();
-                }
+                const poiType = getNextPoiType(demoMode);
+                const def = POI_DEFINITIONS.find(d => d.type === poiType);
+                const poi = def ? {
+                    message: def.message,
+                    type: poiType,
+                    location: { lat: positionRef.current?.lat || 0, lon: positionRef.current?.lon || 0 }
+                } : generateNearbyPOI();
 
                 setMessage(`${poi.message}`);
 
