@@ -261,8 +261,18 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             lastMoveTimeRef.current = Date.now();
             if (showIdleWarning) setShowIdleWarning(false);
         } else {
-            // If idle for > 5 seconds
-            if (Date.now() - lastMoveTimeRef.current > 5000 && !showIdleWarning) {
+            const idleTime = Date.now() - lastMoveTimeRef.current;
+
+            // Auto-enable autocruise after 30s
+            if (idleTime > 30000) {
+                controls.toggleAutocruise();
+                lastMoveTimeRef.current = Date.now();
+                setShowIdleWarning(false);
+                setMessage("🔌 Auto-Pilot Engaged");
+                setTimeout(() => setMessage(''), 3000);
+            }
+            // Show warning after 5s
+            else if (idleTime > 5000 && !showIdleWarning) {
                 setShowIdleWarning(true);
             }
         }
