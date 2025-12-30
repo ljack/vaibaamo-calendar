@@ -19,6 +19,11 @@ interface JourneyMapProps {
     onClose: () => void;
 }
 
+const getCardinalDirection = (angle: number) => {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return directions[Math.round(angle / 45) % 8];
+};
+
 export const JourneyMap: React.FC<JourneyMapProps> = ({
     geocodedEvents,
     selectedCar,
@@ -54,6 +59,8 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
+    const [bearing, setBearing] = useState(0);
+    const lastBearingRef = useRef(0);
     const [carState] = useCarPhysics(difficulty);
 
     // Initialize Map
@@ -253,6 +260,12 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 rotation = degs + 90;
             }
 
+            const normalizedBearing = Math.round((rotation + 360) % 360);
+            if (Math.abs(normalizedBearing - lastBearingRef.current) >= 1) {
+                lastBearingRef.current = normalizedBearing;
+                setBearing(normalizedBearing);
+            }
+
             if (mapInstanceRef.current && !isZoomingRef.current && carMarkerRef.current) {
                 carMarkerRef.current.setLatLng([positionRef.current.lat, positionRef.current.lon]);
                 mapInstanceRef.current.panTo([positionRef.current.lat, positionRef.current.lon], { animate: false });
@@ -341,6 +354,16 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.7rem', color: '#aaa' }}>SPEED</div>
                     <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#4CAF50' }}>{Math.round(carState.speed)}</div>
+                </div>
+                <div style={{ width: '1px', background: '#444' }}></div>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#aaa' }}>HEADING</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', minWidth: '60px' }}>
+                        {bearing}°
+                        <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '4px' }}>
+                            {getCardinalDirection(bearing)}
+                        </span>
+                    </div>
                 </div>
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
