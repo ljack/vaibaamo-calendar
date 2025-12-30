@@ -115,7 +115,7 @@ export const generateCurvedPath = (points: { lat: number, lon: number }[], resol
     return curvedPoints;
 };
 
-export type PoiType = 'REINDEER' | 'GAS_STATION' | 'BARN' | 'SCENIC' | 'DINER' | 'MONOLITH' | 'AURORA' | 'SPEED_TRAP' | 'HITCHHIKER' | 'SILENCE_ZONE' | 'PEE_BREAK' | 'SHOP_RUN' | 'WRONG_TURN' | 'MOB_ATTACK';
+export type PoiType = 'START' | 'REINDEER' | 'GAS_STATION' | 'BARN' | 'SCENIC' | 'DINER' | 'MONOLITH' | 'AURORA' | 'SPEED_TRAP' | 'HITCHHIKER' | 'SILENCE_ZONE' | 'PEE_BREAK' | 'SHOP_RUN' | 'WRONG_TURN' | 'MOB_ATTACK';
 
 export const POI_DEFINITIONS: { message: string, type: PoiType }[] = [
     { message: "Old Gas Station", type: 'GAS_STATION' },

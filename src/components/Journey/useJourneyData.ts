@@ -98,6 +98,29 @@ export const useJourneyData = ({ events, selectedCar, setFinalStats, setGameStat
 
             setGeocodedEvents(results);
             positionRef.current = { lat: results[0].lat, lon: results[0].lon };
+            if (results.length > 0) {
+                const first = results[0];
+                // Generate a random start point 20-50km away
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 0.2 + Math.random() * 0.3; // ~20-50km in degrees approx
+                const startLat = first.lat + Math.sin(angle) * distance;
+                const startLon = first.lon + Math.cos(angle) * distance;
+
+                results.unshift({
+                    id: 'start-point',
+                    title: 'Journey Start',
+                    location: 'Start Location',
+                    lat: startLat,
+                    lon: startLon,
+                    type: 'START',
+                    message: 'Engine started. Let\'s go!'
+                });
+            }
+
+            setGeocodedEvents(results);
+            if (results.length > 0) {
+                positionRef.current = { lat: results[0].lat, lon: results[0].lon };
+            }
         };
         fetchLocations();
     }, [eventsValid, selectedCar, setFinalStats, setGameState]);
