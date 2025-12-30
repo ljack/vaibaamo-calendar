@@ -115,7 +115,7 @@ test.describe('Supakeys Integration', () => {
         await page.fill('input[data-testid="login-email-input"]', 'test-user-' + Date.now() + '@example.com');
 
         // Enable password mode first
-        await page.check('input[data-testid="login-use-password-checkbox"]');
+        await page.check('input[data-testid="login-use-password-checkbox"]', { force: true });
 
         // Now fill password
         await page.fill('input[data-testid="login-password-input"]', 'password123');
