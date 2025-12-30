@@ -301,7 +301,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                         } else {
                             inner.className = `car-sprite car-${selectedCar} ${carState.isBroken ? 'broken-' : 'frame-'}${spriteFrameRef.current}`;
                         }
-                        inner.style.transform = `rotate(${rotation}deg)`;
+                        inner.style.transform = `rotate(${rotation - 3}deg)`;
                     }
                 }
             }
