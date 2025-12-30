@@ -137,3 +137,29 @@ export const POI_DEFINITIONS: { message: string, type: PoiType }[] = [
 export const generateNearbyPOI = () => {
     return POI_DEFINITIONS[Math.floor(Math.random() * POI_DEFINITIONS.length)];
 }
+
+export const getCardinalDirection = (angle: number) => {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return directions[Math.round(Math.abs(angle) / 45) % 8]; // Added abs just in case, though usually 0-360
+};
+
+export const getPoiImage = (type: PoiType): string => {
+    switch (type) {
+        case 'REINDEER': return '/poro.png';
+        case 'AURORA': return '/aurora.png';
+        case 'GAS_STATION': return '/gas_station.png';
+        case 'BARN': return '/barn.png';
+        case 'SCENIC': return '/scenic_view.png';
+        case 'DINER': return '/diner.png';
+        case 'MONOLITH': return '/monolith.png';
+        case 'SPEED_TRAP': return '/speed_trap.png';
+        case 'HITCHHIKER': return '/hitchhiker.png';
+        case 'SILENCE_ZONE': return '/radio_tower.png';
+        case 'PEE_BREAK': return '/bus_stop_pee.png';
+        case 'SHOP_RUN': return '/shop_stop.png';
+        case 'WRONG_TURN': return '/wrong_turn.png';
+        case 'MOB_ATTACK': return '/mob_attack.png';
+        default: return '/poro.png'; // Fallback
+    }
+};
+

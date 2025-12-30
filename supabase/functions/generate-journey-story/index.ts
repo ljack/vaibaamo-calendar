@@ -11,7 +11,7 @@ serve(async (req) => {
     }
 
     try {
-        const { events, mode = 'story' } = await req.json();
+        const { events, mode = 'story', route } = await req.json();
 
         if (!events || !Array.isArray(events)) {
             throw new Error("Events array is required");
@@ -42,18 +42,22 @@ serve(async (req) => {
             systemRole = "You are a witty copywriter.";
         } else {
             // Default Story Mode
-            const eventText = events.map(e => e.message || e.title || "Something mysterious").join(", ");
+            const eventText = events.map((e: any) => e.message || e.title || "Something mysterious").join(", ");
+            const routeText = route && Array.isArray(route) ? route.join(" -> ") : "a mysterious path";
+
             prompt = `
             Write a 3-paragraph story in the style of the Star Wars opening crawl (e.g. "Episode VII - THE LONG ROAD").
-            The story documents an epic car journey through Finland to Nuorgam.
+            The story documents an epic car journey across Finland, visiting these locations in order: ${routeText}.
+
+            MANDATORY: You MUST mention specific details or "juicy" fictional events that happened at the locations listed in the route (e.g., "The slippery ice tracks of Oulu", "The reindeer blockade of Rovaniemi").
             
-            Incorporate these specific events that occurred during the journey:
+            Also incorporate these specific random encounters that occurred:
             ${eventText}
             
             Make it dramatic, slightly humorous, and epic. Use uppercase for the title.
             Return ONLY the story text, paragraphs separated by newlines.
             `;
-            systemRole = "You are a storyteller specializing in Star Wars opening crawl style narratives.";
+            systemRole = "You are a storyteller specializing in Star Wars opening crawl style narratives. You weave distinct locations and random events into a cohesive, epic saga.";
         }
 
         const response = await fetch("https://api.openai.com/v1/chat/completions", {

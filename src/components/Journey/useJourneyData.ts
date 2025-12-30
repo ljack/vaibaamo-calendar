@@ -74,8 +74,9 @@ export const useJourneyData = ({ events, selectedCar, setFinalStats, setGameStat
                 const demoRoute = [
                     { title: 'Helsinki', lat: 60.1699, lon: 24.9384 },
                     { title: 'Tampere', lat: 61.4978, lon: 23.7608 },
-                    { title: 'Jyväskylä', lat: 62.2426, lon: 25.7473 },
                     { title: 'Oulu', lat: 65.0121, lon: 25.4651 },
+                    { title: 'Rovaniemi', lat: 66.5039, lon: 25.7294 },
+                    { title: 'Saariselkä', lat: 68.4229, lon: 27.4109 },
                     { title: 'Nuorgam', lat: 70.0822, lon: 27.8773 }
                 ];
                 // Replace logic results with demo route if insufficient or just always?

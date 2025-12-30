@@ -10,8 +10,11 @@ vi.mock('../lib/geocode', () => ({
 
 vi.mock('../lib/journeyUtils', () => ({
     getDistance: vi.fn(() => 10), // Default distance
-    generateNearbyPOI: vi.fn(() => 'Test POI'),
+    generateNearbyPOI: vi.fn(() => ({ message: 'Test POI', type: 'REINDEER' })),
     generateCurvedPath: vi.fn(() => [{ lat: 10, lon: 10 }, { lat: 10.1, lon: 10.1 }]),
+    getCardinalDirection: vi.fn(() => 'N'),
+    getPoiImage: vi.fn(() => 'test.png'),
+    POI_DEFINITIONS: [{ message: "Test POI", type: 'REINDEER' }]
 }));
 
 vi.mock('../hooks/useCarPhysics', () => ({

@@ -13,6 +13,7 @@ export interface FinalStats {
     message?: string;
     isDemo?: boolean;
     collectedEvents?: { type: PoiType; message: string; timestamp: number }[];
+    routePlaces?: string[];
 }
 
 interface JourneyFinishedScreenProps {
@@ -40,7 +41,10 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
             const fetchStory = async () => {
                 try {
                     const { data, error } = await supabase.functions.invoke('generate-journey-story', {
-                        body: { events: finalStats.collectedEvents }
+                        body: {
+                            events: finalStats.collectedEvents,
+                            route: finalStats.routePlaces
+                        }
                     });
                     if (error) {
                         console.error('Error fetching story:', error);
