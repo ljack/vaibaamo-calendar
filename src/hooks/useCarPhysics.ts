@@ -150,7 +150,7 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                     fuelBurn = 0;
                 }
 
-                let newFuel = Math.max(0, prev.fuel - fuelBurn);
+                const newFuel = Math.max(0, prev.fuel - fuelBurn);
 
                 // Score: reward efficient driving
                 // Points for distance + bonus for optimal speed (180-220 km/h) + fuel efficiency
