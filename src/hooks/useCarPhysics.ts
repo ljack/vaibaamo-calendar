@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-const MAX_SPEED = 550; // km/h
+const MAX_SPEED = 850; // km/h
 const ACCELERATION = 2; // km/h per tick
 const BRAKING = 5; // km/h per tick
 const DRAG = 0.5; // Natural deceleration
@@ -115,7 +115,7 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                     if (controls.current.braking) {
                         controls.current.autocruise = 'off'; // Disengage on brake
                     } else {
-                        const targetSpeed = controls.current.autocruise === 'turbo' ? 420 : 200;
+                        const targetSpeed = controls.current.autocruise === 'turbo' ? 666 : 200;
                         if (prev.speed < targetSpeed) {
                             controls.current.accelerating = true;
                         } else {
