@@ -15,7 +15,7 @@ export type CarState = {
     fuel: number; // 0-100 (percentage)
     fuelConsumption: number; // liters per km
     score: number; // based on efficiency
-    autocruise: boolean;
+    autocruise: 'off' | 'cruise' | 'turbo';
 };
 
 export type CarControls = {
@@ -37,7 +37,7 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         fuel: difficulty === 'easy' ? 100 : 80,
         fuelConsumption: 0,
         score: 0,
-        autocruise: false
+        autocruise: 'off'
     });
 
     const difficultyRef = useRef<DifficultyMode>(difficulty);
@@ -46,19 +46,30 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         difficultyRef.current = difficulty;
     }, [difficulty]);
 
-    const controls = useRef({
+    const controls = useRef<{
+        accelerating: boolean;
+        braking: boolean;
+        repairing: boolean;
+        shifting: boolean;
+        autocruise: 'off' | 'cruise' | 'turbo';
+    }>({
         accelerating: false,
         braking: false,
         repairing: false,
         shifting: false, // rudimentary auto-shift or debounce
-        autocruise: false,
+        autocruise: 'off',
     });
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'ArrowUp') controls.current.accelerating = true;
         if (e.key === 'ArrowDown') controls.current.braking = true;
         if (e.key === 'r' || e.key === 'R') controls.current.repairing = true;
-        if (e.key === 'c' || e.key === 'C') controls.current.autocruise = !controls.current.autocruise;
+        if (e.key === 'c' || e.key === 'C') {
+            const nextMode =
+                controls.current.autocruise === 'off' ? 'cruise' :
+                    controls.current.autocruise === 'cruise' ? 'turbo' : 'off';
+            controls.current.autocruise = nextMode;
+        }
     }, []);
 
     const handleKeyUp = useCallback((e: KeyboardEvent) => {
@@ -89,13 +100,16 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                 let newSpeed = prev.speed;
 
                 // Autocruise Logic
-                if (controls.current.autocruise) {
+                if (controls.current.autocruise !== 'off') {
                     if (controls.current.braking) {
-                        controls.current.autocruise = false; // Disengage on brake
-                    } else if (prev.speed < 200) {
-                        controls.current.accelerating = true;
+                        controls.current.autocruise = 'off'; // Disengage on brake
                     } else {
-                        controls.current.accelerating = false;
+                        const targetSpeed = controls.current.autocruise === 'turbo' ? 420 : 200;
+                        if (prev.speed < targetSpeed) {
+                            controls.current.accelerating = true;
+                        } else {
+                            controls.current.accelerating = false;
+                        }
                     }
                 }
 
@@ -199,6 +213,11 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         accelerate: () => { controls.current.accelerating = true; },
         brake: () => { controls.current.braking = true; },
         repair: () => { controls.current.repairing = true; },
-        toggleAutocruise: () => { controls.current.autocruise = !controls.current.autocruise; }
+        toggleAutocruise: () => {
+            const nextMode =
+                controls.current.autocruise === 'off' ? 'cruise' :
+                    controls.current.autocruise === 'cruise' ? 'turbo' : 'off';
+            controls.current.autocruise = nextMode;
+        }
     }];
 }
