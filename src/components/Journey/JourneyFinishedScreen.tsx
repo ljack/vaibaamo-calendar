@@ -8,6 +8,7 @@ export interface FinalStats {
     fuel?: number;
     efficiency?: string;
     message?: string;
+    isDemo?: boolean;
 }
 
 interface JourneyFinishedScreenProps {
@@ -42,6 +43,27 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                         <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>⚡ Fuel Remaining: <strong>{finalStats.fuel?.toFixed(1)}%</strong></p>
                         <p style={{ fontSize: '1.3rem', margin: '10px 0', color: '#FFD700' }}>🏆 Efficiency: <strong>{finalStats.efficiency}</strong> pts/km</p>
                     </div>
+                    {finalStats.isDemo && (
+                        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                            <p style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '10px' }}>You reached Nuorgam! Check out the real adventure:</p>
+                            <a
+                                href="https://kaldoaiviultratrail.fi/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    color: '#FFD700',
+                                    fontSize: '1.5rem',
+                                    fontWeight: 'bold',
+                                    textDecoration: 'none',
+                                    borderBottom: '2px solid #FFD700',
+                                    paddingBottom: '2px'
+                                }}
+                            >
+                                🏔️ Kaldoaivi Ultra Trail
+                            </a>
+                        </div>
+                    )}
+
                     <button
                         onClick={onClose}
                         style={{

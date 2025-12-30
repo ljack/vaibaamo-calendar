@@ -334,7 +334,8 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                         onFinish({
                             distance: mapDistanceTraveledRef.current,
                             score: carState.score,
-                            reason: 'COMPLETED'
+                            reason: 'COMPLETED',
+                            isDemo: demoMode
                         });
                         // No need to unlock, journey finished
                     }
