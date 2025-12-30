@@ -486,7 +486,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                     }
                 });
 
-                setTimeout(() => setVisualEvent(null), 6000); // Longer display time
+                setTimeout(() => setVisualEvent(null), 14000); // 14s display time
 
                 setTimeout(() => setMessage(''), 3000);
             }
