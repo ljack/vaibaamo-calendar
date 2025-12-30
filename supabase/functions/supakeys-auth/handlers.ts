@@ -60,7 +60,7 @@ export async function handleRegisterStart(
         rpName: rpName as string,
         rpID: rpId as string,
         userName: (displayName as string) || (email as string),
-        userDisplayName: (displayName as string) || (email as string),
+        userDisplayName: (displayName ? `${displayName} (Supakeys)` : `${email} (Supakeys)`),
         userID: new TextEncoder().encode(webauthnUserId),
         attestationType: 'none',
         excludeCredentials,

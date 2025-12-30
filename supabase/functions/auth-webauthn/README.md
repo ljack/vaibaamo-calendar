@@ -44,4 +44,4 @@ This allows the "Standard" login button/flow to successfully authenticate users 
 
 ## Known Limitations
 *   Stores public keys in standard Base64, requiring conversion logic when validating against modern formats.
-*   Monolithic file structure makes it harder to extend compared to the modular `passkey-auth`.
+*   Monolithic file structure makes it harder to extend compared to the modular `supakeys-auth`.

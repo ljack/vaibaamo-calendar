@@ -56,6 +56,10 @@ serve(async (req) => {
             const originUrl = new URL(origin);
             const rpID = originUrl.hostname === "localhost" ? "localhost" : originUrl.hostname;
 
+            // Append (Standard) to distinguish from Supakeys
+            const displaySuffix = " (Standard)";
+            const finalDisplayName = displayName.endsWith(displaySuffix) ? displayName : `${displayName}${displaySuffix}`;
+
             // Get existing passkeys
             const { data: existingPasskeys } = await supabase
                 .from("passkeys")
@@ -67,7 +71,7 @@ serve(async (req) => {
                 rpID,
                 userID: new TextEncoder().encode(user.id),
                 userName: displayName,
-                userDisplayName: displayName,
+                userDisplayName: finalDisplayName,
                 attestationType: "none",
                 excludeCredentials: existingPasskeys?.map((pk: any) => ({
                     id: pk.credential_id,
