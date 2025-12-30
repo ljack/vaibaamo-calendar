@@ -15,12 +15,14 @@ export type CarState = {
     fuel: number; // 0-100 (percentage)
     fuelConsumption: number; // liters per km
     score: number; // based on efficiency
+    autocruise: 'off' | 'cruise' | 'turbo';
 };
 
 export type CarControls = {
     accelerate: () => void;
     brake: () => void;
     repair: () => void;
+    toggleAutocruise: () => void;
 };
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard';
@@ -34,7 +36,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         isBroken: false,
         fuel: difficulty === 'easy' ? 100 : 80,
         fuelConsumption: 0,
-        score: 0
+        score: 0,
+        autocruise: 'off'
     });
 
     const difficultyRef = useRef<DifficultyMode>(difficulty);
@@ -43,17 +46,41 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         difficultyRef.current = difficulty;
     }, [difficulty]);
 
-    const controls = useRef({
+    const controls = useRef<{
+        accelerating: boolean;
+        braking: boolean;
+        repairing: boolean;
+        shifting: boolean;
+        autocruise: 'off' | 'cruise' | 'turbo';
+    }>({
         accelerating: false,
         braking: false,
         repairing: false,
         shifting: false, // rudimentary auto-shift or debounce
+        autocruise: 'off',
     });
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'ArrowUp') controls.current.accelerating = true;
         if (e.key === 'ArrowDown') controls.current.braking = true;
         if (e.key === 'r' || e.key === 'R') controls.current.repairing = true;
+        if (e.key === 'c' || e.key === 'C') {
+            if (e.repeat) return;
+
+            let nextMode: 'off' | 'cruise' | 'turbo' = 'off';
+            switch (controls.current.autocruise) {
+                case 'off':
+                    nextMode = 'cruise';
+                    break;
+                case 'cruise':
+                    nextMode = 'turbo';
+                    break;
+                case 'turbo':
+                    nextMode = 'off';
+                    break;
+            }
+            controls.current.autocruise = nextMode;
+        }
     }, []);
 
     const handleKeyUp = useCallback((e: KeyboardEvent) => {
@@ -82,6 +109,20 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
 
             setCar((prev) => {
                 let newSpeed = prev.speed;
+
+                // Autocruise Logic
+                if (controls.current.autocruise !== 'off') {
+                    if (controls.current.braking) {
+                        controls.current.autocruise = 'off'; // Disengage on brake
+                    } else {
+                        const targetSpeed = controls.current.autocruise === 'turbo' ? 420 : 200;
+                        if (prev.speed < targetSpeed) {
+                            controls.current.accelerating = true;
+                        } else {
+                            controls.current.accelerating = false;
+                        }
+                    }
+                }
 
                 // Accelerate / Brake
                 if (controls.current.accelerating) {
@@ -167,7 +208,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                     isBroken: broken,
                     fuel: newFuel,
                     fuelConsumption: fuelBurn / d_km,
-                    score: newScore
+                    score: newScore,
+                    autocruise: controls.current.autocruise
                 };
             });
 
@@ -181,6 +223,12 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
     return [car, {
         accelerate: () => { controls.current.accelerating = true; },
         brake: () => { controls.current.braking = true; },
-        repair: () => { controls.current.repairing = true; }
+        repair: () => { controls.current.repairing = true; },
+        toggleAutocruise: () => {
+            const nextMode =
+                controls.current.autocruise === 'off' ? 'cruise' :
+                    controls.current.autocruise === 'cruise' ? 'turbo' : 'off';
+            controls.current.autocruise = nextMode;
+        }
     }];
 }

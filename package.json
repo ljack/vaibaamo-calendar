@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:integration": "npx playwright test",
-    "sync-events": "node scripts/sync-events.js"
+    "sync-events": "node scripts/sync-events.js",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.2.2",
@@ -51,6 +52,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "husky": "^8.0.0"
   }
 }

@@ -31,6 +31,8 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    actionTimeout: 1000,
+    navigationTimeout: 5000,
     locale: 'fi-FI',
     extraHTTPHeaders: process.env.VERCEL_AUTOMATION_BYPASS_SECRET
       ? {

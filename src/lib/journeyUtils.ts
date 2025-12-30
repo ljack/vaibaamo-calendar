@@ -115,12 +115,21 @@ export const generateCurvedPath = (points: { lat: number, lon: number }[], resol
     return curvedPoints;
 };
 
-export const POI_TYPES = [
-    "Old Gas Station", "Abandoned Barn", "Scenic Overlook", "Roadside Diner",
-    "Mysterious Monolith", "Herd of Reindeer", "Aurora Borealis", "Speed Trap!",
-    "Hitchhiker (Ignore!)", "Radio Silence Zone"
+export type PoiType = 'REINDEER' | 'GENERIC' | 'SPEED_TRAP';
+
+export const POI_DEFINITIONS: { message: string, type: PoiType }[] = [
+    { message: "Old Gas Station", type: 'GENERIC' },
+    { message: "Abandoned Barn", type: 'GENERIC' },
+    { message: "Scenic Overlook", type: 'GENERIC' },
+    { message: "Roadside Diner", type: 'GENERIC' },
+    { message: "Mysterious Monolith", type: 'GENERIC' },
+    { message: "Herd of Reindeer", type: 'REINDEER' },
+    { message: "Aurora Borealis", type: 'GENERIC' },
+    { message: "Speed Trap!", type: 'SPEED_TRAP' },
+    { message: "Hitchhiker (Ignore!)", type: 'GENERIC' },
+    { message: "Radio Silence Zone", type: 'GENERIC' }
 ];
 
 export const generateNearbyPOI = () => {
-    return POI_TYPES[Math.floor(Math.random() * POI_TYPES.length)];
+    return POI_DEFINITIONS[Math.floor(Math.random() * POI_DEFINITIONS.length)];
 }

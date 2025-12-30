@@ -26,6 +26,7 @@ const mockMap = {
     panTo: vi.fn(),
     getMaxZoom: vi.fn().mockReturnValue(20),
     getContainer: vi.fn().mockReturnValue(document.createElement('div')),
+    latLngToLayerPoint: vi.fn().mockReturnValue({ x: 0, y: 0 }),
 };
 
 const mockMarker = {
@@ -268,10 +269,13 @@ describe('JourneyOverlay', () => {
     });
 
     it('handles interaction with map and updates marker', async () => {
-        // Use mockImplementation to ensure object identity changes on re-render, triggering the effect
+        // Use variable to control object identity changes
+        let currentState = { speed: 100, fuel: 100, distanceTraveled: 0, score: 0, isBroken: false };
+        const stableControls = { accelerate: vi.fn(), brake: vi.fn(), repair: vi.fn() };
+
         (useCarPhysics as any).mockImplementation(() => [
-            { speed: 100, fuel: 100, distanceTraveled: 0, score: 0, isBroken: false },
-            { accelerate: vi.fn(), brake: vi.fn(), repair: vi.fn() }
+            currentState,
+            stableControls
         ]);
 
         const { rerender } = render(<JourneyOverlay events={mockEvents} onClose={mockOnClose} />);
@@ -285,6 +289,9 @@ describe('JourneyOverlay', () => {
         await waitFor(() => {
             expect(mockL.map).toHaveBeenCalled();
         });
+
+        // Update state to trigger effect on re-render
+        currentState = { ...currentState };
 
         // Force re-render to trigger the game loop effect again now that map is ready
         rerender(<JourneyOverlay events={mockEvents} onClose={mockOnClose} />);

@@ -19,6 +19,11 @@ interface JourneyMapProps {
     onClose: () => void;
 }
 
+const getCardinalDirection = (angle: number) => {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return directions[Math.round(angle / 45) % 8];
+};
+
 export const JourneyMap: React.FC<JourneyMapProps> = ({
     geocodedEvents,
     selectedCar,
@@ -54,6 +59,11 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
+    const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean } | null>(null);
+    const [bearing, setBearing] = useState(0);
+    const lastBearingRef = useRef(0);
+    const mapDistanceTraveledRef = useRef(0);
+    const [distanceTraveled, setDistanceTraveled] = useState(0);
     const [carState] = useCarPhysics(difficulty);
 
     // Initialize Map
@@ -198,14 +208,19 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             const moveDistDegrees = (speedKmH * 0.000005);
 
             if (distToNode < moveDistDegrees) {
+                const stepDist = getDistance(currentPos, targetNode);
+                mapDistanceTraveledRef.current += stepDist;
                 positionRef.current = targetNode;
                 pathNodeIndexRef.current = Math.min(targetNodeIndex + 1, pathRef.current.length - 1);
             } else {
                 const fraction = moveDistDegrees / distToNode;
-                positionRef.current = {
+                const newPos = {
                     lat: currentPos.lat + dLat * fraction,
                     lon: currentPos.lon + dLon * fraction
                 };
+                const stepDist = getDistance(currentPos, newPos);
+                mapDistanceTraveledRef.current += stepDist;
+                positionRef.current = newPos;
             }
 
             const distToWaypoint = getDistance(positionRef.current, { lat: currentTarget.lat, lon: currentTarget.lon });
@@ -217,7 +232,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                         setMessage('');
                     } else {
                         onFinish({
-                            distance: carState.distanceTraveled,
+                            distance: mapDistanceTraveledRef.current,
                             score: carState.score,
                             reason: 'COMPLETED'
                         });
@@ -241,11 +256,26 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
         if (positionRef.current) {
             const nextNode = pathRef.current[pathNodeIndexRef.current] || currentTarget;
-            const dLat = nextNode.lat - currentPos.lat;
-            const dLon = nextNode.lon - currentPos.lon;
-            const rads = Math.atan2(dLat, dLon);
-            const degs = rads * (180 / Math.PI);
-            const rotation = 90 - degs;
+
+            let rotation = 0;
+            if (mapInstanceRef.current) {
+                const p1 = mapInstanceRef.current.latLngToLayerPoint([currentPos.lat, currentPos.lon]);
+                const p2 = mapInstanceRef.current.latLngToLayerPoint([nextNode.lat, nextNode.lon]);
+                const dy = p2.y - p1.y;
+                const dx = p2.x - p1.x;
+                const rads = Math.atan2(dy, dx);
+                const degs = rads * (180 / Math.PI);
+                rotation = degs + 90;
+            }
+
+            const normalizedBearing = Math.round((rotation + 360) % 360);
+            if (Math.abs(normalizedBearing - lastBearingRef.current) >= 1) {
+                lastBearingRef.current = normalizedBearing;
+                setBearing(normalizedBearing);
+            }
+
+            // Sync ref to state for safe rendering
+            setDistanceTraveled(mapDistanceTraveledRef.current);
 
             if (mapInstanceRef.current && !isZoomingRef.current && carMarkerRef.current) {
                 carMarkerRef.current.setLatLng([positionRef.current.lat, positionRef.current.lon]);
@@ -282,7 +312,13 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             lastPoiCheckRef.current = Date.now();
             if (Math.random() > 0.7) {
                 const poi = generateNearbyPOI();
-                setMessage(`Passing by: ${poi}`);
+                setMessage(`Passing by: ${poi.message}`);
+
+                if (poi.type === 'REINDEER') {
+                    setVisualEvent({ image: '/poro.png', active: true });
+                    setTimeout(() => setVisualEvent(null), 4000);
+                }
+
                 setTimeout(() => setMessage(''), 3000);
             }
         }
@@ -292,6 +328,30 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     return (
         <div className="journey-map">
             <div ref={mapContainerRef} className="journey-map-container" style={{ width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0 }} />
+
+            {/* Visual Event Overlay */}
+            {visualEvent && visualEvent.active && (
+                <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '20%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 1500,
+                    animation: 'spinAndBounce 4s ease-in-out'
+                }}>
+                    <img src={visualEvent.image} alt="Event Visual" style={{ width: '200px', height: 'auto', imageRendering: 'pixelated' }} />
+                    <style>{`
+                        @keyframes spinAndBounce {
+                            0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
+                            20% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 1; }
+                            40% { transform: translate(-50%, -60%) scale(1) rotate(-10deg); }
+                            60% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+                            80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+                            100% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
+                        }
+                    `}</style>
+                </div>
+            )}
 
             {/* Exit Button */}
             <button
@@ -338,14 +398,30 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 </div>
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#aaa' }}>RPM</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{Math.round(carState.rpm)}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#aaa' }}>HEADING</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', minWidth: '60px' }}>
+                        {bearing}°
+                        <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '4px' }}>
+                            {getCardinalDirection(bearing)}
+                        </span>
+                    </div>
                 </div>
-                <div style={{ width: '1px', background: '#444' }}></div>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#aaa' }}>GEAR</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{carState.gear}</div>
-                </div>
+                {carState.autocruise !== 'off' && (
+                    <>
+                        <div style={{ width: '1px', background: '#444' }}></div>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#aaa' }}>MODE</div>
+                            <div style={{
+                                fontSize: '1.2rem',
+                                fontWeight: 'bold',
+                                color: carState.autocruise === 'turbo' ? '#ff00ff' : '#00ff00',
+                                textShadow: `0 0 5px ${carState.autocruise === 'turbo' ? '#ff00ff' : '#00ff00'}`
+                            }}>
+                                {carState.autocruise === 'turbo' ? 'TURBO' : 'AUTO'}
+                            </div>
+                        </div>
+                    </>
+                )}
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.7rem', color: '#aaa' }}>FUEL</div>
@@ -356,7 +432,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.7rem', color: '#aaa' }}>DIST</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFD700' }}>{carState.distanceTraveled.toFixed(1)}</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFD700' }}>{distanceTraveled.toFixed(1)}</div>
                 </div>
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
@@ -378,6 +454,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 <p>Controls:</p>
                 <p>⬆️ Accelerate</p>
                 <p>⬇️ Brake/Reverse</p>
+                <p>C: Autocruise</p>
             </div>
 
             {/* Message Overlay */}

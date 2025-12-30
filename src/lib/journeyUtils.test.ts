@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest'
-import { getDistance, interpolatePosition, normalizeCoordinates, generateCurvedPath, POI_TYPES, generateNearbyPOI } from './journeyUtils'
+import { getDistance, interpolatePosition, normalizeCoordinates, generateCurvedPath, POI_DEFINITIONS, generateNearbyPOI } from './journeyUtils'
 
 describe('journeyUtils', () => {
     describe('getDistance', () => {
@@ -115,10 +115,11 @@ describe('journeyUtils', () => {
     })
 
     describe('generateNearbyPOI', () => {
-        it('returns a valid POI string', () => {
+        it('returns a valid POI object', () => {
             const poi = generateNearbyPOI()
-            expect(POI_TYPES).toContain(poi)
-            expect(typeof poi).toBe('string')
+            expect(POI_DEFINITIONS).toContainEqual(poi)
+            expect(typeof poi.message).toBe('string')
+            expect(['GENERIC', 'REINDEER', 'SPEED_TRAP']).toContain(poi.type)
         })
     })
 })
