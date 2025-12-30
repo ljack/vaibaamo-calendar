@@ -274,7 +274,8 @@
     background-repeat: no-repeat !important;
     image-rendering: auto;
     pointer-events: none;
-    transition: transform 0.1s linear;
+    /* transition: transform 0.1s linear; */
+    /* Transition removed to prevent 360-degree wrap glitches when rotation jumps */
 }
 
 /* RED CAR - Base styles (dimensions driven by JS) */

@@ -131,8 +131,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                 if (controls.current.turningRight) {
                     newRotationOffset += TURN_SPEED * dt;
                 }
-                // Normalize to 0-360
-                newRotationOffset = (newRotationOffset + 360) % 360;
+                // Normalize to 0-360 - REMOVED to prevent wrap glitches
+                // newRotationOffset = (newRotationOffset + 360) % 360;
 
                 // Autocruise Logic
                 if (controls.current.autocruise !== 'off') {
