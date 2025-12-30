@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { loadLeaflet } from '../../lib/leafletLoader';
 import { generateCurvedPath, getDistance, generateNearbyPOI } from '../../lib/journeyUtils';
+import type { PoiType } from '../../lib/journeyUtils';
 import { useCarPhysics } from '../../hooks/useCarPhysics';
 import type { DifficultyMode } from '../../hooks/useCarPhysics';
 import type { CarType, CarManifest } from './types';
@@ -22,6 +23,23 @@ interface JourneyMapProps {
 const getCardinalDirection = (angle: number) => {
     const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
     return directions[Math.round(angle / 45) % 8];
+};
+
+// Helper to get image for POI type
+const getPoiImage = (type: PoiType): string => {
+    switch (type) {
+        case 'REINDEER': return '/poro.png';
+        case 'AURORA': return '/aurora.png';
+        case 'GAS_STATION': return '/gas_station.png';
+        case 'BARN': return '/barn.png';
+        case 'SCENIC': return '/scenic_view.png';
+        case 'DINER': return '/diner.png';
+        case 'MONOLITH': return '/monolith.png';
+        case 'SPEED_TRAP': return '/speed_trap.png';
+        case 'HITCHHIKER': return '/hitchhiker.png';
+        case 'SILENCE_ZONE': return '/radio_tower.png';
+        default: return '/poro.png'; // Fallback
+    }
 };
 
 export const JourneyMap: React.FC<JourneyMapProps> = ({
@@ -311,13 +329,18 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
         if (Date.now() - lastPoiCheckRef.current > 5000 && speedKmH > 100) {
             lastPoiCheckRef.current = Date.now();
             if (Math.random() > 0.7) {
+
+
+                // ... inside component ...
+
                 const poi = generateNearbyPOI();
                 setMessage(`Passing by: ${poi.message}`);
 
-                if (poi.type === 'REINDEER') {
-                    setVisualEvent({ image: '/poro.png', active: true });
-                    setTimeout(() => setVisualEvent(null), 4000);
-                }
+                // Trigger visual event for all types
+                setVisualEvent({ image: getPoiImage(poi.type), active: true });
+                setTimeout(() => setVisualEvent(null), 4000);
+
+                setTimeout(() => setMessage(''), 3000);
 
                 setTimeout(() => setMessage(''), 3000);
             }
