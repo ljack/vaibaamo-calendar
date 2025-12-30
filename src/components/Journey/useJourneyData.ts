@@ -9,9 +9,10 @@ interface UseJourneyDataProps {
     selectedCar: CarType | null;
     setFinalStats: (stats: any) => void;
     setGameState: (state: JourneyState) => void;
+    demoMode?: boolean;
 }
 
-export const useJourneyData = ({ events, selectedCar, setFinalStats, setGameState }: UseJourneyDataProps) => {
+export const useJourneyData = ({ events, selectedCar, setFinalStats, setGameState, demoMode = false }: UseJourneyDataProps) => {
     const [geocodedEvents, setGeocodedEvents] = useState<any[]>([]);
     const [carManifests, setCarManifests] = useState<Record<string, CarManifest>>({});
     const positionRef = useRef<{ lat: number, lon: number } | null>(null);
@@ -66,6 +67,22 @@ export const useJourneyData = ({ events, selectedCar, setFinalStats, setGameStat
                 } catch (error) {
                     console.error('[JourneyOverlay] Geocoding error:', event.location, error);
                 }
+            }
+
+            if (demoMode) {
+                // Hardcoded scenic route for demo (Helsinki->Tampere->Oulu->Rovaniemi)
+                const demoRoute = [
+                    { title: 'Helsinki', lat: 60.1699, lon: 24.9384 },
+                    { title: 'Tampere', lat: 61.4978, lon: 23.7608 },
+                    { title: 'Jyväskylä', lat: 62.2426, lon: 25.7473 },
+                    { title: 'Oulu', lat: 65.0121, lon: 25.4651 },
+                    { title: 'Rovaniemi', lat: 66.5039, lon: 25.7294 }
+                ];
+                // Replace logic results with demo route if insufficient or just always?
+                // Make demo route ALWAYS override to ensure consistent experience.
+                setGeocodedEvents(demoRoute);
+                positionRef.current = { lat: demoRoute[0].lat, lon: demoRoute[0].lon };
+                return;
             }
 
             if (results.length < 2) {

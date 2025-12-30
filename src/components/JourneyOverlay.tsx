@@ -40,7 +40,8 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
         events,
         selectedCar,
         setFinalStats,
-        setGameState
+        setGameState,
+        demoMode: isDemo
     });
 
     // Advance to difficulty selection after car is selected
