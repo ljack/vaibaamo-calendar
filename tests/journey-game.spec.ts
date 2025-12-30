@@ -121,7 +121,7 @@ test.describe('Journey Game', () => {
         await page.waitForLoadState('networkidle');
 
         // Verify all dashboard elements are present
-        const gauges = ['SPEED', 'RPM', 'GEAR', 'FUEL', 'DIST', 'SCORE'];
+        const gauges = ['SPEED', 'HEADING', 'FUEL', 'DIST', 'SCORE'];
         for (const gauge of gauges) {
             const element = page.getByText(gauge);
             await expect(element).toBeVisible();
@@ -146,8 +146,8 @@ test.describe('Journey Game', () => {
         await expect(dashboardGauge).toBeVisible();
 
         // Verify we can see other gauges too
-        await expect(page.getByText('RPM')).toBeVisible();
-        await expect(page.getByText('GEAR')).toBeVisible();
+        await expect(page.getByText('HEADING')).toBeVisible();
+        await expect(page.getByText('FUEL')).toBeVisible();
     });
 
     test('Game exits properly with EXIT button', async ({ page }) => {
