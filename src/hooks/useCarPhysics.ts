@@ -26,6 +26,9 @@ export type CarControls = {
     toggleAutocruise: () => void;
     turnLeft: (isTurning: boolean) => void;
     turnRight: (isTurning: boolean) => void;
+    emergencyStop: () => void;
+    refuel: () => void;
+    spin: (amount: number) => void;
 };
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard';
@@ -256,6 +259,17 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                 controls.current.autocruise === 'off' ? 'cruise' :
                     controls.current.autocruise === 'cruise' ? 'turbo' : 'off';
             controls.current.autocruise = nextMode;
+        },
+        emergencyStop: () => {
+            controls.current.accelerating = false;
+            controls.current.autocruise = 'off';
+            setCar(prev => ({ ...prev, speed: 0, autocruise: 'off' }));
+        },
+        refuel: () => {
+            setCar(prev => ({ ...prev, fuel: 100 }));
+        },
+        spin: (amount: number) => {
+            setCar(prev => ({ ...prev, rotationOffset: prev.rotationOffset + amount }));
         }
     }];
 }

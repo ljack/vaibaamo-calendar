@@ -115,7 +115,7 @@ export const generateCurvedPath = (points: { lat: number, lon: number }[], resol
     return curvedPoints;
 };
 
-export type PoiType = 'REINDEER' | 'GAS_STATION' | 'BARN' | 'SCENIC' | 'DINER' | 'MONOLITH' | 'AURORA' | 'SPEED_TRAP' | 'HITCHHIKER' | 'SILENCE_ZONE';
+export type PoiType = 'REINDEER' | 'GAS_STATION' | 'BARN' | 'SCENIC' | 'DINER' | 'MONOLITH' | 'AURORA' | 'SPEED_TRAP' | 'HITCHHIKER' | 'SILENCE_ZONE' | 'PEE_BREAK' | 'SHOP_RUN' | 'WRONG_TURN' | 'MOB_ATTACK';
 
 export const POI_DEFINITIONS: { message: string, type: PoiType }[] = [
     { message: "Old Gas Station", type: 'GAS_STATION' },
@@ -127,7 +127,11 @@ export const POI_DEFINITIONS: { message: string, type: PoiType }[] = [
     { message: "Aurora Borealis", type: 'AURORA' },
     { message: "Speed Trap!", type: 'SPEED_TRAP' },
     { message: "Hitchhiker (Ignore!)", type: 'HITCHHIKER' },
-    { message: "Radio Silence Zone", type: 'SILENCE_ZONE' }
+    { message: "Radio Silence Zone", type: 'SILENCE_ZONE' },
+    { message: "Emergency Stop: Nature Calls!", type: 'PEE_BREAK' },
+    { message: "Drink Run: Supplies Replenished!", type: 'SHOP_RUN' },
+    { message: "Bad Instructions! Recalculating...", type: 'WRONG_TURN' },
+    { message: "Mob Attack! We are driving now!", type: 'MOB_ATTACK' }
 ];
 
 export const generateNearbyPOI = () => {

@@ -38,6 +38,10 @@ const getPoiImage = (type: PoiType): string => {
         case 'SPEED_TRAP': return '/speed_trap.png';
         case 'HITCHHIKER': return '/hitchhiker.png';
         case 'SILENCE_ZONE': return '/radio_tower.png';
+        case 'PEE_BREAK': return '/bus_stop_pee.png';
+        case 'SHOP_RUN': return '/shop_stop.png';
+        case 'WRONG_TURN': return '/wrong_turn.png';
+        case 'MOB_ATTACK': return '/mob_attack.png';
         default: return '/poro.png'; // Fallback
     }
 };
@@ -82,7 +86,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const lastBearingRef = useRef(0);
     const mapDistanceTraveledRef = useRef(0);
     const [distanceTraveled, setDistanceTraveled] = useState(0);
-    const [carState] = useCarPhysics(difficulty);
+    const [carState, controls] = useCarPhysics(difficulty);
 
     // Initialize Map
     useEffect(() => {
@@ -329,28 +333,35 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             }
         }
 
-        // Check POI
+        // Check POI and Events
         if (Date.now() - lastPoiCheckRef.current > 5000 && speedKmH > 100) {
             lastPoiCheckRef.current = Date.now();
             if (Math.random() > 0.7) {
-
-
-                // ... inside component ...
-
                 const poi = generateNearbyPOI();
-                setMessage(`Passing by: ${poi.message}`);
+                setMessage(`${poi.message}`);
+
+                // Apply Physics Effects for events
+                if (poi.type === 'PEE_BREAK') {
+                    controls.emergencyStop();
+                } else if (poi.type === 'SHOP_RUN') {
+                    controls.emergencyStop();
+                    controls.refuel();
+                } else if (poi.type === 'WRONG_TURN') {
+                    controls.spin(360);
+                } else if (poi.type === 'MOB_ATTACK') {
+                    controls.emergencyStop();
+                    // maybe extra damage or score penalty?
+                }
 
                 // Trigger visual event for all types
                 setVisualEvent({ image: getPoiImage(poi.type), active: true });
                 setTimeout(() => setVisualEvent(null), 4000);
 
                 setTimeout(() => setMessage(''), 3000);
-
-                setTimeout(() => setMessage(''), 3000);
             }
         }
 
-    }, [carState, geocodedEvents, currentEventIndex, selectedCar, carManifests, onFinish]);
+    }, [carState, geocodedEvents, currentEventIndex, selectedCar, carManifests, onFinish, controls]);
 
     return (
         <div className="journey-map">
