@@ -346,6 +346,15 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                     <div style={{ fontSize: '0.7rem', color: '#aaa' }}>GEAR</div>
                     <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{carState.gear}</div>
                 </div>
+                {carState.autocruise && (
+                    <>
+                        <div style={{ width: '1px', background: '#444' }}></div>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#aaa' }}>MODE</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#00ff00', textShadow: '0 0 5px #00ff00' }}>AUTO</div>
+                        </div>
+                    </>
+                )}
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.7rem', color: '#aaa' }}>FUEL</div>
@@ -378,6 +387,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 <p>Controls:</p>
                 <p>⬆️ Accelerate</p>
                 <p>⬇️ Brake/Reverse</p>
+                <p>C: Autocruise</p>
             </div>
 
             {/* Message Overlay */}

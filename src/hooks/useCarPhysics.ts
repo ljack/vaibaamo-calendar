@@ -15,12 +15,14 @@ export type CarState = {
     fuel: number; // 0-100 (percentage)
     fuelConsumption: number; // liters per km
     score: number; // based on efficiency
+    autocruise: boolean;
 };
 
 export type CarControls = {
     accelerate: () => void;
     brake: () => void;
     repair: () => void;
+    toggleAutocruise: () => void;
 };
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard';
@@ -34,7 +36,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         isBroken: false,
         fuel: difficulty === 'easy' ? 100 : 80,
         fuelConsumption: 0,
-        score: 0
+        score: 0,
+        autocruise: false
     });
 
     const difficultyRef = useRef<DifficultyMode>(difficulty);
@@ -48,12 +51,14 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         braking: false,
         repairing: false,
         shifting: false, // rudimentary auto-shift or debounce
+        autocruise: false,
     });
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'ArrowUp') controls.current.accelerating = true;
         if (e.key === 'ArrowDown') controls.current.braking = true;
         if (e.key === 'r' || e.key === 'R') controls.current.repairing = true;
+        if (e.key === 'c' || e.key === 'C') controls.current.autocruise = !controls.current.autocruise;
     }, []);
 
     const handleKeyUp = useCallback((e: KeyboardEvent) => {
@@ -82,6 +87,17 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
 
             setCar((prev) => {
                 let newSpeed = prev.speed;
+
+                // Autocruise Logic
+                if (controls.current.autocruise) {
+                    if (controls.current.braking) {
+                        controls.current.autocruise = false; // Disengage on brake
+                    } else if (prev.speed < 200) {
+                        controls.current.accelerating = true;
+                    } else {
+                        controls.current.accelerating = false;
+                    }
+                }
 
                 // Accelerate / Brake
                 if (controls.current.accelerating) {
@@ -167,7 +183,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
                     isBroken: broken,
                     fuel: newFuel,
                     fuelConsumption: fuelBurn / d_km,
-                    score: newScore
+                    score: newScore,
+                    autocruise: controls.current.autocruise
                 };
             });
 
@@ -181,6 +198,7 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
     return [car, {
         accelerate: () => { controls.current.accelerating = true; },
         brake: () => { controls.current.braking = true; },
-        repair: () => { controls.current.repairing = true; }
+        repair: () => { controls.current.repairing = true; },
+        toggleAutocruise: () => { controls.current.autocruise = !controls.current.autocruise; }
     }];
 }
