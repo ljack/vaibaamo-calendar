@@ -75,7 +75,9 @@
         "delete": "Poista",
         "closeButton": "Sulje",
         "confirmDelete": "Oletko varma että haluat poistaa tämän koodiavaimen?",
-        "errorDelete": "Virhe poistettaessa"
+        "errorDelete": "Virhe poistettaessa",
+        "minimize": "Pienennä",
+        "expand": "Laajenna"
     },
     "concept": {
         "hero": {

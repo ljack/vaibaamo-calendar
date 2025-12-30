@@ -75,7 +75,9 @@
         "delete": "Delete",
         "closeButton": "Close",
         "confirmDelete": "Are you sure you want to delete this passkey?",
-        "errorDelete": "Failed to delete passkey"
+        "errorDelete": "Failed to delete passkey",
+        "minimize": "Minimize",
+        "expand": "Expand"
     },
     "concept": {
         "hero": {
