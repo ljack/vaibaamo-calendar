@@ -10,14 +10,14 @@ test('has title', async ({ page }) => {
 test('navigation contains Login link when not authenticated', async ({ page }) => {
     await page.goto('/');
 
-    // Check for "Kirjaudu sisään" link
-    const loginLink = page.getByRole('link', { name: 'Kirjaudu sisään' });
+    // Check for "Kirjaudu / Liity" link
+    const loginLink = page.getByRole('link', { name: 'Kirjaudu / Liity' });
     await expect(loginLink).toBeVisible();
 });
 
 test('can navigate to login page', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Kirjaudu sisään' }).click();
+    await page.getByRole('link', { name: 'Kirjaudu / Liity' }).click();
 
     // Expects page to have a heading with the name of Installation.
     await expect(page.getByRole('heading', { name: 'Kirjaudu Vaibaamoon' })).toBeVisible();
