@@ -4,13 +4,68 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useCarPhysics } from './useCarPhysics'
 
 describe('useCarPhysics', () => {
+    let originalRAF: typeof requestAnimationFrame
+    let originalCAF: typeof cancelAnimationFrame
+    let rafCallbacks: Map<number, FrameRequestCallback>
+    let nextRafId: number
+    let now: number
+
     beforeEach(() => {
         vi.useFakeTimers()
+
+        // Manual rAF mock for deterministic physics testing
+        rafCallbacks = new Map()
+        nextRafId = 1
+        now = 0
+
+        originalRAF = window.requestAnimationFrame
+        originalCAF = window.cancelAnimationFrame
+
+        window.requestAnimationFrame = (callback) => {
+            const id = nextRafId++
+            rafCallbacks.set(id, callback)
+            return id
+        }
+
+        window.cancelAnimationFrame = (id) => {
+            rafCallbacks.delete(id)
+        }
+
+        // Mock performance.now to follow our manual time
+        vi.spyOn(performance, 'now').mockImplementation(() => now)
     })
 
     afterEach(() => {
+        window.requestAnimationFrame = originalRAF
+        window.cancelAnimationFrame = originalCAF
         vi.useRealTimers()
+        vi.restoreAllMocks()
     })
+
+    const advanceTime = async (ms: number) => {
+        // Advance time in steps (e.g. 16ms for ~60fps)
+        const step = 16
+        let remaining = ms
+
+        while (remaining > 0) {
+            const currentStep = Math.min(remaining, step)
+            now += currentStep
+            remaining -= currentStep
+
+            // Execute all pending callbacks
+            const callbacks = new Map(rafCallbacks)
+            rafCallbacks.clear()
+
+            for (const cb of callbacks.values()) {
+                cb(now)
+            }
+
+            // Allow state updates to propagate
+            await act(async () => {
+                vi.advanceTimersByTime(currentStep)
+            })
+        }
+    }
 
     it('initializes with default state', () => {
         const { result } = renderHook(() => useCarPhysics())
@@ -30,10 +85,6 @@ describe('useCarPhysics', () => {
     })
 
     it('accelerates when control is triggered', async () => {
-        // Need to mock requestAnimationFrame for hook testing if running in JSDOM environment
-        // but Vitest environment is jsdom.
-        // The hook uses requestAnimationFrame loop. We need to let time pass.
-
         const { result } = renderHook(() => useCarPhysics())
         const [, controls] = result.current
 
@@ -41,10 +92,7 @@ describe('useCarPhysics', () => {
             controls.accelerate()
         })
 
-        // Advance time for physics loop
-        await act(async () => {
-            vi.advanceTimersByTime(100) // 100ms
-        })
+        await advanceTime(100)
 
         expect(result.current[0].speed).toBeGreaterThan(0)
     })
@@ -57,41 +105,18 @@ describe('useCarPhysics', () => {
         act(() => {
             controls.accelerate()
         })
-        await act(async () => {
-            vi.advanceTimersByTime(500)
-        })
+        await advanceTime(500)
 
         const speedBeforeBrake = result.current[0].speed
         expect(speedBeforeBrake).toBeGreaterThan(0)
 
         // Then brake
         act(() => {
-            // Need to release accelerator first based on hook logic? 
-            // Hook implementation: if (accelerating) ... else if (braking)
-            // So we need to stop accelerating to brake
-            // But the exposed controls are imperative "start accelerating" functions?
-            // Checking impl: 
-            // controls.accelerate = () => { controls.current.accelerating = true }
-            // So we can't easily "unpress" via exposed controls without keyboard events?
-            // Actually the exposed controls are: accelerate, brake, repair.
-            // And keyboard listeners toggle the refs.
-            // The exposed controls in return tuple set the ref to true.
-            // There is NO exposed way to set them to false via the returned controls object!
-            // Wait, looking at file:
-            // handleKeyUp sets them to false.
-            // The returned controls are just convenience for touch/buttons? 
-            // Yes: accelerate: () => { controls.current.accelerating = true; }
-
-            // So to test braking efficiently without keyboard events, 
-            // we might be limited if we can't "stop" accelerating via the exposed API.
-            // But we can simulate keyboard events.
             window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowUp' }))
             controls.brake()
         })
 
-        await act(async () => {
-            vi.advanceTimersByTime(100)
-        })
+        await advanceTime(100)
 
         expect(result.current[0].speed).toBeLessThan(speedBeforeBrake)
     })
@@ -104,9 +129,7 @@ describe('useCarPhysics', () => {
             controls.accelerate()
         })
 
-        await act(async () => {
-            vi.advanceTimersByTime(1000)
-        })
+        await advanceTime(1000)
 
         expect(result.current[0].fuel).toBeLessThan(80)
     })
@@ -119,9 +142,7 @@ describe('useCarPhysics', () => {
             controls.accelerate()
         })
 
-        await act(async () => {
-            vi.advanceTimersByTime(1000)
-        })
+        await advanceTime(1000)
 
         expect(result.current[0].fuel).toBe(100)
     })
@@ -133,9 +154,7 @@ describe('useCarPhysics', () => {
             window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }))
         })
 
-        await act(async () => {
-            vi.advanceTimersByTime(100)
-        })
+        await advanceTime(100)
 
         expect(result.current[0].speed).toBeGreaterThan(0)
 
@@ -145,9 +164,7 @@ describe('useCarPhysics', () => {
 
         // Coasting (drag)
         const speedPeak = result.current[0].speed
-        await act(async () => {
-            vi.advanceTimersByTime(100)
-        })
+        await advanceTime(100)
 
         expect(result.current[0].speed).toBeLessThan(speedPeak)
     })
@@ -160,12 +177,8 @@ describe('useCarPhysics', () => {
         act(() => {
             controls.accelerate()
         })
-        // Advance time in chunks to ensure rAF loop fires consistently
-        for (let i = 0; i < 50; i++) {
-            await act(async () => {
-                vi.advanceTimersByTime(100)
-            })
-        }
+
+        await advanceTime(5000)
 
         expect(result.current[0].speed).toBeGreaterThan(350)
 
@@ -173,9 +186,7 @@ describe('useCarPhysics', () => {
         vi.spyOn(Math, 'random').mockReturnValue(0.999)
 
         // Tick once
-        await act(async () => {
-            vi.advanceTimersByTime(20)
-        })
+        await advanceTime(20)
 
         expect(result.current[0].isBroken).toBe(true)
         vi.spyOn(Math, 'random').mockRestore()
@@ -189,15 +200,11 @@ describe('useCarPhysics', () => {
         })
 
         // Wait for speed to drop
-        await act(async () => {
-            vi.advanceTimersByTime(2000)
-        })
+        await advanceTime(2000)
 
         expect(result.current[0].speed).toBeLessThan(10)
         // Since speed < 10 and repairing is true, it should fix itself
-        await act(async () => {
-            vi.advanceTimersByTime(100)
-        })
+        await advanceTime(100)
         expect(result.current[0].isBroken).toBe(false)
     })
 })
