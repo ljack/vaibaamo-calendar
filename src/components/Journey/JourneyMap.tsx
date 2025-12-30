@@ -93,6 +93,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const [message, setMessage] = useState('');
     const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean; title?: string } | null>(null);
     const [showIdleWarning, setShowIdleWarning] = useState(false);
+    const [idleCountdown, setIdleCountdown] = useState(30);
     const [showAgileMaster, setShowAgileMaster] = useState(false);
     const [bearing, setBearing] = useState(0);
     const [isMapReady, setIsMapReady] = useState(false);
@@ -265,6 +266,11 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             if (showIdleWarning) setShowIdleWarning(false);
         } else {
             const idleTime = Date.now() - lastMoveTimeRef.current;
+            const remaining = Math.max(0, Math.ceil((30000 - idleTime) / 1000));
+
+            if (showIdleWarning && remaining !== idleCountdown) {
+                setIdleCountdown(remaining);
+            }
 
             // Auto-enable autocruise after 30s
             if (idleTime > 30000) {
@@ -734,14 +740,14 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                     animation: 'pulse 1s infinite'
                 }}>
                     <h2 style={{ fontSize: '2.5rem', margin: '0 0 20px 0', textTransform: 'uppercase' }}>⚠️ ENGINE IDLE ⚠️</h2>
-                    <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>Press ⬆️ to Accelerate</p>
-                    <p style={{ fontSize: '1.2rem', margin: '10px 0', opacity: 0.9 }}>- OR -</p>
+                    <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>Auto-Pilot in: <strong>{idleCountdown}s</strong></p>
+                    <p style={{ fontSize: '1.2rem', margin: '10px 0', opacity: 0.9 }}>Press ⬆️ to Accelerate</p>
                     <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>Press <strong>"C"</strong> for Autocruise</p>
                     <style>{`
                         @keyframes pulse {
                             0% { transform: translate(-50%, -50%) scale(1); }
                             50% { transform: translate(-50%, -50%) scale(1.05); }
-                            100% { transform: translate(-50%, -50%) scale(1); }
+                            10% { transform: translate(-50%, -50%) scale(1); }
                         }
                     `}</style>
                 </div>
