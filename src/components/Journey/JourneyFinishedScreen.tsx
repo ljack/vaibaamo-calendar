@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { PoiType } from '../../lib/journeyUtils';
+import { playSpaceTheme } from '../../lib/audioUtils';
 
 export interface FinalStats {
     distance: number;
@@ -22,6 +23,16 @@ interface JourneyFinishedScreenProps {
 export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ finalStats, onClose }) => {
     const [story, setStory] = useState<string | null>(null);
     const [loadingStory, setLoadingStory] = useState(false);
+
+    useEffect(() => {
+        let stopMusic: (() => void) | undefined;
+        if (story) {
+            stopMusic = playSpaceTheme();
+        }
+        return () => {
+            if (stopMusic) stopMusic();
+        }
+    }, [story]);
 
     useEffect(() => {
         if (finalStats.reason === 'COMPLETED' && finalStats.collectedEvents && finalStats.collectedEvents.length > 0 && !story && !loadingStory) {
@@ -146,12 +157,13 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                                             line-height: 150%;
                                             text-align: justify;
                                             transform-origin: 50% 100%; 
+                                            perspective: 300px;
                                         }
                                         .crawl {
                                             position: relative;
                                             top: 0;
-                                            animation: crawl 60s linear infinite; /* Adjusted for continuous scroll */
-                                            transform: rotateX(20deg) translateZ(0);
+                                            animation: crawl 45s linear infinite; 
+                                            transform: rotateX(25deg) translateZ(0); /* More tilt */
                                             width: 80%;
                                         }
                                         .title {
@@ -164,13 +176,16 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                                         }
                                         @keyframes crawl {
                                             0% {
-                                                top: 400px;
-                                                transform: rotateX(20deg) translateZ(0);
+                                                top: 100%; /* Start below */
+                                                transform: rotateX(25deg) translateZ(0);
+                                                opacity: 1;
+                                            }
+                                            80% {
                                                 opacity: 1;
                                             }
                                             100% { 
-                                                top: -2000px;
-                                                transform: rotateX(25deg) translateZ(-1000px);
+                                                top: -1500px; /* End far away */
+                                                transform: rotateX(25deg) translateZ(-500px); /* Recede */
                                                 opacity: 0;
                                             }
                                         }
