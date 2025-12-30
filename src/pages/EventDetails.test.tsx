@@ -26,6 +26,19 @@ vi.mock('react-router-dom', async () => {
     }
 })
 
+vi.mock('react-i18next', () => ({
+    useTranslation: () => ({
+        t: (key: string, options?: any) => {
+            if (key === 'events.details.participantsCount') return `${options.count} participants_mock`
+            return key
+        },
+        i18n: {
+            language: 'en',
+            changeLanguage: vi.fn(),
+        },
+    }),
+}))
+
 const createBaseQueryBuilder = () => {
     const builder: any = {
         _data: null,
@@ -102,10 +115,10 @@ describe('EventDetails', () => {
         )
 
         await waitFor(() => expect(screen.getByText('Test Event')).toBeInTheDocument())
-        expect(screen.getByText(/Osallistujat/i)).toBeInTheDocument()
-        expect(screen.getByText('2 osallistujaa')).toBeInTheDocument()
+        expect(screen.getByText('events.details.participants')).toBeInTheDocument()
+        expect(screen.getByText('2 participants_mock')).toBeInTheDocument()
 
-        const deleteButton = screen.getByRole('button', { name: /Poista/i })
+        const deleteButton = screen.getByRole('button', { name: 'events.details.delete' })
         fireEvent.click(deleteButton)
 
         await waitFor(() => {
@@ -139,7 +152,7 @@ describe('EventDetails', () => {
             </MemoryRouter>
         )
 
-        await waitFor(() => expect(screen.getByText(/Tapahtumaa ei löytynyt/i)).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('events.details.notFound')).toBeInTheDocument())
     })
 
     it('allows user to register and cancel participation', async () => {
@@ -203,13 +216,13 @@ describe('EventDetails', () => {
 
         await waitFor(() => expect(screen.getByText('Join Event')).toBeInTheDocument())
 
-        const registerBtn = await screen.findByText(/Ilmoittaudu mukaan/i)
+        const registerBtn = await screen.findByText('events.details.join')
         fireEvent.click(registerBtn)
 
-        await waitFor(() => expect(screen.getByText(/Peru ilmoittautuminen/i)).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('events.details.leave')).toBeInTheDocument())
 
-        fireEvent.click(screen.getByText(/Peru ilmoittautuminen/i))
-        await waitFor(() => expect(screen.getByText(/Ilmoittaudu mukaan/i)).toBeInTheDocument())
+        fireEvent.click(screen.getByText('events.details.leave'))
+        await waitFor(() => expect(screen.getByText('events.details.join')).toBeInTheDocument())
     })
 
     it('surfaces delete errors', async () => {
@@ -264,7 +277,7 @@ describe('EventDetails', () => {
         )
 
         await waitFor(() => expect(screen.getByText('Delete Error Event')).toBeInTheDocument())
-        fireEvent.click(screen.getByText('Poista'))
+        fireEvent.click(screen.getByText('events.details.delete'))
 
         await waitFor(() => expect(screen.getByText('fail')).toBeInTheDocument())
     })
@@ -362,7 +375,7 @@ describe('EventDetails', () => {
         render(<MemoryRouter initialEntries={['/events/event-public']}><Routes><Route path="/events/:id" element={<EventDetails />} /></Routes></MemoryRouter>)
 
         await waitFor(() => expect(screen.getByText('Public Event')).toBeInTheDocument())
-        expect(screen.queryByText('Ilmoittautuneet')).not.toBeInTheDocument()
+        expect(screen.queryByText('events.details.registered')).not.toBeInTheDocument()
         expect(screen.queryByText('alex@example.com')).not.toBeInTheDocument()
     })
 
@@ -396,7 +409,7 @@ describe('EventDetails', () => {
 
         render(<MemoryRouter initialEntries={['/events/ev-reg-fail']}><Routes><Route path="/events/:id" element={<EventDetails />} /></Routes></MemoryRouter>)
 
-        const btn = await screen.findByText(/Ilmoittaudu mukaan/i)
+        const btn = await screen.findByText('events.details.join')
         fireEvent.click(btn)
 
         await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('RegFailed')))
@@ -434,7 +447,7 @@ describe('EventDetails', () => {
 
         render(<MemoryRouter initialEntries={['/events/ev-cancel-fail']}><Routes><Route path="/events/:id" element={<EventDetails />} /></Routes></MemoryRouter>)
 
-        const btn = await screen.findByText(/Peru ilmoittautuminen/i)
+        const btn = await screen.findByText('events.details.leave')
         fireEvent.click(btn)
 
         await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('CancelFailed')))

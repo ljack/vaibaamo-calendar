@@ -113,6 +113,30 @@
         "retry": "Yritä uudelleen",
         "errorGeneric": "Tapahtumien lataaminen epäonnistui. Yritä myöhemmin uudelleen.",
         "errorTimeout": "Yhteys aikakatkaistiin. Tarkista internetyhteytesi.",
-        "errorSession": "Istunto on vanhentunut. Kirjaudu sisään uudelleen."
+        "errorSession": "Istunto on vanhentunut. Kirjaudu sisään uudelleen.",
+        "details": {
+            "loading": "Ladataan tietoja...",
+            "notFound": "Tapahtumaa ei löytynyt.",
+            "time": "Ajankohta",
+            "location": "Sijainti",
+            "online": "Online",
+            "openMap": "Avaa kartassa",
+            "participants": "Osallistujat",
+            "participantsCount": "{{count}} osallistujaa",
+            "mapTitle": "Sijainti kartalla",
+            "registered": "Ilmoittautuneet",
+            "emailsError": "Osallistujien sähköposteja ei voitu hakea.",
+            "noRegistered": "Ei ilmoittautuneita vielä.",
+            "deleteError": "Tapahtuman poistaminen epäonnistui.",
+            "loginToJoin": "Kirjaudu ilmoittautuaksesi",
+            "edit": "Muokkaa",
+            "delete": "Poista",
+            "deleting": "Poistetaan...",
+            "join": "Ilmoittaudu mukaan",
+            "joining": "Ilmoittaudutaan...",
+            "leave": "Peru ilmoittautuminen",
+            "leaving": "Perutaan...",
+            "confirmDelete": "Haluatko varmasti poistaa tapahtuman?"
+        }
     }
 }

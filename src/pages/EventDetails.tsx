@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import type { Event, Participant } from '../types'
 import EventsMap from '../components/EventsMap'
 import { createMapLink } from '../lib/geocode'
+import { useTranslation } from 'react-i18next'
 
 type ParticipantEmail = {
     user_id: string
@@ -12,6 +13,7 @@ type ParticipantEmail = {
 }
 
 export default function EventDetails() {
+    const { t, i18n } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const { user, isAdmin } = useAuth()
     const navigate = useNavigate()
@@ -74,7 +76,7 @@ export default function EventDetails() {
                     if (participantError) {
                         console.error('Error fetching participant emails:', participantError)
                         setParticipantEmails([])
-                        setParticipantEmailsError('Osallistujien sähköposteja ei voitu hakea.')
+                        setParticipantEmailsError(t('events.details.emailsError'))
                     } else {
                         const emails = (participantData as ParticipantEmail[] | null)?.map((row) => row.email).filter(Boolean) as string[] || []
                         setParticipantEmails(emails)
@@ -111,7 +113,7 @@ export default function EventDetails() {
             if (error) throw error
             await fetchEvent(event.id)
         } catch (error: any) {
-            alert('Virhe ilmoittautumisessa: ' + error.message)
+            alert(t('events.details.registerError') + ' ' + error.message)
         } finally {
             setRegistering(false)
         }
@@ -130,7 +132,7 @@ export default function EventDetails() {
             if (error) throw error
             setParticipant(null)
         } catch (error: any) {
-            alert('Virhe peruutuksessa: ' + error.message)
+            alert(t('events.details.cancelError') + ' ' + error.message)
         } finally {
             setRegistering(false)
         }
@@ -140,7 +142,7 @@ export default function EventDetails() {
         if (!event) return
         setDeleteError(null)
 
-        const confirmed = window.confirm('Haluatko varmasti poistaa tapahtuman?')
+        const confirmed = window.confirm(t('events.details.confirmDelete'))
         if (!confirmed) return
 
         setDeleting(true)
@@ -153,19 +155,22 @@ export default function EventDetails() {
             if (error) throw error
             navigate('/')
         } catch (error: any) {
-            setDeleteError(error.message || 'Tapahtuman poistaminen epäonnistui.')
+            setDeleteError(error.message || t('events.details.deleteError'))
         } finally {
             setDeleting(false)
         }
     }
 
     if (loading) {
-        return <div className="text-center py-10">Ladataan tietoja...</div>
+        return <div className="text-center py-10">{t('events.details.loading')}</div>
     }
 
     if (!event) {
-        return <div className="text-center py-10">Tapahtumaa ei löytynyt.</div>
+        return <div className="text-center py-10">{t('events.details.notFound')}</div>
     }
+
+    // Determine locale for dates (default to fi-FI if not set or en-US)
+    const dateLocale = i18n.language || 'fi-FI'
 
     return (
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -180,14 +185,14 @@ export default function EventDetails() {
             <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
                 <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
                     <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500">Ajankohta</dt>
+                        <dt className="text-sm font-medium text-gray-500">{t('events.details.time')}</dt>
                         <dd className="mt-1 text-sm text-gray-900">
-                            {new Date(event.start_time).toLocaleString('fi-FI')} - {new Date(event.end_time).toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(event.start_time).toLocaleString(dateLocale)} - {new Date(event.end_time).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
                         </dd>
                     </div>
                     <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500">Sijainti</dt>
-                        <dd className="mt-1 text-sm text-gray-900">{event.location || 'Online'}</dd>
+                        <dt className="text-sm font-medium text-gray-500">{t('events.details.location')}</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{event.location || t('events.details.online')}</dd>
                         {event.location && (
                             <a
                                 href={createMapLink(event.location)}
@@ -195,38 +200,38 @@ export default function EventDetails() {
                                 rel="noreferrer"
                                 className="mt-2 inline-flex text-sm text-indigo-600 hover:underline"
                             >
-                                Avaa kartassa
+                                {t('events.details.openMap')}
                             </a>
                         )}
                     </div>
                     <div className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500">Osallistujat</dt>
+                        <dt className="text-sm font-medium text-gray-500">{t('events.details.participants')}</dt>
                         <dd className="mt-1 text-sm text-gray-900">
                             {participantCount === null
                                 ? '—'
                                 : event.max_participants
                                     ? `${participantCount} / ${event.max_participants}`
-                                    : `${participantCount} osallistujaa`}
+                                    : t('events.details.participantsCount', { count: participantCount })}
                         </dd>
                     </div>
                     {event.location && (
                         <div className="sm:col-span-2">
                             <EventsMap
                                 events={[event]}
-                                title="Sijainti kartalla"
+                                title={t('events.details.mapTitle')}
                                 showList={false}
                             />
                         </div>
                     )}
                     {(isAdmin || (user && user.id === event.creator_id)) && (
                         <div className="sm:col-span-2">
-                            <dt className="text-sm font-medium text-gray-500">Ilmoittautuneet</dt>
+                            <dt className="text-sm font-medium text-gray-500">{t('events.details.registered')}</dt>
                             <dd className="mt-2 text-sm text-gray-900">
                                 {participantEmailsError && (
                                     <span className="text-sm text-red-600">{participantEmailsError}</span>
                                 )}
                                 {!participantEmailsError && participantEmails.length === 0 && (
-                                    <span className="text-sm text-gray-500">Ei ilmoittautuneita vielä.</span>
+                                    <span className="text-sm text-gray-500">{t('events.details.noRegistered')}</span>
                                 )}
                                 {!participantEmailsError && participantEmails.length > 0 && (
                                     <ul className="space-y-1">
@@ -250,7 +255,7 @@ export default function EventDetails() {
                                     to="/login"
                                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
-                                    Kirjaudu ilmoittautuaksesi
+                                    {t('events.details.loginToJoin')}
                                 </Link>
                             ) : (
                                 <>
@@ -263,7 +268,7 @@ export default function EventDetails() {
                                             to={`/events/${event.id}/edit`}
                                             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2"
                                         >
-                                            Muokkaa
+                                            {t('events.details.edit')}
                                         </Link>
                                     )}
                                     {isAdmin && (
@@ -272,7 +277,7 @@ export default function EventDetails() {
                                             disabled={deleting}
                                             className="inline-flex items-center px-4 py-2 border border-red-200 text-sm font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                         >
-                                            {deleting ? 'Poistetaan...' : 'Poista'}
+                                            {deleting ? t('events.details.deleting') : t('events.details.delete')}
                                         </button>
                                     )}
 
@@ -282,7 +287,7 @@ export default function EventDetails() {
                                             disabled={registering}
                                             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                         >
-                                            {registering ? 'Perutaan...' : 'Peru ilmoittautuminen'}
+                                            {registering ? t('events.details.leaving') : t('events.details.leave')}
                                         </button>
                                     ) : (
                                         <button
@@ -290,7 +295,7 @@ export default function EventDetails() {
                                             disabled={registering}
                                             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                         >
-                                            {registering ? 'Ilmoittaudutaan...' : 'Ilmoittaudu mukaan'}
+                                            {registering ? t('events.details.joining') : t('events.details.join')}
                                         </button>
                                     )}
                                 </>

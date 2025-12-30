@@ -113,6 +113,30 @@
         "retry": "Try again",
         "errorGeneric": "Failed to load events. Please try again later.",
         "errorTimeout": "Connection timed out. Check your internet connection.",
-        "errorSession": "Session expired. Please log in again."
+        "errorSession": "Session expired. Please log in again.",
+        "details": {
+            "loading": "Loading details...",
+            "notFound": "Event not found.",
+            "time": "Time",
+            "location": "Location",
+            "online": "Online",
+            "openMap": "Open in Maps",
+            "participants": "Participants",
+            "participantsCount": "{{count}} participants",
+            "mapTitle": "Location on Map",
+            "registered": "Registered",
+            "emailsError": "Could not fetch participant emails.",
+            "noRegistered": "No registered participants yet.",
+            "deleteError": "Failed to delete event.",
+            "loginToJoin": "Log in to join",
+            "edit": "Edit",
+            "delete": "Delete",
+            "deleting": "Deleting...",
+            "join": "Join",
+            "joining": "Joining...",
+            "leave": "Cancel registration",
+            "leaving": "Canceling...",
+            "confirmDelete": "Are you sure you want to delete this event?"
+        }
     }
 }
