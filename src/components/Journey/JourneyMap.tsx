@@ -81,6 +81,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const spriteFrameRef = useRef((selectedCar === 'red' || selectedCar === 'blue') ? 1 : 0);
     const lastFrameTimeRef = useRef(0);
     const poiQueueRef = useRef<PoiType[]>([]);
+    const isArrivingRef = useRef(false);
 
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
@@ -277,18 +278,27 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             }
 
             const distToWaypoint = getDistance(positionRef.current, { lat: currentTarget.lat, lon: currentTarget.lon });
-            if (distToWaypoint < 0.5) {
+
+            // Threshold 0.2km (200m) + Lock to prevent multiple triggers
+            if (distToWaypoint < 0.2 && !isArrivingRef.current) {
+                isArrivingRef.current = true;
                 setMessage(ARRIVAL_MESSAGES[Math.floor(Math.random() * ARRIVAL_MESSAGES.length)]);
+
                 setTimeout(() => {
                     if (currentEventIndex < geocodedEvents.length - 1) {
                         setCurrentEventIndex(prev => prev + 1);
                         setMessage('');
+                        // Unlock only after moving to next event (and likely away from waypoint)
+                        // But strictly speaking, we are now targeting a NEW waypoint far away.
+                        // We reset the lock immediately after state update.
+                        isArrivingRef.current = false;
                     } else {
                         onFinish({
                             distance: mapDistanceTraveledRef.current,
                             score: carState.score,
                             reason: 'COMPLETED'
                         });
+                        // No need to unlock, journey finished
                     }
                 }, 3000);
             }
