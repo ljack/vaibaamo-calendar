@@ -92,6 +92,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
                     carManifests={carManifests}
                     onFinish={handleFinish}
                     onClose={onClose}
+                    demoMode={urlParams.get('demo') === 'true'}
                 />
             </div>
         );

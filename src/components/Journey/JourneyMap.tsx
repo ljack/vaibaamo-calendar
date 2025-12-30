@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { loadLeaflet } from '../../lib/leafletLoader';
-import { generateCurvedPath, getDistance, generateNearbyPOI } from '../../lib/journeyUtils';
+import { generateCurvedPath, getDistance, generateNearbyPOI, POI_DEFINITIONS } from '../../lib/journeyUtils';
 import type { PoiType } from '../../lib/journeyUtils';
 import { useCarPhysics } from '../../hooks/useCarPhysics';
 import type { DifficultyMode } from '../../hooks/useCarPhysics';
@@ -18,6 +18,7 @@ interface JourneyMapProps {
     carManifests: Record<string, CarManifest>;
     onFinish: (stats: any) => void;
     onClose: () => void;
+    demoMode?: boolean;
 }
 
 const getCardinalDirection = (angle: number) => {
@@ -52,7 +53,8 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     difficulty,
     carManifests,
     onFinish,
-    onClose
+    onClose,
+    demoMode = false
 }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,6 +205,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     useEffect(() => {
         if (!positionRef.current || !mapInstanceRef.current || !pathRef.current.length) return;
 
+        // ... (movement logic: lines 206-334)
         const targetIndex = currentEventIndex + 1;
         if (targetIndex >= geocodedEvents.length) {
             onFinish({
@@ -334,10 +337,23 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
         }
 
         // Check POI and Events
-        if (Date.now() - lastPoiCheckRef.current > 5000 && speedKmH > 100) {
+        const checkInterval = demoMode ? 5000 : 5000;
+        const triggerChance = demoMode ? 0.95 : 0.7;
+        const speedThreshold = demoMode ? 10 : 100;
+
+        if (Date.now() - lastPoiCheckRef.current > checkInterval && speedKmH > speedThreshold) {
             lastPoiCheckRef.current = Date.now();
-            if (Math.random() > 0.7) {
-                const poi = generateNearbyPOI();
+            if (Math.random() < triggerChance) {
+                let poi;
+                if (demoMode) {
+                    const demoTypes: PoiType[] = ['PEE_BREAK', 'SHOP_RUN', 'WRONG_TURN', 'MOB_ATTACK'];
+                    const randomType = demoTypes[Math.floor(Math.random() * demoTypes.length)];
+                    const def = POI_DEFINITIONS.find(d => d.type === randomType);
+                    poi = def ? { message: def.message, type: randomType, location: { lat: 0, lon: 0 } } : generateNearbyPOI();
+                } else {
+                    poi = generateNearbyPOI();
+                }
+
                 setMessage(`${poi.message}`);
 
                 // Apply Physics Effects for events
@@ -361,7 +377,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             }
         }
 
-    }, [carState, geocodedEvents, currentEventIndex, selectedCar, carManifests, onFinish, controls]);
+    }, [carState, geocodedEvents, currentEventIndex, selectedCar, carManifests, onFinish, controls, demoMode]);
 
     return (
         <div className="journey-map">
