@@ -62,6 +62,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean } | null>(null);
     const [bearing, setBearing] = useState(0);
     const lastBearingRef = useRef(0);
+    const mapDistanceTraveledRef = useRef(0);
     const [carState] = useCarPhysics(difficulty);
 
     // Initialize Map
@@ -208,14 +209,19 @@ useEffect(() => {
         const moveDistDegrees = (speedKmH * 0.000005);
 
         if (distToNode < moveDistDegrees) {
+            const stepDist = getDistance(currentPos, targetNode);
+            mapDistanceTraveledRef.current += stepDist;
             positionRef.current = targetNode;
             pathNodeIndexRef.current = Math.min(targetNodeIndex + 1, pathRef.current.length - 1);
         } else {
             const fraction = moveDistDegrees / distToNode;
-            positionRef.current = {
+            const newPos = {
                 lat: currentPos.lat + dLat * fraction,
                 lon: currentPos.lon + dLon * fraction
             };
+            const stepDist = getDistance(currentPos, newPos);
+            mapDistanceTraveledRef.current += stepDist;
+            positionRef.current = newPos;
         }
 
         const distToWaypoint = getDistance(positionRef.current, { lat: currentTarget.lat, lon: currentTarget.lon });
@@ -227,7 +233,7 @@ useEffect(() => {
                     setMessage('');
                 } else {
                     onFinish({
-                        distance: carState.distanceTraveled,
+                        distance: mapDistanceTraveledRef.current,
                         score: carState.score,
                         reason: 'COMPLETED'
                     });
@@ -424,7 +430,7 @@ return (
             <div style={{ width: '1px', background: '#444' }}></div>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '0.7rem', color: '#aaa' }}>DIST</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFD700' }}>{carState.distanceTraveled.toFixed(1)}</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFD700' }}>{mapDistanceTraveledRef.current.toFixed(1)}</div>
             </div>
             <div style={{ width: '1px', background: '#444' }}></div>
             <div style={{ textAlign: 'center' }}>
