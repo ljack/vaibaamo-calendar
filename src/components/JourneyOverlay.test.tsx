@@ -46,6 +46,7 @@ const mockL = {
     marker: vi.fn(() => mockMarker),
     polyline: vi.fn(() => mockPolyline),
     divIcon: vi.fn(() => 'div-icon'),
+    canvas: vi.fn(),
 };
 
 vi.mock('../lib/leafletLoader', () => ({

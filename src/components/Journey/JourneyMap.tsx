@@ -85,6 +85,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const [message, setMessage] = useState('');
     const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean } | null>(null);
     const [bearing, setBearing] = useState(0);
+    const [isMapReady, setIsMapReady] = useState(false);
     const lastBearingRef = useRef(0);
     const mapDistanceTraveledRef = useRef(0);
     const [distanceTraveled, setDistanceTraveled] = useState(0);
@@ -165,6 +166,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
                 mapInstanceRef.current = map;
                 mapInitializedRef.current = true;
+                setIsMapReady(true);
 
                 map.on('zoomstart', () => { isZoomingRef.current = true; });
                 map.on('zoomend', () => { isZoomingRef.current = false; });
@@ -377,7 +379,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             }
         }
 
-    }, [carState, geocodedEvents, currentEventIndex, selectedCar, carManifests, onFinish, controls, demoMode]);
+    }, [carState, geocodedEvents, currentEventIndex, selectedCar, carManifests, onFinish, controls, demoMode, isMapReady]);
 
     return (
         <div className="journey-map">

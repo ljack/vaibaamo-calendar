@@ -119,7 +119,7 @@ describe('journeyUtils', () => {
             const poi = generateNearbyPOI()
             expect(POI_DEFINITIONS).toContainEqual(poi)
             expect(typeof poi.message).toBe('string')
-            const validTypes = ['REINDEER', 'GAS_STATION', 'BARN', 'SCENIC', 'DINER', 'MONOLITH', 'AURORA', 'SPEED_TRAP', 'HITCHHIKER', 'SILENCE_ZONE'];
+            const validTypes = ['REINDEER', 'GAS_STATION', 'BARN', 'SCENIC', 'DINER', 'MONOLITH', 'AURORA', 'SPEED_TRAP', 'HITCHHIKER', 'SILENCE_ZONE', 'PEE_BREAK', 'SHOP_RUN', 'WRONG_TURN', 'MOB_ATTACK'];
             expect(validTypes).toContain(poi.type)
         })
     })

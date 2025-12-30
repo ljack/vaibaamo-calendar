@@ -53,8 +53,9 @@ export default function Layout() {
         const urlParams = new URLSearchParams(window.location.search)
         const hasCar = urlParams.has('car')
         const hasDifficulty = urlParams.has('difficulty')
+        const isDemo = urlParams.get('demo') === 'true'
 
-        if (hasCar && hasDifficulty) {
+        if ((hasCar && hasDifficulty) || isDemo) {
             setJourneyOpen(true)
         }
     }, [])
