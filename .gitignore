@@ -34,3 +34,4 @@ dist-ssr
 .env*.local
 .env
 coverage/
+public/version.json
