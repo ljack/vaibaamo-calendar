@@ -150,10 +150,12 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
                 const canvasRenderer = L.canvas();
 
-                roadEdgeRef.current = L.polyline(latlngs, { renderer: canvasRenderer, color: '#f5d547', weight: 44, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-                roadBaseRef.current = L.polyline(latlngs, { renderer: canvasRenderer, color: '#1a1a1a', weight: 40, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-                roadDashRef.current = L.polyline(latlngs, { renderer: canvasRenderer, color: '#fff', weight: 1.5, opacity: 0.6, dashArray: '20, 30', lineCap: 'butt' }).addTo(map);
-                L.polyline(latlngs, { renderer: canvasRenderer, color: '#000', weight: 50, opacity: 0.2, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                const roadOptions = { renderer: canvasRenderer, interactive: false, smoothFactor: 0, noClip: true };
+
+                roadEdgeRef.current = L.polyline(latlngs, { ...roadOptions, color: '#f5d547', weight: 44, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                roadBaseRef.current = L.polyline(latlngs, { ...roadOptions, color: '#1a1a1a', weight: 40, opacity: 1, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+                roadDashRef.current = L.polyline(latlngs, { ...roadOptions, color: '#fff', weight: 1.5, opacity: 0.6, dashArray: '20, 30', lineCap: 'butt' }).addTo(map);
+                L.polyline(latlngs, { ...roadOptions, color: '#000', weight: 50, opacity: 0.2, lineCap: 'round', lineJoin: 'round' }).addTo(map);
 
                 mapInstanceRef.current = map;
                 mapInitializedRef.current = true;
