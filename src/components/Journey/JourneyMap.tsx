@@ -82,10 +82,16 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const lastFrameTimeRef = useRef(0);
     const poiQueueRef = useRef<PoiType[]>([]);
     const isArrivingRef = useRef(false);
+    const lastMoveTimeRef = useRef(0);
+
+    useEffect(() => {
+        lastMoveTimeRef.current = Date.now();
+    }, []);
 
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
     const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean } | null>(null);
+    const [showIdleWarning, setShowIdleWarning] = useState(false);
     const [bearing, setBearing] = useState(0);
     const [isMapReady, setIsMapReady] = useState(false);
     const lastBearingRef = useRef(0);
@@ -248,6 +254,18 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
         if (!currentPos) return;
 
         const speedKmH = carState.speed;
+
+        // Idle Check: If moving or in autocruise, reset timer
+        if (speedKmH > 1 || carState.autocruise !== 'off') {
+            lastMoveTimeRef.current = Date.now();
+            if (showIdleWarning) setShowIdleWarning(false);
+        } else {
+            // If idle for > 5 seconds
+            if (Date.now() - lastMoveTimeRef.current > 5000 && !showIdleWarning) {
+                setShowIdleWarning(true);
+            }
+        }
+
         if (speedKmH > 0 && pathRef.current.length > 0) {
             let targetNodeIndex = pathNodeIndexRef.current;
             if (targetNodeIndex >= pathRef.current.length) {
@@ -563,6 +581,37 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                     animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                 }}>
                     {message}
+                </div>
+            )}
+
+            {/* Emergency Idle Warning */}
+            {showIdleWarning && (
+                <div className="idle-warning" style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: 'rgba(255, 0, 0, 0.9)',
+                    color: 'white',
+                    padding: '30px 50px',
+                    borderRadius: '20px',
+                    zIndex: 2500,
+                    textAlign: 'center',
+                    boxShadow: '0 0 50px rgba(255, 0, 0, 0.6)',
+                    border: '4px solid white',
+                    animation: 'pulse 1s infinite'
+                }}>
+                    <h2 style={{ fontSize: '2.5rem', margin: '0 0 20px 0', textTransform: 'uppercase' }}>⚠️ ENGINE IDLE ⚠️</h2>
+                    <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>Press ⬆️ to Accelerate</p>
+                    <p style={{ fontSize: '1.2rem', margin: '10px 0', opacity: 0.9 }}>- OR -</p>
+                    <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>Press <strong>"C"</strong> for Autocruise</p>
+                    <style>{`
+                        @keyframes pulse {
+                            0% { transform: translate(-50%, -50%) scale(1); }
+                            50% { transform: translate(-50%, -50%) scale(1.05); }
+                            100% { transform: translate(-50%, -50%) scale(1); }
+                        }
+                    `}</style>
                 </div>
             )}
         </div>
