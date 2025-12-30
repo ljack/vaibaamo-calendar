@@ -115,19 +115,19 @@ export const generateCurvedPath = (points: { lat: number, lon: number }[], resol
     return curvedPoints;
 };
 
-export type PoiType = 'REINDEER' | 'GENERIC' | 'SPEED_TRAP';
+export type PoiType = 'REINDEER' | 'GAS_STATION' | 'BARN' | 'SCENIC' | 'DINER' | 'MONOLITH' | 'AURORA' | 'SPEED_TRAP' | 'HITCHHIKER' | 'SILENCE_ZONE';
 
 export const POI_DEFINITIONS: { message: string, type: PoiType }[] = [
-    { message: "Old Gas Station", type: 'GENERIC' },
-    { message: "Abandoned Barn", type: 'GENERIC' },
-    { message: "Scenic Overlook", type: 'GENERIC' },
-    { message: "Roadside Diner", type: 'GENERIC' },
-    { message: "Mysterious Monolith", type: 'GENERIC' },
+    { message: "Old Gas Station", type: 'GAS_STATION' },
+    { message: "Abandoned Barn", type: 'BARN' },
+    { message: "Scenic Overlook", type: 'SCENIC' },
+    { message: "Roadside Diner", type: 'DINER' },
+    { message: "Mysterious Monolith", type: 'MONOLITH' },
     { message: "Herd of Reindeer", type: 'REINDEER' },
-    { message: "Aurora Borealis", type: 'GENERIC' },
+    { message: "Aurora Borealis", type: 'AURORA' },
     { message: "Speed Trap!", type: 'SPEED_TRAP' },
-    { message: "Hitchhiker (Ignore!)", type: 'GENERIC' },
-    { message: "Radio Silence Zone", type: 'GENERIC' }
+    { message: "Hitchhiker (Ignore!)", type: 'HITCHHIKER' },
+    { message: "Radio Silence Zone", type: 'SILENCE_ZONE' }
 ];
 
 export const generateNearbyPOI = () => {
