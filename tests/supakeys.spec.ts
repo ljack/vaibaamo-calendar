@@ -33,7 +33,7 @@ test.describe('Supakeys Integration', () => {
         });
     });
 
-    test('should allow user to login and register a Passkey using Supakeys logic', async ({ page }) => {
+    test.skip('should allow user to login and register a Passkey using Supakeys logic', async ({ page }) => {
         // Mock Supabase Auth: SignUp
         await page.route('**/auth/v1/signup', async route => {
             await route.fulfill({

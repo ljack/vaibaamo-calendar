@@ -16,6 +16,7 @@ export type CarState = {
     fuelConsumption: number; // liters per km
     score: number; // based on efficiency
     autocruise: 'off' | 'cruise' | 'turbo';
+    rotationOffset: number; // degrees
 };
 
 export type CarControls = {
@@ -23,6 +24,8 @@ export type CarControls = {
     brake: () => void;
     repair: () => void;
     toggleAutocruise: () => void;
+    turnLeft: (isTurning: boolean) => void;
+    turnRight: (isTurning: boolean) => void;
 };
 
 export type DifficultyMode = 'easy' | 'normal' | 'hard';
@@ -37,7 +40,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         fuel: difficulty === 'easy' ? 100 : 80,
         fuelConsumption: 0,
         score: 0,
-        autocruise: 'off'
+        autocruise: 'off',
+        rotationOffset: 0
     });
 
     const difficultyRef = useRef<DifficultyMode>(difficulty);
@@ -49,12 +53,16 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
     const controls = useRef<{
         accelerating: boolean;
         braking: boolean;
+        turningLeft: boolean;
+        turningRight: boolean;
         repairing: boolean;
         shifting: boolean;
         autocruise: 'off' | 'cruise' | 'turbo';
     }>({
         accelerating: false,
         braking: false,
+        turningLeft: false,
+        turningRight: false,
         repairing: false,
         shifting: false, // rudimentary auto-shift or debounce
         autocruise: 'off',
@@ -63,6 +71,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'ArrowUp') controls.current.accelerating = true;
         if (e.key === 'ArrowDown') controls.current.braking = true;
+        if (e.key === 'ArrowLeft') controls.current.turningLeft = true;
+        if (e.key === 'ArrowRight') controls.current.turningRight = true;
         if (e.key === 'r' || e.key === 'R') controls.current.repairing = true;
         if (e.key === 'c' || e.key === 'C') {
             if (e.repeat) return;
@@ -86,6 +96,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
     const handleKeyUp = useCallback((e: KeyboardEvent) => {
         if (e.key === 'ArrowUp') controls.current.accelerating = false;
         if (e.key === 'ArrowDown') controls.current.braking = false;
+        if (e.key === 'ArrowLeft') controls.current.turningLeft = false;
+        if (e.key === 'ArrowRight') controls.current.turningRight = false;
         if (e.key === 'r' || e.key === 'R') controls.current.repairing = false;
     }, []);
 
@@ -109,6 +121,18 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
 
             setCar((prev) => {
                 let newSpeed = prev.speed;
+                let newRotationOffset = prev.rotationOffset;
+
+                // Steering
+                const TURN_SPEED = 180; // degrees per second
+                if (controls.current.turningLeft) {
+                    newRotationOffset -= TURN_SPEED * dt;
+                }
+                if (controls.current.turningRight) {
+                    newRotationOffset += TURN_SPEED * dt;
+                }
+                // Normalize to 0-360
+                newRotationOffset = (newRotationOffset + 360) % 360;
 
                 // Autocruise Logic
                 if (controls.current.autocruise !== 'off') {
@@ -202,6 +226,7 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
 
                 return {
                     speed: newSpeed,
+                    rotationOffset: newRotationOffset,
                     gear: currentGear,
                     rpm: Math.min(Math.max(rpm, 1000), 8000),
                     distanceTraveled: prev.distanceTraveled + d_km,
@@ -223,6 +248,8 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
     return [car, {
         accelerate: () => { controls.current.accelerating = true; },
         brake: () => { controls.current.braking = true; },
+        turnLeft: (isTurning: boolean) => { controls.current.turningLeft = isTurning; },
+        turnRight: (isTurning: boolean) => { controls.current.turningRight = isTurning; },
         repair: () => { controls.current.repairing = true; },
         toggleAutocruise: () => {
             const nextMode =

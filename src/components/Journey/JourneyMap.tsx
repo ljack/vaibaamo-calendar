@@ -283,7 +283,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 const dx = p2.x - p1.x;
                 const rads = Math.atan2(dy, dx);
                 const degs = rads * (180 / Math.PI);
-                rotation = degs + 90;
+                rotation = degs + 90 + (carState.rotationOffset || 0);
             }
 
             const normalizedBearing = Math.round((rotation + 360) % 360);
@@ -477,6 +477,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 <p>Controls:</p>
                 <p>⬆️ Accelerate</p>
                 <p>⬇️ Brake/Reverse</p>
+                <p>⬅️ ➡️ Turn</p>
                 <p>C: Autocruise</p>
             </div>
 
