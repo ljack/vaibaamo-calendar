@@ -65,9 +65,20 @@ export function useCarPhysics(difficulty: DifficultyMode = 'normal'): [CarState,
         if (e.key === 'ArrowDown') controls.current.braking = true;
         if (e.key === 'r' || e.key === 'R') controls.current.repairing = true;
         if (e.key === 'c' || e.key === 'C') {
-            const nextMode =
-                controls.current.autocruise === 'off' ? 'cruise' :
-                    controls.current.autocruise === 'cruise' ? 'turbo' : 'off';
+            if (e.repeat) return;
+
+            let nextMode: 'off' | 'cruise' | 'turbo' = 'off';
+            switch (controls.current.autocruise) {
+                case 'off':
+                    nextMode = 'cruise';
+                    break;
+                case 'cruise':
+                    nextMode = 'turbo';
+                    break;
+                case 'turbo':
+                    nextMode = 'off';
+                    break;
+            }
             controls.current.autocruise = nextMode;
         }
     }, []);
