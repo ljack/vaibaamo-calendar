@@ -39,7 +39,7 @@ export async function handleRegisterStart(
 
     // Check if user already exists in auth.users to maintain consistent User ID (and thus UserHandle)
     // Use robust listUsers() lookup
-    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
     const existingAuthUser = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
     // If user exists, use their ID to generate a consistent WebAuthn User Handle.
@@ -137,7 +137,7 @@ export async function handleRegisterFinish(
 
         // Let's try to verify if the user exists by listing. 
         // Actually, the most robust way:
-        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
         const existingUser = users.find(u => u.email?.toLowerCase() === challenge.email.toLowerCase());
 
         if (existingUser) {
@@ -216,7 +216,7 @@ export async function handleLoginStart(
     }
 
     let allowCredentials: { id: string; type: 'public-key' }[] | undefined;
-    let userEmail = email as string | undefined;
+    const userEmail = email as string | undefined;
 
     if (email) {
         const { data: user } = await supabaseAdmin
