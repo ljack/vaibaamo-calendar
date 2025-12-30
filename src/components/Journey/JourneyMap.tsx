@@ -98,6 +98,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const lastBearingRef = useRef(0);
     const mapDistanceTraveledRef = useRef(0);
     const [distanceTraveled, setDistanceTraveled] = useState(0);
+    const [collectedEvents, setCollectedEvents] = useState<{ type: PoiType; message: string; timestamp: number }[]>([]);
     const [carState, controls] = useCarPhysics(difficulty);
 
     // Helper to get next POI type from a shuffled queue
@@ -245,7 +246,8 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 score: carState.score,
                 reason: 'COMPLETED',
                 fuel: carState.fuel,
-                efficiency: carState.distanceTraveled > 0 ? (carState.score / carState.distanceTraveled).toFixed(2) : 0
+                efficiency: carState.distanceTraveled > 0 ? (carState.score / carState.distanceTraveled).toFixed(2) : 0,
+                collectedEvents
             });
             return;
         }
@@ -335,7 +337,8 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                             distance: mapDistanceTraveledRef.current,
                             score: carState.score,
                             reason: 'COMPLETED',
-                            isDemo: demoMode
+                            isDemo: demoMode,
+                            collectedEvents
                         });
                         // No need to unlock, journey finished
                     }
@@ -440,6 +443,9 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                     // maybe extra damage or score penalty?
                 }
 
+                // Collect Event
+                setCollectedEvents(prev => [...prev, { type: poi.type, message: poi.message, timestamp: Date.now() }]);
+
                 // Trigger visual event for all types
                 setVisualEvent({ image: getPoiImage(poi.type), active: true });
                 setTimeout(() => setVisualEvent(null), 4000);
@@ -499,6 +505,48 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             >
                 EXIT
             </button>
+
+            {/* Collected Events UI */}
+            <div style={{
+                position: 'absolute',
+                top: 80,
+                right: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                zIndex: 1900,
+                pointerEvents: 'none'
+            }}>
+                {collectedEvents.map((evt, i) => (
+                    <div key={i} style={{
+                        width: '40px',
+                        height: '40px',
+                        background: 'rgba(0,0,0,0.5)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        animation: 'fadeIn 0.5s ease-out'
+                    }}>
+                        <img
+                            src={getPoiImage(evt.type)}
+                            alt={evt.type}
+                            style={{
+                                width: '28px',
+                                height: '28px',
+                                imageRendering: 'pixelated'
+                            }}
+                        />
+                    </div>
+                ))}
+                <style>{`
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: scale(0); }
+                        to { opacity: 1; transform: scale(1); }
+                    }
+                `}</style>
+            </div>
 
             {/* Dashboard / HUD */}
             <div className="journey-dashboard" style={{

@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import type { PoiType } from '../../lib/journeyUtils';
 
 export interface FinalStats {
     distance: number;
@@ -9,6 +11,7 @@ export interface FinalStats {
     efficiency?: string;
     message?: string;
     isDemo?: boolean;
+    collectedEvents?: { type: PoiType; message: string; timestamp: number }[];
 }
 
 interface JourneyFinishedScreenProps {
@@ -17,6 +20,32 @@ interface JourneyFinishedScreenProps {
 }
 
 export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ finalStats, onClose }) => {
+    const [story, setStory] = useState<string | null>(null);
+    const [loadingStory, setLoadingStory] = useState(false);
+
+    useEffect(() => {
+        if (finalStats.reason === 'COMPLETED' && finalStats.collectedEvents && finalStats.collectedEvents.length > 0 && !story && !loadingStory) {
+            setLoadingStory(true);
+            const fetchStory = async () => {
+                try {
+                    const { data, error } = await supabase.functions.invoke('generate-journey-story', {
+                        body: { events: finalStats.collectedEvents }
+                    });
+                    if (error) {
+                        console.error('Error fetching story:', error);
+                    } else if (data?.story) {
+                        setStory(data.story);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch story:', err);
+                } finally {
+                    setLoadingStory(false);
+                }
+            };
+            fetchStory();
+        }
+    }, [finalStats, story, loadingStory]);
+
     if (finalStats?.reason === 'COMPLETED') {
         return (
             <div className="journey-overlay">
@@ -61,6 +90,93 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                             >
                                 🏔️ Kaldoaivi Ultra Trail
                             </a>
+                        </div>
+                    )}
+
+                    {/* Star Wars Story Section */}
+                    {(loadingStory || story) && (
+                        <div style={{
+                            width: '100%',
+                            height: '400px', // Fixed height for the window
+                            perspective: '400px',
+                            overflow: 'hidden',
+                            background: '#000',
+                            border: '2px solid #FFE81F',
+                            borderRadius: '10px',
+                            position: 'relative',
+                            marginTop: '20px'
+                        }}>
+                            {loadingStory && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    color: '#FFE81F',
+                                    fontSize: '1.5rem',
+                                    textAlign: 'center'
+                                }}>
+                                    <p>Computing Hyperdrive Coordinates...</p>
+                                    <p style={{ fontSize: '0.8rem', marginTop: '10px' }}>Simulating Writer's Block...</p>
+                                </div>
+                            )}
+
+                            {story && !loadingStory && (
+                                <div className="crawl-container">
+                                    <div className="crawl">
+                                        <div className="title">
+                                            <p>Episode I</p>
+                                            <h1>THE FINNISH ADVENTURE</h1>
+                                        </div>
+                                        {story.split('\n').map((para, i) => (
+                                            <p key={i}>{para}</p>
+                                        ))}
+                                    </div>
+                                    <style>{`
+                                        .crawl-container {
+                                            display: flex;
+                                            justify-content: center;
+                                            position: relative;
+                                            height: 100%;
+                                            color: #FFE81F;
+                                            font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+                                            font-size: 200%; 
+                                            font-weight: 600;
+                                            letter-spacing: 2px;
+                                            line-height: 150%;
+                                            text-align: justify;
+                                            transform-origin: 50% 100%; 
+                                        }
+                                        .crawl {
+                                            position: relative;
+                                            top: 0;
+                                            animation: crawl 60s linear infinite; /* Adjusted for continuous scroll */
+                                            transform: rotateX(20deg) translateZ(0);
+                                            width: 80%;
+                                        }
+                                        .title {
+                                            text-align: center;
+                                            margin-bottom: 50px;
+                                        }
+                                        .title h1 {
+                                            margin: 0 0 50px;
+                                            text-transform: uppercase;
+                                        }
+                                        @keyframes crawl {
+                                            0% {
+                                                top: 400px;
+                                                transform: rotateX(20deg) translateZ(0);
+                                                opacity: 1;
+                                            }
+                                            100% { 
+                                                top: -2000px;
+                                                transform: rotateX(25deg) translateZ(-1000px);
+                                                opacity: 0;
+                                            }
+                                        }
+                                    `}</style>
+                                </div>
+                            )}
                         </div>
                     )}
 
