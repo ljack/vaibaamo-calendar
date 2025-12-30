@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 // Use production endpoint or env variable
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://kpvehddfjxpiztiiinff.supabase.co';
 
 test.describe('Supakeys Integration', () => {
     let authenticatorId: string;

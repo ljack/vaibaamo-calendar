@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from '../types'
 import { geocodeLocation, createMapLink } from '../lib/geocode'
 import { loadLeaflet } from '../lib/leafletLoader'
+import type { Map, LayerGroup } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 type GeocodedEvent = {
@@ -24,8 +25,8 @@ export default function EventsMap({
     className = '',
 }: EventsMapProps) {
     const mapRef = useRef<HTMLDivElement | null>(null)
-    const mapInstanceRef = useRef<any>(null)
-    const markersRef = useRef<any>(null)
+    const mapInstanceRef = useRef<Map | null>(null)
+    const markersRef = useRef<LayerGroup | null>(null)
     const [geocodedEvents, setGeocodedEvents] = useState<GeocodedEvent[]>([])
     const [isLoading, setIsLoading] = useState(false)
 
@@ -103,7 +104,9 @@ export default function EventsMap({
                 const marker = L.marker([lat, lon])
                 const popup = `<a href="/events/${event.id}" class="text-indigo-600 hover:underline">${event.title}</a>`
                 marker.bindPopup(popup)
-                marker.addTo(markersRef.current)
+                if (markersRef.current) {
+                    marker.addTo(markersRef.current)
+                }
                 bounds.extend([lat, lon])
             })
             map.fitBounds(bounds, { padding: [40, 40] })
