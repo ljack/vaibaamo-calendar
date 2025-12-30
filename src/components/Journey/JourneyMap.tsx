@@ -92,6 +92,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const [message, setMessage] = useState('');
     const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean } | null>(null);
     const [showIdleWarning, setShowIdleWarning] = useState(false);
+    const [showAgileMaster, setShowAgileMaster] = useState(false);
     const [bearing, setBearing] = useState(0);
     const [isMapReady, setIsMapReady] = useState(false);
     const lastBearingRef = useRef(0);
@@ -264,6 +265,15 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             if (Date.now() - lastMoveTimeRef.current > 5000 && !showIdleWarning) {
                 setShowIdleWarning(true);
             }
+        }
+
+        // Agile Master / Wrong Direction Check
+        const normalizedOffset = ((carState.rotationOffset % 360) + 360) % 360;
+        // Check if deviation is significant (> 45 degrees)
+        const isWrongDirection = normalizedOffset > 45 && normalizedOffset < 315;
+
+        if (isWrongDirection !== showAgileMaster) {
+            setShowAgileMaster(isWrongDirection);
         }
 
         if (speedKmH > 0 && pathRef.current.length > 0) {
@@ -612,6 +622,43 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                             100% { transform: translate(-50%, -50%) scale(1); }
                         }
                     `}</style>
+                </div>
+            )}
+
+            {/* Agile Master Suvi Overlay */}
+            {showAgileMaster && (
+                <div className="agile-master-overlay" style={{
+                    position: 'absolute',
+                    bottom: '20%',
+                    right: '5%',
+                    background: 'linear-gradient(135deg, #6e8efb, #a777e3)',
+                    color: 'white',
+                    padding: '20px 30px',
+                    borderRadius: '20px 20px 0 20px',
+                    zIndex: 2600,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                    border: '3px solid #fff',
+                    maxWidth: '400px',
+                    animation: 'slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)'
+                }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '10px' }}>👩‍🏫</div>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1.5rem', fontWeight: 'bold' }}>Agile Master Suvi</h3>
+                    <p style={{ margin: '0 0 15px 0', fontSize: '1.1rem', fontStyle: 'italic', lineHeight: '1.4' }}>
+                        "We need alignment! You are drifting away from the critical path!"
+                    </p>
+                    <div style={{
+                        background: 'rgba(0,0,0,0.2)',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        width: '100%',
+                        textAlign: 'center'
+                    }}>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>Straighten up!</p>
+                        <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem' }}>Use ⬅️ and ➡️ keys</p>
+                    </div>
                 </div>
             )}
         </div>
