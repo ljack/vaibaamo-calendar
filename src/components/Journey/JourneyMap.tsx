@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { loadLeaflet } from '../../lib/leafletLoader';
 import { generateCurvedPath, getDistance, generateNearbyPOI, POI_DEFINITIONS } from '../../lib/journeyUtils';
+import { supabase } from '../../lib/supabase';
 import type { PoiType } from '../../lib/journeyUtils';
 import { useCarPhysics } from '../../hooks/useCarPhysics';
 import type { DifficultyMode } from '../../hooks/useCarPhysics';
@@ -90,7 +91,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
 
     const [currentEventIndex, setCurrentEventIndex] = useState(0);
     const [message, setMessage] = useState('');
-    const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean } | null>(null);
+    const [visualEvent, setVisualEvent] = useState<{ image: string; active: boolean; title?: string } | null>(null);
     const [showIdleWarning, setShowIdleWarning] = useState(false);
     const [showAgileMaster, setShowAgileMaster] = useState(false);
     const [bearing, setBearing] = useState(0);
@@ -301,6 +302,31 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
             const distToNode = Math.sqrt(dLat * dLat + dLon * dLon);
             const moveDistDegrees = (speedKmH * 0.000005);
 
+            // ROBUST COMPLETION CHECK: If we are at the end of the path
+            if (pathRef.current.length > 0 && pathNodeIndexRef.current >= pathRef.current.length - 1) {
+                // Force completion of this segment
+                if (!isArrivingRef.current) {
+                    isArrivingRef.current = true;
+                    if (currentEventIndex < geocodedEvents.length - 1) {
+                        setCurrentEventIndex(prev => prev + 1);
+                        // Reset path index for next segment implicitly involves generating new path? 
+                        // Actually in this arch, pathRef covers START -> END entire route? 
+                        // No, generateCurvedPath() takes ALL points. So pathRef is the WHOLE journey.
+                        // So if we are at the end of pathRef, we are DONE with the whole journey.
+                    } else {
+                        onFinish({
+                            distance: mapDistanceTraveledRef.current,
+                            score: carState.score,
+                            reason: 'COMPLETED',
+                            isDemo: demoMode,
+                            collectedEvents,
+                            fuel: carState.fuel
+                        });
+                    }
+                    setTimeout(() => { isArrivingRef.current = false; }, 2000);
+                }
+            }
+
             if (distToNode < moveDistDegrees) {
                 const stepDist = getDistance(currentPos, targetNode);
                 mapDistanceTraveledRef.current += stepDist;
@@ -447,8 +473,20 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 setCollectedEvents(prev => [...prev, { type: poi.type, message: poi.message, timestamp: Date.now() }]);
 
                 // Trigger visual event for all types
-                setVisualEvent({ image: getPoiImage(poi.type), active: true });
-                setTimeout(() => setVisualEvent(null), 4000);
+                setVisualEvent({ image: getPoiImage(poi.type), active: true, title: 'Scanning...' });
+
+                // Fetch AI Title
+                supabase.functions.invoke('generate-journey-story', {
+                    body: { events: [poi], mode: 'title' }
+                }).then(({ data, error }: { data: { title?: string } | null, error: any }) => {
+                    if (!error && data?.title) {
+                        setVisualEvent(prev => prev ? { ...prev, title: data.title } : null);
+                    } else {
+                        setVisualEvent(prev => prev ? { ...prev, title: poi.message } : null);
+                    }
+                });
+
+                setTimeout(() => setVisualEvent(null), 6000); // Longer display time
 
                 setTimeout(() => setMessage(''), 3000);
             }
@@ -468,15 +506,40 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                     left: '20%',
                     transform: 'translate(-50%, -50%)',
                     zIndex: 1500,
-                    animation: 'spinAndBounce 4s ease-in-out'
+                    animation: 'spinAndBounce 4s ease-in-out',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    pointerEvents: 'none'
                 }}>
-                    <img src={visualEvent.image} alt="Event Visual" style={{ width: '200px', height: 'auto', imageRendering: 'pixelated' }} />
+                    <img src={visualEvent.image} alt="Event Visual" style={{
+                        width: '300px', // Larger
+                        height: 'auto',
+                        imageRendering: 'pixelated',
+                        filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.5))'
+                    }} />
+                    <div style={{
+                        marginTop: '20px',
+                        background: 'linear-gradient(90deg, #000 0%, #333 50%, #000 100%)',
+                        border: '2px solid #FFD700',
+                        color: '#FFD700',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        fontFamily: '"Franklin Gothic Medium", sans-serif',
+                        fontSize: '1.5rem',
+                        textAlign: 'center',
+                        textTransform: 'uppercase',
+                        maxWidth: '300px',
+                        boxShadow: '0 0 15px #FFD700'
+                    }}>
+                        {visualEvent.title || 'Event Detected'}
+                    </div>
                     <style>{`
                         @keyframes spinAndBounce {
                             0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
-                            20% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 1; }
-                            40% { transform: translate(-50%, -60%) scale(1) rotate(-10deg); }
-                            60% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+                            10% { transform: translate(-50%, -50%) scale(1.2) rotate(5deg); opacity: 1; }
+                            20% { transform: translate(-50%, -60%) scale(1) rotate(-5deg); }
+                            30% { transform: translate(-50%, -50%) scale(1.1) rotate(3deg); }
                             80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
                             100% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
                         }
