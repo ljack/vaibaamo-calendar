@@ -137,6 +137,7 @@ export function PasskeyPrompt() {
                         <button
                             onClick={handleRegister}
                             disabled={loadingAction !== null || hasPasskey}
+                            data-testid="legacy-register-button"
                             className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${hasPasskey
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
@@ -162,6 +163,7 @@ export function PasskeyPrompt() {
                         <button
                             onClick={handleSupakeysRegister}
                             disabled={loadingAction !== null || hasSupakey}
+                            data-testid="supakeys-register-button"
                             className={`w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${hasSupakey
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                 : 'bg-purple-600 text-white hover:bg-purple-700 shadow-sm'
