@@ -109,7 +109,7 @@ test.describe('Supakeys Integration', () => {
         });
 
         // 1. Visit Login Page
-        await page.goto('/login?test-mode=true'); // Assume test-mode creates a clean state if implemented
+        await page.goto('/login?test-mode=true&lang=fi'); // Assume test-mode creates a clean state if implemented
 
         // 2. Perform Standard Login (Email/Password or Email/MagicLink)
         await page.fill('input[data-testid="login-email-input"]', 'test-user-' + Date.now() + '@example.com');
