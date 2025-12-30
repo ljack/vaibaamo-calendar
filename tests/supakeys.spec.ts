@@ -86,7 +86,7 @@ test.describe('Supakeys Integration', () => {
         });
 
         // Mock Supakeys Registration Options
-        await page.route('**/functions/v1/passkey-auth/register/options', async route => {
+        await page.route('**/functions/v1/supakeys-auth/register/options', async route => {
             await route.fulfill({
                 status: 200,
                 body: JSON.stringify({
@@ -102,7 +102,7 @@ test.describe('Supakeys Integration', () => {
         });
 
         // Mock Supakeys Registration Finish
-        await page.route('**/functions/v1/passkey-auth/register/finish', async route => {
+        await page.route('**/functions/v1/supakeys-auth/register/finish', async route => {
             await route.fulfill({
                 status: 200,
                 body: JSON.stringify({ success: true, passkey: { id: 'new-passkey-id' } })

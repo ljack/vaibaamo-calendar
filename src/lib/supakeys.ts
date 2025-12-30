@@ -12,5 +12,6 @@ export const getPasskeys = () => {
     return createPasskeyAuth(supabase, {
         rpId,
         rpName: 'Vaibaamo Calendar',
+        functionName: 'supakeys-auth',
     })
 }
