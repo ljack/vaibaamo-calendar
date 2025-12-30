@@ -36,7 +36,7 @@ export const JourneyCollectibles: React.FC<JourneyCollectiblesProps> = ({ collec
                     alignItems: 'center',
                     justifyContent: 'center',
                     border: '2px solid rgba(255,255,255,0.3)',
-                    animation: 'fadeIn 0.5s ease-out',
+                    animation: 'flyIn 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                     pointerEvents: 'auto',
                     cursor: 'help',
                     position: 'relative'
@@ -64,10 +64,23 @@ export const JourneyCollectibles: React.FC<JourneyCollectiblesProps> = ({ collec
                 </div>
             ))}
             <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: scale(0); }
-                    to { opacity: 1; transform: scale(1); }
+                @keyframes flyIn {
+                    0% {
+                        opacity: 0;
+                        transform: translate(calc(-100vw + 100px), 20vh) scale(3) rotate(-20deg);
+                        filter: blur(4px);
+                    }
+                    60% {
+                        opacity: 1;
+                        transform: translate(-50px, 0) scale(1.2) rotate(10deg);
+                        filter: blur(0);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translate(0, 0) scale(1) rotate(0deg);
+                    }
                 }
+
                 .collectible-tooltip {
                     visibility: hidden;
                     opacity: 0;
