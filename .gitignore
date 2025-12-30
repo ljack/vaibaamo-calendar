@@ -35,3 +35,6 @@ dist-ssr
 .env
 coverage/
 public/version.json
+
+# Supabase
+supabase/.temp/
