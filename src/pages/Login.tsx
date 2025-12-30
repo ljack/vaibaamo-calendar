@@ -225,7 +225,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="absolute opacity-0 w-1 h-1 overflow-hidden">
+                    <div className="flex items-center justify-between">
                         <label className="flex items-center gap-2 text-sm text-gray-700">
                             <input
                                 type="checkbox"
