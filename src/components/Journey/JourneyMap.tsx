@@ -63,6 +63,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
     const [bearing, setBearing] = useState(0);
     const lastBearingRef = useRef(0);
     const mapDistanceTraveledRef = useRef(0);
+    const [distanceTraveled, setDistanceTraveled] = useState(0);
     const [carState] = useCarPhysics(difficulty);
 
     // Initialize Map
@@ -273,6 +274,9 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 setBearing(normalizedBearing);
             }
 
+            // Sync ref to state for safe rendering
+            setDistanceTraveled(mapDistanceTraveledRef.current);
+
             if (mapInstanceRef.current && !isZoomingRef.current && carMarkerRef.current) {
                 carMarkerRef.current.setLatLng([positionRef.current.lat, positionRef.current.lon]);
                 mapInstanceRef.current.panTo([positionRef.current.lat, positionRef.current.lon], { animate: false });
@@ -428,7 +432,7 @@ export const JourneyMap: React.FC<JourneyMapProps> = ({
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.7rem', color: '#aaa' }}>DIST</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFD700' }}>{mapDistanceTraveledRef.current.toFixed(1)}</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#FFD700' }}>{distanceTraveled.toFixed(1)}</div>
                 </div>
                 <div style={{ width: '1px', background: '#444' }}></div>
                 <div style={{ textAlign: 'center' }}>
