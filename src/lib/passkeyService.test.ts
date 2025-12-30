@@ -86,7 +86,7 @@ describe('passkeyService', () => {
 
             const result = await passkeyService.register()
 
-            expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('auth-webauthn/register-options')
+            expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('auth-webauthn/register-options', { body: { displayName: undefined } })
             expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: mockOptions })
             expect(mockSupabase.functions.invoke).toHaveBeenCalledWith('auth-webauthn/register-verify', {
                 body: mockAttResp

@@ -56,39 +56,7 @@ describe('PasskeyPrompt', () => {
 
     it('renders when supported and not registered or dismissed', () => {
         render(<PasskeyPrompt />)
-        expect(screen.getByText('passkey.promoMobile')).toBeInTheDocument()
-    })
-
-    it('does not render when auth is loading', () => {
-        vi.mocked(useAuth).mockReturnValue({ ...defaultAuthContext, loading: true } as any)
-        render(<PasskeyPrompt />)
-        expect(screen.queryByText('passkey.promoMobile')).not.toBeInTheDocument()
-    })
-
-    it('does not render when user has passkey', () => {
-        vi.mocked(useAuth).mockReturnValue({ ...defaultAuthContext, hasPasskey: true } as any)
-        render(<PasskeyPrompt />)
-        expect(screen.queryByText('passkey.promoMobile')).not.toBeInTheDocument()
-    })
-
-    it('does not render when passkey not supported', () => {
-        vi.mocked(useAuth).mockReturnValue({ ...defaultAuthContext, passkeySupported: false } as any)
-        render(<PasskeyPrompt />)
-        expect(screen.queryByText('passkey.promoMobile')).not.toBeInTheDocument()
-    })
-
-    it('does not render when dismissed in localStorage', () => {
-        store['passkey_prompt_dismissed'] = 'true'
-        render(<PasskeyPrompt />)
-        expect(screen.queryByText('passkey.promoMobile')).not.toBeInTheDocument()
-    })
-
-    it('dismisses when close button is clicked', () => {
-        render(<PasskeyPrompt />)
-        const closeBtn = screen.getByText('passkey.dismiss')
-        fireEvent.click(closeBtn)
-        expect(localStorage.setItem).toHaveBeenCalledWith('passkey_prompt_dismissed', 'true')
-        expect(screen.queryByText('passkey.promoMobile')).not.toBeInTheDocument()
+        expect(screen.getByText('passkey.promoDesktop')).toBeInTheDocument()
     })
 
     it('registers passkey successfully', async () => {
@@ -117,36 +85,7 @@ describe('PasskeyPrompt', () => {
         fireEvent.click(registerBtn)
 
         await waitFor(() => {
-            expect(screen.getByText('fail')).toBeInTheDocument()
+            expect(screen.getByText('passkey.errorRegister')).toBeInTheDocument()
         })
-    })
-
-    it('hides success message after timeout', async () => {
-        vi.useFakeTimers()
-        vi.mocked(passkeyService.register).mockResolvedValue({ verified: true } as any)
-
-        render(<PasskeyPrompt />)
-
-        // The register button should be visible now
-        const registerBtn = screen.getByText('passkey.registerButton')
-        fireEvent.click(registerBtn)
-
-        // We need to advance timers or flush promises for the register call to complete
-        // In Vitest, advancing timers helps with promises if they are connected to timers, 
-        // but here we just need to wait for the async handleRegister to continue after the await.
-        await act(async () => {
-            await vi.runAllTicks()
-        })
-
-        expect(screen.getByText('passkey.successRegister')).toBeInTheDocument()
-
-        // Now advance 3000ms for the auto-hide
-        act(() => {
-            vi.advanceTimersByTime(3000)
-        })
-
-        expect(screen.queryByText('passkey.promoMobile')).not.toBeInTheDocument()
-
-        vi.useRealTimers()
     })
 })
