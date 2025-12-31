@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import type { PoiType } from '../../lib/journeyUtils';
 import { playSpaceTheme, playNote } from '../../lib/audioUtils';
 import { PianoKeyboard } from './PianoKeyboard';
+import { JourneyChat } from './JourneyChat';
 
 export interface FinalStats {
     distance: number;
@@ -26,10 +27,12 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
     const [story, setStory] = useState<string | null>(null);
     const [loadingStory, setLoadingStory] = useState(false);
     const [activeFreq, setActiveFreq] = useState<number>(0);
+    const [showChat, setShowChat] = useState(false);
 
     useEffect(() => {
         let stopMusic: (() => void) | undefined;
         if (story) {
+            // Include callback to visualize notes on piano
             stopMusic = playSpaceTheme((freq) => setActiveFreq(freq));
         }
         return () => {
@@ -76,157 +79,205 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '20px', // Reduced gap to fit piano
-                    justifyContent: 'center',
+                    gap: '20px',
+                    justifyContent: 'flex-start', // Top align to fit scroll
                     alignItems: 'center',
                     height: '100%',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     padding: '20px',
-                    overflowY: 'auto' // Allow scrolling if height is too small
+                    overflowY: 'auto'
                 }}>
-                    <h1 style={{ fontSize: '3rem', margin: 0 }}>🎉 JOURNEY COMPLETE!</h1>
-                    <div style={{
-                        background: 'rgba(0,0,0,0.7)',
-                        padding: '20px',
-                        borderRadius: '10px',
-                        textAlign: 'center',
-                        minWidth: '400px'
-                    }}>
-                        <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>📍 Distance: <strong>{finalStats.distance.toFixed(1)} km</strong></p>
-                        <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>⭐ Score: <strong>{Math.round(finalStats.score)}</strong></p>
-                        <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>⚡ Fuel Remaining: <strong>{finalStats.fuel?.toFixed(1)}%</strong></p>
-                        <p style={{ fontSize: '1.3rem', margin: '5px 0', color: '#FFD700' }}>🏆 Efficiency: <strong>{finalStats.efficiency}</strong> pts/km</p>
-                    </div>
+                    <h1 style={{ fontSize: '3rem', margin: '20px 0 0 0' }}>🎉 JOURNEY COMPLETE!</h1>
 
-                    <PianoKeyboard activeFreq={activeFreq} onPlayNote={handlePianoPlay} />
+                    {!showChat && (
+                        <>
+                            <div style={{
+                                background: 'rgba(0,0,0,0.7)',
+                                padding: '20px',
+                                borderRadius: '10px',
+                                textAlign: 'center',
+                                minWidth: '400px'
+                            }}>
+                                <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>📍 Distance: <strong>{finalStats.distance.toFixed(1)} km</strong></p>
+                                <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>⭐ Score: <strong>{Math.round(finalStats.score)}</strong></p>
+                                <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>⚡ Fuel Remaining: <strong>{finalStats.fuel?.toFixed(1)}%</strong></p>
+                                <p style={{ fontSize: '1.3rem', margin: '5px 0', color: '#FFD700' }}>🏆 Efficiency: <strong>{finalStats.efficiency}</strong> pts/km</p>
+                            </div>
 
-                    {finalStats.isDemo && (
-                        <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                            <p style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '5px' }}>You reached Nuorgam! Check out the real adventure:</p>
-                            <a
-                                href="https://kaldoaiviultratrail.fi/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                    color: '#FFD700',
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold',
-                                    textDecoration: 'none',
-                                    borderBottom: '2px solid #FFD700',
-                                    paddingBottom: '2px'
-                                }}
-                            >
-                                🏔️ Kaldoaivi Ultra Trail
-                            </a>
-                        </div>
-                    )}
+                            <PianoKeyboard activeFreq={activeFreq} onPlayNote={handlePianoPlay} />
 
-                    {/* Star Wars Story Section */}
-                    {(loadingStory || story) && (
-                        <div style={{
-                            width: '100%',
-                            height: '300px', // Reduced height
-                            perspective: '400px',
-                            overflow: 'hidden',
-                            background: '#000',
-                            border: '2px solid #FFE81F',
-                            borderRadius: '10px',
-                            position: 'relative',
-                            marginTop: '10px'
-                        }}>
-                            {loadingStory && (
+                            {finalStats.isDemo && (
+                                <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                                    <p style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '5px' }}>You reached Nuorgam! Check out the real adventure:</p>
+                                    <a
+                                        href="https://kaldoaiviultratrail.fi/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            color: '#FFD700',
+                                            fontSize: '1.5rem',
+                                            fontWeight: 'bold',
+                                            textDecoration: 'none',
+                                            borderBottom: '2px solid #FFD700',
+                                            paddingBottom: '2px'
+                                        }}
+                                    >
+                                        🏔️ Kaldoaivi Ultra Trail
+                                    </a>
+                                </div>
+                            )}
+
+                            {/* Star Wars Story Section */}
+                            {(loadingStory || story) && (
                                 <div style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    color: '#FFE81F',
-                                    fontSize: '1.5rem',
-                                    textAlign: 'center'
+                                    width: '100%',
+                                    height: '300px', // Reduced height
+                                    perspective: '400px',
+                                    overflow: 'hidden',
+                                    background: '#000',
+                                    border: '2px solid #FFE81F',
+                                    borderRadius: '10px',
+                                    position: 'relative',
+                                    marginTop: '10px'
                                 }}>
-                                    <p>Computing Hyperdrive Coordinates...</p>
-                                    <p style={{ fontSize: '0.8rem', marginTop: '10px' }}>Simulating Writer's Block...</p>
+                                    {loadingStory && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            left: '50%',
+                                            transform: 'translate(-50%, -50%)',
+                                            color: '#FFE81F',
+                                            fontSize: '1.5rem',
+                                            textAlign: 'center'
+                                        }}>
+                                            <p>Computing Hyperdrive Coordinates...</p>
+                                            <p style={{ fontSize: '0.8rem', marginTop: '10px' }}>Simulating Writer's Block...</p>
+                                        </div>
+                                    )}
+
+                                    {story && !loadingStory && (
+                                        <div className="crawl-container">
+                                            <div className="crawl">
+                                                <div className="title">
+                                                    <p>Episode I</p>
+                                                    <h1>THE FINNISH ADVENTURE</h1>
+                                                </div>
+                                                {story.split('\n').map((para, i) => (
+                                                    <p key={i}>{para}</p>
+                                                ))}
+                                            </div>
+                                            <style>{`
+                                                .crawl-container {
+                                                    display: flex;
+                                                    justify-content: center;
+                                                    position: relative;
+                                                    height: 100%;
+                                                    color: #FFE81F;
+                                                    font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+                                                    font-size: 200%; 
+                                                    font-weight: 600;
+                                                    letter-spacing: 2px;
+                                                    line-height: 150%;
+                                                    text-align: justify;
+                                                    transform-origin: 50% 100%; 
+                                                    perspective: 300px;
+                                                }
+                                                .crawl {
+                                                    position: relative;
+                                                    top: 0;
+                                                    animation: crawl 45s linear infinite; 
+                                                    transform: rotateX(25deg) translateZ(0); /* More tilt */
+                                                    width: 80%;
+                                                }
+                                                .title {
+                                                    text-align: center;
+                                                    margin-bottom: 50px;
+                                                }
+                                                .title h1 {
+                                                    margin: 0 0 50px;
+                                                    text-transform: uppercase;
+                                                }
+                                                @keyframes crawl {
+                                                    0% {
+                                                        top: 100%; /* Start below */
+                                                        transform: rotateX(25deg) translateZ(0);
+                                                        opacity: 1;
+                                                    }
+                                                    80% {
+                                                        opacity: 1;
+                                                    }
+                                                    100% { 
+                                                        top: -1500px; /* End far away */
+                                                        transform: rotateX(25deg) translateZ(-500px); /* Recede */
+                                                        opacity: 0;
+                                                    }
+                                                }
+                                            `}</style>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {story && !loadingStory && (
-                                <div className="crawl-container">
-                                    <div className="crawl">
-                                        <div className="title">
-                                            <p>Episode I</p>
-                                            <h1>THE FINNISH ADVENTURE</h1>
-                                        </div>
-                                        {story.split('\n').map((para, i) => (
-                                            <p key={i}>{para}</p>
-                                        ))}
-                                    </div>
-                                    <style>{`
-                                        .crawl-container {
-                                            display: flex;
-                                            justify-content: center;
-                                            position: relative;
-                                            height: 100%;
-                                            color: #FFE81F;
-                                            font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
-                                            font-size: 200%; 
-                                            font-weight: 600;
-                                            letter-spacing: 2px;
-                                            line-height: 150%;
-                                            text-align: justify;
-                                            transform-origin: 50% 100%; 
-                                            perspective: 300px;
-                                        }
-                                        .crawl {
-                                            position: relative;
-                                            top: 0;
-                                            animation: crawl 45s linear infinite; 
-                                            transform: rotateX(25deg) translateZ(0); /* More tilt */
-                                            width: 80%;
-                                        }
-                                        .title {
-                                            text-align: center;
-                                            margin-bottom: 50px;
-                                        }
-                                        .title h1 {
-                                            margin: 0 0 50px;
-                                            text-transform: uppercase;
-                                        }
-                                        @keyframes crawl {
-                                            0% {
-                                                top: 100%; /* Start below */
-                                                transform: rotateX(25deg) translateZ(0);
-                                                opacity: 1;
-                                            }
-                                            80% {
-                                                opacity: 1;
-                                            }
-                                            100% { 
-                                                top: -1500px; /* End far away */
-                                                transform: rotateX(25deg) translateZ(-500px); /* Recede */
-                                                opacity: 0;
-                                            }
-                                        }
-                                    `}</style>
-                                </div>
-                            )}
+                            <div style={{ display: 'flex', gap: '20px', paddingBottom: '20px' }}>
+                                <button
+                                    onClick={onClose}
+                                    style={{
+                                        padding: '15px 40px',
+                                        fontSize: '1.2rem',
+                                        background: '#4CAF50',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold'
+                                    }}
+                                >
+                                    Finish
+                                </button>
+                                <button
+                                    onClick={() => setShowChat(true)}
+                                    style={{
+                                        padding: '15px 40px',
+                                        fontSize: '1.2rem',
+                                        background: '#2196F3', // Blue
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px'
+                                    }}
+                                >
+                                    <span>💬</span> Chat with Ship AI
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {showChat && (
+                        <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '10px' }}>
+                                <h2 style={{ color: 'white' }}>Ship Intelligence Interface</h2>
+                                <button
+                                    onClick={() => setShowChat(false)}
+                                    style={{ background: 'transparent', border: '1px solid white', color: 'white', borderRadius: '4px', cursor: 'pointer', padding: '5px 10px' }}
+                                >
+                                    Back to Stats
+                                </button>
+                            </div>
+                            <JourneyChat context={{
+                                route: finalStats.routePlaces || [],
+                                events: finalStats.collectedEvents || [],
+                                stats: { distance: finalStats.distance, score: finalStats.score }
+                            }} />
+                            <div style={{ marginTop: '20px' }}>
+                                <PianoKeyboard activeFreq={activeFreq} onPlayNote={handlePianoPlay} />
+                            </div>
                         </div>
                     )}
 
-                    <button
-                        onClick={onClose}
-                        style={{
-                            padding: '15px 40px',
-                            fontSize: '1.2rem',
-                            background: '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        Continue
-                    </button>
                 </div>
             </div>
         );
