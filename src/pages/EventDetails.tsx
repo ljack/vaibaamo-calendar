@@ -204,7 +204,7 @@ export default function EventDetails() {
 
     return (
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <div className="px-4 py-5 sm:px-6 flex justify-between items-start sm:items-center flex-col sm:flex-row gap-4">
                 <div>
                     <h3 className="text-2xl font-semibold leading-7 text-gray-900">
                         {event.title}
@@ -212,6 +212,53 @@ export default function EventDetails() {
                     <p className="mt-1 max-w-2xl text-sm text-gray-500">
                         {event.description}
                     </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                    {!user ? (
+                        <Link
+                            to="/login"
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            {t('events.details.loginToJoin')}
+                        </Link>
+                    ) : (
+                        <>
+                            {(isAdmin || user.id === (event as any).creator_id) && (
+                                <Link
+                                    to={`/events/${event.id}/edit?tab=${activeTab === 'info' ? 'basic' : activeTab}`}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    {t('events.details.edit')}
+                                </Link>
+                            )}
+                            {isAdmin && (
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={deleting}
+                                    className="inline-flex items-center px-4 py-2 border border-red-200 text-sm font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                >
+                                    {deleting ? t('events.details.deleting') : t('events.details.delete')}
+                                </button>
+                            )}
+                            {participant ? (
+                                <button
+                                    onClick={handleCancel}
+                                    disabled={registering}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    {registering ? t('events.details.leaving') : t('events.details.leave')}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleRegister}
+                                    disabled={registering}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    {registering ? t('events.details.joining') : t('events.details.join')}
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -319,55 +366,7 @@ export default function EventDetails() {
                                 <p className="text-sm text-red-600">{deleteError}</p>
                             </div>
                         )}
-                        <div className="sm:col-span-2">
-                            <div className="flex items-center justify-end space-x-4 mt-6">
-                                {!user ? (
-                                    <Link
-                                        to="/login"
-                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    >
-                                        {t('events.details.loginToJoin')}
-                                    </Link>
-                                ) : (
-                                    <>
-                                        {(isAdmin || user.id === (event as any).creator_id) && (
-                                            <Link
-                                                to={`/events/${event.id}/edit?tab=${activeTab === 'info' ? 'basic' : activeTab}`}
-                                                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-2"
-                                            >
-                                                {t('events.details.edit')}
-                                            </Link>
-                                        )}
-                                        {isAdmin && (
-                                            <button
-                                                onClick={handleDelete}
-                                                disabled={deleting}
-                                                className="inline-flex items-center px-4 py-2 border border-red-200 text-sm font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                            >
-                                                {deleting ? t('events.details.deleting') : t('events.details.delete')}
-                                            </button>
-                                        )}
-                                        {participant ? (
-                                            <button
-                                                onClick={handleCancel}
-                                                disabled={registering}
-                                                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                            >
-                                                {registering ? t('events.details.leaving') : t('events.details.leave')}
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={handleRegister}
-                                                disabled={registering}
-                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                            >
-                                                {registering ? t('events.details.joining') : t('events.details.join')}
-                                            </button>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        </div>
+
                     </dl>
                 )}
 
