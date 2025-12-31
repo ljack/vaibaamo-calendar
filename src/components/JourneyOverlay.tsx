@@ -21,6 +21,7 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     const urlParams = new URLSearchParams(window.location.search);
     const urlCar = urlParams.get('car') as CarType | null;
     const urlDifficulty = urlParams.get('difficulty') as DifficultyMode | null;
+    const isChat = urlParams.get('chat') === 'true';
 
     const isDemo = urlParams.get('demo') === 'true';
 
@@ -31,9 +32,11 @@ export default function JourneyOverlay({ events, onClose }: JourneyOverlayProps)
     const [selectedCar, setSelectedCar] = useState<CarType | null>(initialCar);
     const [difficulty, setDifficulty] = useState<DifficultyMode | null>(initialDifficulty);
     const [gameState, setGameState] = useState<JourneyState>(
-        initialCar && initialDifficulty ? 'LOADING' : 'SELECT_CAR'
+        isChat ? 'FINISHED' : (initialCar && initialDifficulty ? 'LOADING' : 'SELECT_CAR')
     );
-    const [finalStats, setFinalStats] = useState<FinalStats | null>(null);
+    const [finalStats, setFinalStats] = useState<FinalStats | null>(
+        isChat ? { distance: 1337, score: 9001, reason: 'COMPLETED' } : null
+    );
 
     // Data Hook
     const { geocodedEvents, carManifests } = useJourneyData({

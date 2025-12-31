@@ -54,8 +54,9 @@ export default function Layout() {
         const hasCar = urlParams.has('car')
         const hasDifficulty = urlParams.has('difficulty')
         const isDemo = urlParams.get('demo') === 'true'
+        const isChat = urlParams.get('chat') === 'true'
 
-        if ((hasCar && hasDifficulty) || isDemo) {
+        if ((hasCar && hasDifficulty) || isDemo || isChat) {
             setJourneyOpen(true)
         }
     }, [])
@@ -160,6 +161,13 @@ export default function Layout() {
                     >
                         π
                     </button>
+                    <a
+                        href="/?chat=true"
+                        className="text-xs text-gray-300 hover:text-gray-500 transition-colors duration-300 cursor-pointer ml-2"
+                        title="AI Jam Session"
+                    >
+                        ♫
+                    </a>
                 </div>
             </footer>
         </div>
