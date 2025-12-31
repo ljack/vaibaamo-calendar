@@ -82,6 +82,14 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
     // Track AI playback timers to allow interruption
     const melodyTimersRef = useRef<number[]>([]);
 
+    const ENHARMONIC_MAP: Record<string, string> = {
+        'Db': 'C#',
+        'D#': 'Eb',
+        'F#': 'Gb',
+        'G#': 'Ab',
+        'A#': 'Bb'
+    };
+
     const playMelody = (notes: string[]) => {
         // Stop background theme if playing
         if (stopMusicRef) {
@@ -94,7 +102,16 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
         melodyTimersRef.current = [];
 
         let delay = 0;
-        notes.forEach(note => {
+        notes.forEach(rawNote => {
+            // Normalize note (handle basic enharmonics)
+            let note = rawNote;
+            // specific octaves
+            Object.entries(ENHARMONIC_MAP).forEach(([from, to]) => {
+                if (note.includes(from)) {
+                    note = note.replace(from, to);
+                }
+            });
+
             const keyConfig = PIANO_KEYS.find(k => k.note === note);
             if (keyConfig) {
                 const timerId = window.setTimeout(() => {
