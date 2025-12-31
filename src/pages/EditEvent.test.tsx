@@ -144,7 +144,7 @@ describe('EditEvent', () => {
 
         await waitFor(() => expect(screen.getByDisplayValue('Old Title')).toBeInTheDocument())
 
-        const titleInput = screen.getByLabelText('Otsikko')
+        const titleInput = screen.getByDisplayValue('Old Title')
         fireEvent.change(titleInput, { target: { value: 'New Title' } })
 
         const submitBtn = screen.getByText('Tallenna muutokset')
