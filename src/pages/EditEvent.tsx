@@ -241,6 +241,28 @@ export default function EditEvent() {
         }
     }
 
+    const handleDeleteAsset = async (asset: MediaAsset) => {
+        if (!window.confirm(t('events.edit.confirmDeleteAsset'))) return
+
+        // If it's a supabase storage url, try to delete from storage
+        // URL format: .../storage/v1/object/public/event-media/events/{id}/{file}
+        if (asset.url.includes('/storage/v1/object/public/event-media/')) {
+            const path = asset.url.split('/storage/v1/object/public/event-media/')[1]
+            if (path) {
+                const { error } = await supabase.storage
+                    .from('event-media')
+                    .remove([path])
+
+                if (error) {
+                    console.error('Error deleting file:', error)
+                    // We interpret this as a warning but still remove from state so user isn't blocked
+                }
+            }
+        }
+
+        setMediaAssets(prev => prev.filter(a => a !== asset))
+    }
+
     if (loading) return <div className="text-center py-10">{t('common.loading')}</div>
 
     return (
@@ -394,6 +416,14 @@ export default function EditEvent() {
                                             >
                                                 {t('events.edit.copyMarkdown')}
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteAsset(asset)}
+                                                className="bg-red-600 text-white p-1 px-2 rounded text-xs shadow-sm hover:bg-red-700"
+                                                title={t('events.edit.deleteAsset')}
+                                            >
+                                                🗑️
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -457,6 +487,14 @@ export default function EditEvent() {
                                                 title={t('events.edit.copyMarkdown')}
                                             >
                                                 {t('events.edit.copyMarkdown')}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteAsset(asset)}
+                                                className="bg-red-600 text-white p-1 px-2 rounded text-xs shadow-sm hover:bg-red-700"
+                                                title={t('events.edit.deleteAsset')}
+                                            >
+                                                🗑️
                                             </button>
                                         </div>
                                     </div>

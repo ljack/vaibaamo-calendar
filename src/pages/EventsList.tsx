@@ -46,6 +46,7 @@ export default function EventsList() {
             clearTimeout(fallbackTimer)
             abortController.abort()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authLoading])
 
     const fetchEvents = async (signal?: AbortSignal) => {

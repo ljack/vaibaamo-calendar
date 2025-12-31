@@ -169,6 +169,8 @@
             "promptTitle": "Enter prompt for AI editing (Gemini/Nano Banana):",
             "promptDefault": "Make it pixel art",
             "uploadError": "Upload failed! Ensure \"event-media\" bucket exists.",
+            "deleteAsset": "Delete file",
+            "confirmDeleteAsset": "Are you sure you want to delete this file?",
             "markdownCopied": "Markdown copied to clipboard!",
             "fetchError": "Error fetching event",
             "errorSave": "Error saving"

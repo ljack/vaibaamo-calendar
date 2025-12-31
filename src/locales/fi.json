@@ -169,6 +169,8 @@
             "promptTitle": "Syötä kehote AI-muokkausta varten (Gemini/Nano Banana):",
             "promptDefault": "Tee siitä pixel art -tyylinen",
             "uploadError": "Lataus epäonnistui! Varmista että \"event-media\" bucket on olemassa.",
+            "deleteAsset": "Poista tiedosto",
+            "confirmDeleteAsset": "Haluatko varmasti poistaa tämän tiedoston?",
             "markdownCopied": "Markdown kopioitu leikepöydälle!",
             "fetchError": "Virhe tapahtuman haussa",
             "errorSave": "Virhe tallennuksessa"
