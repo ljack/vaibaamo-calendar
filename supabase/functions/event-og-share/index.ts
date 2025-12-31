@@ -3,22 +3,28 @@ import { serve } from "std/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import satori from "satori";
-import { Resvg } from "resvg";
+import { initWasm, render } from "resvg";
 import React from "react";
+
+// Initialize WASM once
+const wasmPromise = initWasm(fetch("https://deno.land/x/resvg_wasm@0.2.0/resvg.wasm"));
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Fetch a font for Satori (Inter Bold)
+// ... existing helper functions ...
+
 async function fetchFont() {
+    // ...
     const fontUrl = "https://github.com/google/fonts/raw/main/ofl/inter/Inter-Bold.ttf";
     const res = await fetch(fontUrl);
     return await res.arrayBuffer();
 }
 
 async function getEventCTA(description: string, apiKey: string): Promise<string> {
+    // ... (keep logic) ...
     if (!apiKey) return "Join the Event";
     try {
         const openai = new OpenAI({ apiKey });
@@ -39,6 +45,10 @@ async function getEventCTA(description: string, apiKey: string): Promise<string>
 }
 
 serve(async (req) => {
+    // Ensure WASM is loaded
+    await wasmPromise;
+
+    // ... existing ...
     // Handle CORS preflight requests
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -180,11 +190,9 @@ serve(async (req) => {
             );
 
             // 4. Convert SVG to PNG
-            const resvg = new Resvg(svg);
-            const pngData = resvg.render();
-            const pngBuffer = pngData.asPng();
+            const pngBuffer = await render(svg);
 
-            return new Response(pngBuffer, {
+            return new Response(pngBuffer as unknown as BodyInit, {
                 headers: {
                     ...corsHeaders,
                     "Content-Type": "image/png",
