@@ -137,38 +137,66 @@ serve(async (req) => {
     }
 
     // Construct HTML response
-    const html = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>${event.title}</title>
-            <meta name="description" content="${description}">
-            
-            <!-- Open Graph / Facebook -->
-            <meta property="og:site_name" content="Vaibaamo Calendar">
-            <meta property="og:type" content="website">
-            <meta property="og:url" content="${redirectUrl}">
-            <meta property="og:title" content="${event.title}">
-            <meta property="og:description" content="${description}">
-            ${imageUrl ? `<meta property="og:image" content="${imageUrl}">` : ""}
+    // Generate Meta Tags
+    const metaTags = `
+        <title>${event.title}</title>
+        <meta name="description" content="${description}">
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:site_name" content="Vaibaamo Calendar">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="${redirectUrl}">
+        <meta property="og:title" content="${event.title}">
+        <meta property="og:description" content="${description}">
+        ${imageUrl ? `<meta property="og:image" content="${imageUrl}">` : ""}
 
-            <!-- Twitter -->
-            <meta property="twitter:card" content="summary_large_image">
-            <meta property="twitter:url" content="${redirectUrl}">
-            <meta property="twitter:title" content="${event.title}">
-            <meta property="twitter:description" content="${description}">
-            ${imageUrl ? `<meta property="twitter:image" content="${imageUrl}">` : ""}
-
-            <!-- Redirect to App -->
-            <meta http-equiv="refresh" content="0;url=${redirectUrl}">
-        </head>
-        <body>
-            <script>window.location.href = "${redirectUrl}";</script>
-            <p>Redirecting to <a href="${redirectUrl}">${event.title}</a>...</p>
-        </body>
-        </html>
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="${redirectUrl}">
+        <meta property="twitter:title" content="${event.title}">
+        <meta property="twitter:description" content="${description}">
+        ${imageUrl ? `<meta property="twitter:image" content="${imageUrl}">` : ""}
     `;
+
+    // Attempt to inject into App Shell (Masking) to show the actual app content
+    let finalHtml = "";
+    const canInject = redirectUrl && !redirectUrl.includes("localhost");
+
+    if (canInject) {
+        try {
+            const appOrigin = new URL(redirectUrl!).origin;
+            // Fetch the App Shell (index.html)
+            const resp = await fetch(appOrigin);
+            if (resp.ok) {
+                const appHtml = await resp.text();
+                // Inject tags: Remove existing title and append new tags to head
+                finalHtml = appHtml
+                    .replace(/<title>.*?<\/title>/i, "")
+                    .replace(/<\/head>/i, `${metaTags}</head>`);
+            }
+        } catch (e: any) {
+            console.error("App shell injection failed:", e);
+        }
+    }
+
+    // Fallback: Minimal JS Redirect (for localhost or fetch failure)
+    if (!finalHtml) {
+        finalHtml = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                ${metaTags}
+                <!-- Redirect to App -->
+                <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+            </head>
+            <body>
+                <script>window.location.href = "${redirectUrl}";</script>
+                <p>Redirecting to <a href="${redirectUrl}">${event.title}</a>...</p>
+            </body>
+            </html>
+        `;
+    }
 
     // Cache Aggressively: Public content, cache for 1 hour (CDN 24 hours)
     // This acts as a rate limit by offloading requests to the edge cache.
@@ -178,7 +206,7 @@ serve(async (req) => {
         "Content-Type": "text/html"
     };
 
-    return new Response(html, {
+    return new Response(finalHtml, {
         headers: cacheHeaders,
     });
 
