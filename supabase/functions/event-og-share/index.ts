@@ -89,15 +89,29 @@ serve(async (req) => {
     let imageUrl = "";
     const assets = event.media_assets || [];
     
-    // Priority 1: Image from the requested section
+    // Priority 1: Structured Asset from the requested section
     const sectionImage = assets.find((a: any) => a.section === tab && a.type === "image");
     if (sectionImage) {
         imageUrl = sectionImage.url;
     } else {
-            // Priority 2: Any image from the requested section
-            // Priority 3: Any image from the event
+            // Priority 2: Any Structured Asset
             const anyImage = assets.find((a: any) => a.type === "image");
             if (anyImage) imageUrl = anyImage.url;
+    }
+
+    // Priority 3 (Fallback): Extract from Markdown content
+    if (!imageUrl) {
+        const extractImage = (md: string) => {
+            if (!md) return null;
+            const match = md.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/); // Capture https? URLs only
+            return match ? match[1] : null;
+        }
+
+        // Check current tab first, then others
+        const currentMarkdown = tab === 'recap' ? event.recap_markdown : (tab === 'plan' ? event.plan_markdown : "");
+        imageUrl = extractImage(currentMarkdown) || 
+                   extractImage(event.recap_markdown) || 
+                   extractImage(event.plan_markdown) || "";
     }
 
     // Determine Description
