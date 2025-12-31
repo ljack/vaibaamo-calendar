@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { PoiType } from '../../lib/journeyUtils';
-import { playSpaceTheme } from '../../lib/audioUtils';
+import { playSpaceTheme, playNote } from '../../lib/audioUtils';
+import { PianoKeyboard } from './PianoKeyboard';
 
 export interface FinalStats {
     distance: number;
@@ -24,11 +25,12 @@ interface JourneyFinishedScreenProps {
 export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ finalStats, onClose }) => {
     const [story, setStory] = useState<string | null>(null);
     const [loadingStory, setLoadingStory] = useState(false);
+    const [activeFreq, setActiveFreq] = useState<number>(0);
 
     useEffect(() => {
         let stopMusic: (() => void) | undefined;
         if (story) {
-            stopMusic = playSpaceTheme();
+            stopMusic = playSpaceTheme((freq) => setActiveFreq(freq));
         }
         return () => {
             if (stopMusic) stopMusic();
@@ -61,35 +63,46 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
         }
     }, [finalStats, story, loadingStory]);
 
+    const handlePianoPlay = (freq: number) => {
+        playNote(freq, 0.5);
+        setActiveFreq(freq);
+        // Reset active key after a short delay for visual feedback if manually pressed
+        setTimeout(() => setActiveFreq(0), 300);
+    };
+
     if (finalStats?.reason === 'COMPLETED') {
         return (
             <div className="journey-overlay">
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '30px',
+                    gap: '20px', // Reduced gap to fit piano
                     justifyContent: 'center',
                     alignItems: 'center',
                     height: '100%',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    padding: '40px'
+                    padding: '20px',
+                    overflowY: 'auto' // Allow scrolling if height is too small
                 }}>
                     <h1 style={{ fontSize: '3rem', margin: 0 }}>🎉 JOURNEY COMPLETE!</h1>
                     <div style={{
                         background: 'rgba(0,0,0,0.7)',
-                        padding: '30px',
+                        padding: '20px',
                         borderRadius: '10px',
                         textAlign: 'center',
                         minWidth: '400px'
                     }}>
-                        <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>📍 Distance: <strong>{finalStats.distance.toFixed(1)} km</strong></p>
-                        <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>⭐ Score: <strong>{Math.round(finalStats.score)}</strong></p>
-                        <p style={{ fontSize: '1.5rem', margin: '10px 0' }}>⚡ Fuel Remaining: <strong>{finalStats.fuel?.toFixed(1)}%</strong></p>
-                        <p style={{ fontSize: '1.3rem', margin: '10px 0', color: '#FFD700' }}>🏆 Efficiency: <strong>{finalStats.efficiency}</strong> pts/km</p>
+                        <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>📍 Distance: <strong>{finalStats.distance.toFixed(1)} km</strong></p>
+                        <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>⭐ Score: <strong>{Math.round(finalStats.score)}</strong></p>
+                        <p style={{ fontSize: '1.5rem', margin: '5px 0' }}>⚡ Fuel Remaining: <strong>{finalStats.fuel?.toFixed(1)}%</strong></p>
+                        <p style={{ fontSize: '1.3rem', margin: '5px 0', color: '#FFD700' }}>🏆 Efficiency: <strong>{finalStats.efficiency}</strong> pts/km</p>
                     </div>
+
+                    <PianoKeyboard activeFreq={activeFreq} onPlayNote={handlePianoPlay} />
+
                     {finalStats.isDemo && (
-                        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                            <p style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '10px' }}>You reached Nuorgam! Check out the real adventure:</p>
+                        <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                            <p style={{ color: '#fff', fontSize: '1.2rem', marginBottom: '5px' }}>You reached Nuorgam! Check out the real adventure:</p>
                             <a
                                 href="https://kaldoaiviultratrail.fi/"
                                 target="_blank"
@@ -112,14 +125,14 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                     {(loadingStory || story) && (
                         <div style={{
                             width: '100%',
-                            height: '400px', // Fixed height for the window
+                            height: '300px', // Reduced height
                             perspective: '400px',
                             overflow: 'hidden',
                             background: '#000',
                             border: '2px solid #FFE81F',
                             borderRadius: '10px',
                             position: 'relative',
-                            marginTop: '20px'
+                            marginTop: '10px'
                         }}>
                             {loadingStory && (
                                 <div style={{

@@ -1,4 +1,39 @@
-export const playSpaceTheme = () => {
+// Helper to play a single note
+export const playNote = (freq: number, duration: number = 0.5, type: OscillatorType = 'sawtooth') => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext(); // Or reuse a global one if preferred, but new is fine for sparse events
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    osc.type = type;
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = 1;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    osc.frequency.value = freq;
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.4, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.start(now);
+    osc.stop(now + duration);
+
+    // Cleanup
+    setTimeout(() => {
+        if (ctx.state !== 'closed') ctx.close();
+    }, (duration * 1000) + 100);
+};
+
+export const playSpaceTheme = (onNotePlay?: (freq: number) => void) => {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return () => { };
 
@@ -6,6 +41,7 @@ export const playSpaceTheme = () => {
     let isPlaying = true;
     let nextNoteTime = ctx.currentTime;
     let timeoutId: any = null;
+    const boxTimeouts: any[] = []; // To clear visual callbacks
 
     // "Space Adventure" / "Imperial" Vibe
     // Key: Gm / Bb
@@ -69,6 +105,21 @@ export const playSpaceTheme = () => {
 
                 osc.start(start);
                 osc.stop(end);
+
+                // Schedule visual callback
+                if (onNotePlay) {
+                    const delay = (start - ctx.currentTime) * 1000;
+                    const tid = setTimeout(() => {
+                        onNotePlay(note.freq);
+                    }, delay);
+                    boxTimeouts.push(tid);
+
+                    // Clear highlight
+                    const clearTid = setTimeout(() => {
+                        onNotePlay(0);
+                    }, delay + (note.dur * 1000));
+                    boxTimeouts.push(clearTid);
+                }
             }
             nextNoteTime += note.dur;
         });
@@ -85,6 +136,7 @@ export const playSpaceTheme = () => {
     return () => {
         isPlaying = false;
         if (timeoutId) clearTimeout(timeoutId);
+        boxTimeouts.forEach(t => clearTimeout(t));
         if (ctx.state !== 'closed') ctx.close().catch(() => { });
     };
 };
