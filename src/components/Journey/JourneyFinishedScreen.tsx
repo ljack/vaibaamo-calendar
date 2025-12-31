@@ -31,16 +31,26 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
     const [activeFreq, setActiveFreq] = useState<number>(0);
     const [showChat, setShowChat] = useState(false);
 
+    const [stopMusicRef, setStopMusicRef] = useState<(() => void) | undefined>(undefined);
+
     useEffect(() => {
-        let stopMusic: (() => void) | undefined;
         if (story) {
             // Include callback to visualize notes on piano
-            stopMusic = playSpaceTheme((freq) => setActiveFreq(freq));
-        }
-        return () => {
-            if (stopMusic) stopMusic();
+            const stop = playSpaceTheme((freq) => setActiveFreq(freq));
+            setStopMusicRef(() => stop);
+            // Cleanup function for this effect specifically
+            return () => {
+                if (stop) stop();
+            };
         }
     }, [story]);
+
+    // Cleanup on unmount (redundant due to effect return but good for safety)
+    useEffect(() => {
+        return () => {
+            if (stopMusicRef) stopMusicRef();
+        };
+    }, []);
 
     useEffect(() => {
         if (finalStats.reason === 'COMPLETED' && finalStats.collectedEvents && finalStats.collectedEvents.length > 0 && !story && !loadingStory) {
@@ -68,8 +78,13 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
         }
     }, [finalStats, story, loadingStory]);
 
-    // Music playback from AI
     const playMelody = (notes: string[]) => {
+        // Stop background theme if playing
+        if (stopMusicRef) {
+            stopMusicRef();
+            setStopMusicRef(undefined); // Clear ref so we don't try to stop again
+        }
+
         let delay = 0;
         notes.forEach(note => {
             const keyConfig = PIANO_KEYS.find(k => k.note === note);
