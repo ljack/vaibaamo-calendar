@@ -26,17 +26,17 @@ serve(async (req) => {
             return new Response("Missing event ID", { status: 400 });
         }
 
-        // Initialize Supabase Client with Service Role Key to read public event data
-        // OG bots (Slack, FB) are unauthenticated.
+        // Initialize Supabase Client with Anon Key
+        // OG bots (Slack, FB) are unauthenticated, so this relies on public RLS policies.
         const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
         
-        if (!supabaseUrl || !supabaseServiceKey) {
+        if (!supabaseUrl || !supabaseAnonKey) {
              console.error("Missing Supabase configuration");
              return new Response("Server Configuration Error", { status: 500 });
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
         // Fetch Event Data
         const { data: event, error } = await supabase

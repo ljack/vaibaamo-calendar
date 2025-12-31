@@ -1,5 +1,6 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "std/http/server.ts";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,23 @@ serve(async (req) => {
     }
 
     try {
+        // Authenticate User
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+            throw new Error('Missing Authorization header');
+        }
+
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            global: { headers: { Authorization: authHeader } },
+        });
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+             throw new Error("Unauthorized");
+        }
+
         const { prompt } = await req.json();
         const apiKey = Deno.env.get("OPENAI_API_KEY");
         if (!apiKey) throw new Error("Missing OpenAI API Key");
@@ -43,8 +61,6 @@ serve(async (req) => {
         }
 
         const b64 = data.data[0].b64_json;
-        // Construct a data URL or just return b64 to be uploaded by client
-        // Returning b64 is easier for client to handle (display or upload)
 
         return new Response(JSON.stringify({
             image_b64: b64,
@@ -53,7 +69,7 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
