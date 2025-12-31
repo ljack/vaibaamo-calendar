@@ -6,8 +6,14 @@ import satori from "satori";
 import { initWasm, render } from "resvg";
 import React from "react";
 
-// Initialize WASM once
-const wasmPromise = initWasm(fetch("https://deno.land/x/resvg_wasm@0.2.0/resvg.wasm"));
+// Initialize WASM Lazily
+let wasmReady = false;
+async function initializeResvg() {
+    if (!wasmReady) {
+        await initWasm(fetch("https://deno.land/x/resvg_wasm@0.2.0/resvg.wasm"));
+        wasmReady = true;
+    }
+}
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -46,7 +52,7 @@ async function getEventCTA(description: string, apiKey: string): Promise<string>
 
 serve(async (req) => {
     // Ensure WASM is loaded
-    await wasmPromise;
+    // await wasmPromise;
 
     // ... existing ...
     // Handle CORS preflight requests
@@ -96,6 +102,9 @@ serve(async (req) => {
 
         // --- IMAGE GENERATION MODE ---
         if (type === "image") {
+            // Ensure WASM is loaded
+            await initializeResvg();
+
             // 1. Determine Background Image URL (Reuse logic)
             let bgImageUrl = "";
             const assets = event.media_assets || [];
