@@ -126,7 +126,7 @@ export default function EditEvent() {
         }))
     }
 
-    const uploadFile = async (file: File, section: 'plan' | 'recap') => {
+    const uploadFile = useCallback(async (file: File, section: 'plan' | 'recap') => {
         // Validate file type
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
             alert(t('events.edit.uploadError') + ' Invalid file type.')
@@ -172,7 +172,7 @@ export default function EditEvent() {
         } finally {
             setUploading(false)
         }
-    }
+    }, [id, t])
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, section: 'plan' | 'recap') => {
         if (!e.target.files || e.target.files.length === 0) return
@@ -189,7 +189,7 @@ export default function EditEvent() {
                 await uploadFile(file, activeTab as 'plan' | 'recap');
             }
         }
-    }, [activeTab, id])
+    }, [activeTab, uploadFile])
 
     useEffect(() => {
         window.addEventListener('paste', handlePaste);
@@ -275,11 +275,13 @@ export default function EditEvent() {
                 if (error) {
                     console.error('Error deleting file:', error)
                     alert(t('common.error') + ' Failed to delete file from storage.')
+                    // Early return to maintain consistency - don't remove from UI if storage deletion fails
                     return
                 }
             }
         }
 
+        // Only remove from state after successful storage deletion (or if not a storage URL)
         setMediaAssets(prev => prev.filter(a => a !== asset))
     }
 
