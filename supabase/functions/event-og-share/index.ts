@@ -117,7 +117,7 @@ serve(async (req) => {
     // Determine Description
     let description = event.description || "";
     const cleanMarkdown = (text: string) => {
-        return text
+        const cleaned = text
             // Remove images: ![alt](url)
             .replace(/!\[.*?\]\(.*?\)/g, "")
             // Remove links but keep text: [text](url) -> text
@@ -126,8 +126,20 @@ serve(async (req) => {
             .replace(/[#*`_~>]/g, "")
             // Collapse whitespace
             .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 200) + "...";
+            .trim();
+        
+        // Smart Truncate to ~150 chars (Optimal 110-160)
+        const MAX_LEN = 150;
+        if (cleaned.length <= MAX_LEN) return cleaned;
+        
+        // Cut at max length
+        let truncated = cleaned.slice(0, MAX_LEN);
+        // Track back to last space to avoid cutting words
+        const lastSpace = truncated.lastIndexOf(" ");
+        if (lastSpace > 0) {
+            truncated = truncated.slice(0, lastSpace);
+        }
+        return truncated + "...";
     };
 
     if (tab === "recap" && event.recap_markdown) {
@@ -135,25 +147,29 @@ serve(async (req) => {
     } else if (tab === "plan" && event.plan_markdown) {
         description = cleanMarkdown(event.plan_markdown);
     }
+    
+    // enhance Title with Branding (Optimal 50-60 chars)
+    // E.g. "Vaibaamo Meeting at Ainoa | Vaibaamo Calendar"
+    const pageTitle = `${event.title} | Vaibaamo Calendar`;
 
     // Construct HTML response
     // Generate Meta Tags
     const metaTags = `
-        <title>${event.title}</title>
+        <title>${pageTitle}</title>
         <meta name="description" content="${description}">
         
         <!-- Open Graph / Facebook -->
         <meta property="og:site_name" content="Vaibaamo Calendar">
         <meta property="og:type" content="website">
         <meta property="og:url" content="${redirectUrl}">
-        <meta property="og:title" content="${event.title}">
+        <meta property="og:title" content="${pageTitle}">
         <meta property="og:description" content="${description}">
         ${imageUrl ? `<meta property="og:image" content="${imageUrl}">` : ""}
 
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="${redirectUrl}">
-        <meta property="twitter:title" content="${event.title}">
+        <meta property="twitter:title" content="${pageTitle}">
         <meta property="twitter:description" content="${description}">
         ${imageUrl ? `<meta property="twitter:image" content="${imageUrl}">` : ""}
     `;
