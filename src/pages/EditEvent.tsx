@@ -193,7 +193,7 @@ export default function EditEvent() {
         const userPrompt = prompt(t('events.edit.promptTitle'), t('events.edit.promptDefault'));
         if (!userPrompt) return;
 
-        const confirmGen = window.confirm(`Generate new image with prompt: "${userPrompt}"? This might take a moment.`);
+        const confirmGen = window.confirm(t('events.edit.confirmAI', { prompt: userPrompt }));
         if (!confirmGen) return;
 
         setUploading(true);

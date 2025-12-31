@@ -168,6 +168,7 @@
             "noImages": "Ei kuvia vielä.",
             "promptTitle": "Syötä kehote AI-muokkausta varten (Gemini/Nano Banana):",
             "promptDefault": "Tee siitä pixel art -tyylinen",
+            "confirmAI": "Luodaanko uusi kuva kehotteella: \"{{prompt}}\"? Tämä voi kestää hetken.",
             "uploadError": "Lataus epäonnistui! Varmista että \"event-media\" bucket on olemassa.",
             "deleteAsset": "Poista tiedosto",
             "confirmDeleteAsset": "Haluatko varmasti poistaa tämän tiedoston?",
