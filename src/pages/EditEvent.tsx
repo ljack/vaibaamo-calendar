@@ -115,13 +115,12 @@ export default function EditEvent() {
         }))
     }
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, section: 'plan' | 'recap') => {
-        if (!e.target.files || e.target.files.length === 0) return
+    const uploadFile = async (file: File, section: 'plan' | 'recap') => {
         setUploading(true)
-
-        const file = e.target.files[0]
         const fileExt = file.name.split('.').pop()
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+        // If file doesn't have an extension (e.g. pasted image), default to png
+        const ext = fileExt || 'png'
+        const fileName = `${Math.random().toString(36).substring(2)}.${ext}`
         const filePath = `events/${id}/${fileName}`
 
         try {
@@ -138,18 +137,42 @@ export default function EditEvent() {
             const newAsset: MediaAsset = {
                 url: publicUrl,
                 type: file.type.startsWith('video') ? 'video' : 'image',
-                caption: file.name,
+                caption: file.name || 'Pasted Image',
                 section
             }
 
             setMediaAssets(prev => [...prev, newAsset])
         } catch (error: any) {
             console.error('Upload error:', error)
-            alert('Kuvan lataus epäonnistui! Varmista että "event-media" bucket on olemassa.')
+            alert('Lataus epäonnistui! Varmista että "event-media" bucket on olemassa.')
         } finally {
             setUploading(false)
         }
     }
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, section: 'plan' | 'recap') => {
+        if (!e.target.files || e.target.files.length === 0) return
+        await uploadFile(e.target.files[0], section)
+    }
+
+    const handlePaste = async (e: ClipboardEvent) => {
+        if (activeTab === 'basic') return; // Only allow paste in Plan or Recap tabs
+
+        if (e.clipboardData && e.clipboardData.files.length > 0) {
+            const file = e.clipboardData.files[0];
+            if (file.type.startsWith('image/')) {
+                e.preventDefault();
+                await uploadFile(file, activeTab as 'plan' | 'recap');
+            }
+        }
+    }
+
+    useEffect(() => {
+        window.addEventListener('paste', handlePaste);
+        return () => {
+            window.removeEventListener('paste', handlePaste);
+        }
+    }, [activeTab, id]) // Re-bind when activeTab changes so we know where to upload
 
     const handleAIEdit = async (assetIndex: number) => {
         const asset = mediaAssets[assetIndex];
