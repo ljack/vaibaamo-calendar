@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import { supabase } from '../../lib/supabase';
 import { initAudio } from '../../lib/audioUtils';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet';
@@ -52,7 +52,11 @@ const MapController = ({ center }: { center: L.LatLng | null }) => {
     return null;
 };
 
-export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }) => {
+export interface JourneyChatRef {
+    sendMessage: (text: string) => void;
+}
+
+export const JourneyChat = React.forwardRef<JourneyChatRef, JourneyChatProps>(({ context, onPlayMusic }, ref) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -181,6 +185,10 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }
         }
     };
 
+    useImperativeHandle(ref, () => ({
+        sendMessage: (text: string) => sendMessage(text)
+    }));
+
     const handleMapClick = async (latlng: L.LatLng) => {
         setSelectedPoint(latlng);
         // Reverse geocode or just indicate point
@@ -286,4 +294,4 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }
             </div>
         </div>
     );
-};
+});

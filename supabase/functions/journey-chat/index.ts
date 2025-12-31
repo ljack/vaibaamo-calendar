@@ -57,6 +57,11 @@ serve(async (req) => {
           - Use your internal knowledge to estimate the coordinates for these places.
           - In your text response, explicitly mention the stops you chose and why they are interesting.
           - Example: "Setting course for Tampere. I've added a stop at the old fortress. [[ROUTE: [60.16, 24.93], [60.99, 24.46], [61.49, 23.78]]]"
+        - JAM SESSION: If the user says "I just played this melody: ...", listen to their notes carefully.
+          - Analyze the mood (Major? Minor? Chaostic?).
+          - Compliment or critique their "performance".
+          - THEN PLAY BACK A RESPONSE! You can repeat their melody with a twist, or play a harmony to it.
+          - Always try to "jam" with the user if they start playing.
 
         Keep responses concise (max 3 sentences) but engaging.
         `;

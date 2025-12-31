@@ -23,35 +23,71 @@ export const initAudio = () => {
 };
 
 // Helper to play a single note
-export const playNote = (freq: number, duration: number = 0.5, type: OscillatorType = 'sawtooth') => {
+export const playNote = (freq: number, duration: number = 0.5, type: OscillatorType | 'space-synth' = 'space-synth') => {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    const osc = ctx.createOscillator();
+    const now = ctx.currentTime;
     const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-
-    osc.type = type;
-    filter.type = 'lowpass';
-    filter.frequency.value = 1200;
-    filter.Q.value = 1;
-
-    osc.connect(filter);
-    filter.connect(gain);
     gain.connect(ctx.destination);
 
-    const now = ctx.currentTime;
-    osc.frequency.value = freq;
-
+    // Envelope
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.4, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.3, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    osc.start(now);
-    osc.stop(now + duration);
+    if (type === 'space-synth') {
+        // Complex instrument: Detuned Sawtooths + Sub Sine
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const sub = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
 
-    // Nodes are garbage collected automatically when disconnected and stopped, 
-    // no need to close context (since it's shared now)
+        osc1.type = 'sawtooth';
+        osc2.type = 'sawtooth';
+        sub.type = 'sine';
+
+        osc1.frequency.value = freq;
+        osc2.frequency.value = freq;
+        sub.frequency.value = freq / 2; // Sub-octave
+
+        osc2.detune.value = 15; // Detuned for chorus effect
+
+        filter.type = 'lowpass';
+        filter.frequency.value = 2000;
+        filter.Q.value = 2;
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        sub.connect(gain); // Sub bypasses filter for warm bottom end
+        filter.connect(gain);
+
+        osc1.start(now);
+        osc2.start(now);
+        sub.start(now);
+
+        osc1.stop(now + duration);
+        osc2.stop(now + duration);
+        sub.stop(now + duration);
+    } else {
+        // Simple fallback
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+
+        osc.type = type as OscillatorType;
+        filter.type = 'lowpass';
+        filter.frequency.value = 1200;
+
+        osc.frequency.value = freq;
+
+        osc.connect(filter);
+        filter.connect(gain);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    }
+
+    // Nodes are garbage collected automatically
 };
 
 export const playSpaceTheme = (onNotePlay?: (freq: number) => void) => {

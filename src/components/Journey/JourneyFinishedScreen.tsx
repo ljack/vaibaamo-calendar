@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { PoiType } from '../../lib/journeyUtils';
 import { playSpaceTheme, playNote } from '../../lib/audioUtils';
@@ -7,6 +7,7 @@ import { playSpaceTheme, playNote } from '../../lib/audioUtils';
 import { PianoKeyboard } from './PianoKeyboard';
 import { PIANO_KEYS } from './PianoConfig';
 import { JourneyChat } from './JourneyChat';
+import type { JourneyChatRef } from './JourneyChat';
 
 export interface FinalStats {
     distance: number;
@@ -99,11 +100,45 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
         });
     };
 
+    // Note tracking for "Jam Session"
+    const noteBufferRef = useRef<{ note: string, time: number }[]>([]);
+    const noteTimerRef = useRef<number | null>(null);
+    const chatRef = useRef<JourneyChatRef>(null);
+
     const handlePianoPlay = (freq: number) => {
+        // Play the sound (now with space-synth default)
         playNote(freq, 0.5);
         setActiveFreq(freq);
-        // Reset active key after a short delay for visual feedback if manually pressed
         setTimeout(() => setActiveFreq(0), 300);
+
+        // Record the note
+        const keyConfig = PIANO_KEYS.find(k => k.freq === freq);
+        if (keyConfig) {
+            noteBufferRef.current.push({ note: keyConfig.note, time: Date.now() });
+
+            // Reset timer
+            if (noteTimerRef.current) window.clearTimeout(noteTimerRef.current);
+
+            // If user stops playing for 2 seconds, submit the melody to AI
+            noteTimerRef.current = window.setTimeout(() => {
+                if (noteBufferRef.current.length > 0 && chatRef.current) {
+                    const notesPlayed = noteBufferRef.current.map(n => n.note).join(', ');
+                    const msg = `I just played this melody on the piano: [[MUSIC: ${notesPlayed}]]`;
+
+                    // If chat is not open, maybe we should open it? 
+                    // For now, let's only send if chat is open or send and notify?
+                    // Let's force open chat if they are jamming!
+                    if (!showChat) setShowChat(true);
+
+                    // Slightly delay sending to ensure UI is ready
+                    window.setTimeout(() => {
+                        chatRef.current?.sendMessage(msg);
+                    }, 100);
+
+                    noteBufferRef.current = []; // Clear buffer
+                }
+            }, 2000);
+        }
     };
 
     if (finalStats?.reason === 'COMPLETED') {
@@ -301,6 +336,7 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                                 </button>
                             </div>
                             <JourneyChat
+                                ref={chatRef}
                                 context={{
                                     route: finalStats.routePlaces || [],
                                     events: finalStats.collectedEvents || [],
