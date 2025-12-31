@@ -205,7 +205,7 @@ serve(async (req) => {
             const pngData = resvg.render();
             const pngBuffer = pngData.asPng();
 
-            return new Response(pngBuffer, {
+            return new Response(pngBuffer as any, {
                 headers: {
                     ...corsHeaders,
                     "Content-Type": "image/png",
@@ -239,6 +239,7 @@ serve(async (req) => {
         // Use SELF as the image source (Dynamic Image)
         // We append type=image to the current URL params
         const ogImageUrl = new URL(req.url);
+        ogImageUrl.protocol = "https:"; // Force HTTPS
         ogImageUrl.searchParams.set("type", "image");
         // Ensure we pass tab to image generation so it picks correct background
         ogImageUrl.searchParams.set("tab", tab); 
