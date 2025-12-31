@@ -288,7 +288,8 @@ export const useJourneyMapLogic = ({
             }
         }
 
-        const checkInterval = demoMode ? 5000 : 5000;
+        const currentSpeedFactor = Math.max(1, speedKmH / 100);
+        const checkInterval = (demoMode ? 4000 : 5000) / currentSpeedFactor;
         const triggerChance = demoMode ? 0.95 : 0.7;
         const speedThreshold = demoMode ? 10 : 100;
 
