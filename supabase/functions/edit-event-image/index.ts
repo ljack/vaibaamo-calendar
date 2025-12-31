@@ -12,7 +12,7 @@ serve(async (req) => {
     }
 
     try {
-        const { prompt, image_url: _image_url } = await req.json();
+        const { prompt } = await req.json();
         const apiKey = Deno.env.get("OPENAI_API_KEY");
         if (!apiKey) throw new Error("Missing OpenAI API Key");
 

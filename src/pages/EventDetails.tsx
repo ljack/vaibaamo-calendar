@@ -225,9 +225,9 @@ export default function EventDetails() {
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                     >
-                        Tiedot
+                        {t('events.details.tabInfo')}
                     </button>
-                    {(event.plan_markdown || (event as any).media_assets?.some((m: any) => m.section === 'plan')) && (
+                    {(event.plan_markdown || event.media_assets?.some((m) => m.section === 'plan')) && (
                         <button
                             onClick={() => setActiveTab('plan')}
                             className={`${activeTab === 'plan'
@@ -235,10 +235,10 @@ export default function EventDetails() {
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                         >
-                            Suunnitelma
+                            {t('events.details.tabPlan')}
                         </button>
                     )}
-                    {(event.recap_markdown || (event as any).media_assets?.some((m: any) => m.section === 'recap')) && (
+                    {(event.recap_markdown || event.media_assets?.some((m) => m.section === 'recap')) && (
                         <button
                             onClick={() => setActiveTab('recap')}
                             className={`${activeTab === 'recap'
@@ -246,7 +246,7 @@ export default function EventDetails() {
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                         >
-                            Jälkilöylyt
+                            {t('events.details.tabRecap')}
                         </button>
                     )}
                 </nav>
@@ -376,22 +376,22 @@ export default function EventDetails() {
                         <div className="flex justify-between items-start">
                             <div className="prose max-w-none">
                                 <ReactMarkdown>
-                                    {event.plan_markdown || '*Ei suunnitelmaa vielä.*'}
+                                    {event.plan_markdown || `*${t('events.details.noPlan')}*`}
                                 </ReactMarkdown>
                             </div>
                             <button
                                 onClick={() => copyLink('plan')}
                                 className="text-indigo-600 text-sm hover:underline flex items-center gap-1"
                             >
-                                🔗 {copyFeedback === 'plan' ? 'Kopioitu!' : 'Jaa'}
+                                🔗 {copyFeedback === 'plan' ? t('events.details.copied') : t('events.details.share')}
                             </button>
                         </div>
 
-                        {(event as any).media_assets?.some((m: any) => m.section === 'plan') && (
+                        {event.media_assets?.some((m) => m.section === 'plan') && (
                             <div className="border-t pt-6">
-                                <h4 className="text-lg font-medium mb-4">Galleria (Suunnitelma)</h4>
+                                <h4 className="text-lg font-medium mb-4">{t('events.details.galleryPlan')}</h4>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {(event as any).media_assets.filter((m: any) => m.section === 'plan').map((asset: any, i: number) => (
+                                    {event.media_assets.filter((m) => m.section === 'plan').map((asset, i) => (
                                         <div key={i} className="group relative">
                                             <a href={asset.url} target="_blank" rel="noreferrer">
                                                 <img src={asset.url} alt={asset.caption} className="rounded-lg shadow-sm object-cover h-32 w-full hover:opacity-90 transition-opacity" />
@@ -410,22 +410,22 @@ export default function EventDetails() {
                         <div className="flex justify-between items-start">
                             <div className="prose max-w-none">
                                 <ReactMarkdown>
-                                    {event.recap_markdown || '*Ei jälkilöylyjä vielä.*'}
+                                    {event.recap_markdown || `*${t('events.details.noRecap')}*`}
                                 </ReactMarkdown>
                             </div>
                             <button
                                 onClick={() => copyLink('recap')}
                                 className="text-indigo-600 text-sm hover:underline flex items-center gap-1"
                             >
-                                🔗 {copyFeedback === 'recap' ? 'Kopioitu!' : 'Jaa'}
+                                🔗 {copyFeedback === 'recap' ? t('events.details.copied') : t('events.details.share')}
                             </button>
                         </div>
 
-                        {(event as any).media_assets?.some((m: any) => m.section === 'recap') && (
+                        {event.media_assets?.some((m) => m.section === 'recap') && (
                             <div className="border-t pt-6">
-                                <h4 className="text-lg font-medium mb-4">Galleria (Jälkilöylyt)</h4>
+                                <h4 className="text-lg font-medium mb-4">{t('events.details.galleryRecap')}</h4>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {(event as any).media_assets.filter((m: any) => m.section === 'recap').map((asset: any, i: number) => (
+                                    {event.media_assets.filter((m) => m.section === 'recap').map((asset, i) => (
                                         <div key={i} className="group relative">
                                             <a href={asset.url} target="_blank" rel="noreferrer">
                                                 <img src={asset.url} alt={asset.caption} className="rounded-lg shadow-sm object-cover h-32 w-full hover:opacity-90 transition-opacity" />

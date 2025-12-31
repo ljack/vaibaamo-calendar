@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,6 +13,7 @@ export default function EditEvent() {
     const { id } = useParams<{ id: string }>()
     const { user } = useAuth()
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [activeTab, setActiveTab] = useState<Tab>('basic')
@@ -68,7 +70,8 @@ export default function EditEvent() {
             setMediaAssets(event.media_assets || [])
         } catch (error) {
             console.error('Error fetching event:', error)
-            alert('Virhe tapahtuman haussa')
+            console.error('Error fetching event:', error)
+            alert(t('events.edit.fetchError'))
             navigate('/')
         } finally {
             setLoading(false)
@@ -102,7 +105,8 @@ export default function EditEvent() {
             navigate(`/events/${id}`)
         } catch (error: any) {
             console.error('Error updating event:', error)
-            alert('Virhe tallennuksessa: ' + error.message)
+            console.error('Error updating event:', error)
+            alert(t('events.edit.errorSave') + ' ' + error.message)
         } finally {
             setSaving(false)
         }
@@ -144,7 +148,8 @@ export default function EditEvent() {
             setMediaAssets(prev => [...prev, newAsset])
         } catch (error: any) {
             console.error('Upload error:', error)
-            alert('Lataus epäonnistui! Varmista että "event-media" bucket on olemassa.')
+            console.error('Upload error:', error)
+            alert(t('events.edit.uploadError'))
         } finally {
             setUploading(false)
         }
@@ -176,7 +181,7 @@ export default function EditEvent() {
 
     const handleAIEdit = async (assetIndex: number) => {
         const asset = mediaAssets[assetIndex];
-        const userPrompt = prompt("Enter prompt for AI editing (Gemini/Nano Banana):", "Make it pixel art");
+        const userPrompt = prompt(t('events.edit.promptTitle'), t('events.edit.promptDefault'));
         if (!userPrompt) return;
 
         const confirmGen = window.confirm(`Generate new image with prompt: "${userPrompt}"? This might take a moment.`);
@@ -230,37 +235,36 @@ export default function EditEvent() {
 
         } catch (e: any) {
             console.error(e);
-            alert("AI Generation failed: " + e.message);
+            alert(t('common.error') + " " + e.message);
         } finally {
             setUploading(false);
         }
     }
 
-    if (loading) return <div className="text-center py-10">Ladataan...</div>
+    if (loading) return <div className="text-center py-10">{t('common.loading')}</div>
 
     return (
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold mb-6">Muokkaa tapahtumaa</h2>
+            <h2 className="text-2xl font-bold mb-6">{t('events.edit.title')}</h2>
 
-            {/* Tabs */}
             <div className="flex border-b border-gray-200 mb-6">
                 <button
                     onClick={() => setActiveTab('basic')}
                     className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'basic' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                 >
-                    Perustiedot
+                    {t('events.edit.tabBasic')}
                 </button>
                 <button
                     onClick={() => setActiveTab('plan')}
                     className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'plan' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                 >
-                    Suunnitelma & Media
+                    {t('events.edit.tabPlan')}
                 </button>
                 <button
                     onClick={() => setActiveTab('recap')}
                     className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'recap' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                 >
-                    Jälkilöylyt (Recap)
+                    {t('events.edit.tabRecap')}
                 </button>
             </div>
 
@@ -341,30 +345,30 @@ export default function EditEvent() {
                 {activeTab === 'plan' && (
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Suunnitelma (Markdown)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.edit.planLabel')}</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-96">
                                 <textarea
                                     name="plan_markdown"
                                     className="block w-full h-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border font-mono"
                                     value={formData.plan_markdown}
                                     onChange={handleChange}
-                                    placeholder="# Suunnitelma..."
+                                    placeholder={t('events.edit.planPlaceholder')}
                                 />
                                 <div className="border rounded-md p-4 overflow-auto prose prose-sm bg-gray-50 h-full">
-                                    <ReactMarkdown>{formData.plan_markdown || '*Esikatselu*'}</ReactMarkdown>
+                                    <ReactMarkdown>{formData.plan_markdown || `*${t('events.edit.preview')}*`}</ReactMarkdown>
                                 </div>
                             </div>
                         </div>
 
                         <div className="border-t pt-4">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Liitteet (Suunnitelma)</h3>
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('events.edit.attachmentsPlan')}</h3>
                             <input
                                 type="file"
                                 onChange={(e) => handleFileUpload(e, 'plan')}
                                 disabled={uploading}
                                 className="mb-4"
                             />
-                            {uploading && <p className="text-sm text-gray-500">Ladataan...</p>}
+                            {uploading && <p className="text-sm text-gray-500">{t('events.edit.uploading')}</p>}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {mediaAssets.filter(m => m.section === 'plan').map((asset, i) => (
                                     <div key={i} className="relative group">
@@ -383,12 +387,12 @@ export default function EditEvent() {
                                                 type="button"
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(`![${asset.caption || 'image'}](${asset.url})`);
-                                                    alert('Markdown copied to clipboard!');
+                                                    alert(t('events.edit.markdownCopied'));
                                                 }}
                                                 className="bg-gray-800 text-white p-1 px-2 rounded text-xs shadow-sm hover:bg-gray-700"
-                                                title="Copy Markdown"
+                                                title={t('events.edit.copyMarkdown')}
                                             >
-                                                📋
+                                                {t('events.edit.copyMarkdown')}
                                             </button>
                                         </div>
                                     </div>
@@ -402,30 +406,30 @@ export default function EditEvent() {
                 {activeTab === 'recap' && (
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Jälkilöylyt (Markdown)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('events.edit.recapLabel')}</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-96">
                                 <textarea
                                     name="recap_markdown"
                                     className="block w-full h-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border font-mono"
                                     value={formData.recap_markdown}
                                     onChange={handleChange}
-                                    placeholder="# Mitä tapahtui..."
+                                    placeholder={t('events.edit.recapPlaceholder')}
                                 />
                                 <div className="border rounded-md p-4 overflow-auto prose prose-sm bg-gray-50 h-full">
-                                    <ReactMarkdown>{formData.recap_markdown || '*Esikatselu*'}</ReactMarkdown>
+                                    <ReactMarkdown>{formData.recap_markdown || `*${t('events.edit.preview')}*`}</ReactMarkdown>
                                 </div>
                             </div>
                         </div>
 
                         <div className="border-t pt-4">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Kuvat & Videot (Jälkilöylyt)</h3>
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('events.edit.attachmentsRecap')}</h3>
                             <div className="flex items-center gap-4 mb-4">
                                 <input
                                     type="file"
                                     onChange={(e) => handleFileUpload(e, 'recap')}
                                     disabled={uploading}
                                 />
-                                {uploading && <span className="text-sm text-gray-500">Ladataan...</span>}
+                                {uploading && <span className="text-sm text-gray-500">{t('events.edit.uploading')}</span>}
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -447,18 +451,18 @@ export default function EditEvent() {
                                                 type="button"
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(`![${asset.caption || 'image'}](${asset.url})`);
-                                                    alert('Markdown copied to clipboard!');
+                                                    alert(t('events.edit.markdownCopied'));
                                                 }}
                                                 className="bg-gray-800 text-white p-1 px-2 rounded text-xs shadow-sm hover:bg-gray-700"
-                                                title="Copy Markdown"
+                                                title={t('events.edit.copyMarkdown')}
                                             >
-                                                📋
+                                                {t('events.edit.copyMarkdown')}
                                             </button>
                                         </div>
                                     </div>
                                 ))}
                                 {mediaAssets.filter(m => m.section === 'recap').length === 0 && (
-                                    <p className="text-gray-400 text-sm col-span-4">Ei kuvia vielä.</p>
+                                    <p className="text-gray-400 text-sm col-span-4">{t('events.edit.noImages')}</p>
                                 )}
                             </div>
                         </div>
@@ -471,14 +475,14 @@ export default function EditEvent() {
                         onClick={() => navigate(`/events/${id}`)}
                         className="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none"
                     >
-                        Peruuta
+                        {t('events.edit.cancel')}
                     </button>
                     <button
                         type="submit"
                         disabled={saving}
                         className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        {saving ? 'Tallennetaan...' : 'Tallenna muutokset'}
+                        {saving ? t('events.edit.saving') : t('events.edit.save')}
                     </button>
                 </div>
             </form>

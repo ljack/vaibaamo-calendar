@@ -4,6 +4,36 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import EditEvent from './EditEvent'
 import { AuthProvider } from '../contexts/AuthContext'
 import { BrowserRouter } from 'react-router-dom'
+import { initReactI18next } from 'react-i18next'
+import i18n from 'i18next'
+
+// Mock i18n
+i18n
+    .use(initReactI18next)
+    .init({
+        lng: 'fi',
+        fallbackLng: 'fi',
+        ns: ['translation'],
+        defaultNS: 'translation',
+        resources: {
+            fi: {
+                translation: {
+                    events: {
+                        edit: {
+                            uploadError: 'Lataus epäonnistui! Varmista että "event-media" bucket on olemassa.',
+                            fetchError: 'Virhe tapahtuman haussa',
+                            errorSave: 'Virhe tallennuksessa',
+                            save: 'Tallenna muutokset'
+                        }
+                    },
+                    common: {
+                        error: 'Virhe',
+                        save: 'Tallenna'
+                    }
+                }
+            }
+        }
+    })
 
 const { mockSupabase } = vi.hoisted(() => {
     const mock = {
