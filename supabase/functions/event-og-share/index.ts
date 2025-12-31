@@ -3,14 +3,14 @@ import { serve } from "std/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import satori from "satori";
-import { initWasm, render } from "resvg";
+import { initWasm, Resvg } from "resvg";
 import React from "react";
 
 // Initialize WASM Lazily
 let wasmReady = false;
 async function initializeResvg() {
     if (!wasmReady) {
-        await initWasm(fetch("https://deno.land/x/resvg_wasm@0.2.0/resvg.wasm"));
+        await initWasm(fetch("https://esm.sh/@resvg/resvg-wasm@2.4.0/index_bg.wasm"));
         wasmReady = true;
     }
 }
@@ -199,9 +199,13 @@ serve(async (req) => {
             );
 
             // 4. Convert SVG to PNG
-            const pngBuffer = await render(svg);
+            const resvg = new Resvg(svg, {
+                fitTo: { mode: "width", value: 1200 },
+            });
+            const pngData = resvg.render();
+            const pngBuffer = pngData.asPng();
 
-            return new Response(pngBuffer as unknown as BodyInit, {
+            return new Response(pngBuffer, {
                 headers: {
                     ...corsHeaders,
                     "Content-Type": "image/png",
