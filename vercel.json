@@ -1,6 +1,10 @@
 {
     "rewrites": [
         {
+            "source": "/s/events/:id",
+            "destination": "https://kpvehddfjxpiztiiinff.supabase.co/functions/v1/event-og-share?id=:id&redirect=https://vaibaamo-calendar.vercel.app/events/:id"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

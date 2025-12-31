@@ -48,6 +48,17 @@ serve(async (req) => {
         redirectUrl = "https://vaibaamo-calendar.vercel.app";
     }
 
+    // Append tab to redirect URL so the user lands on the correct tab
+    if (tab !== "info" && redirectUrl) {
+        try {
+            const rUrl = new URL(redirectUrl);
+            rUrl.searchParams.set("tab", tab);
+            redirectUrl = rUrl.toString();
+        } catch {
+            // If parsing fails (unlikely given validation), leave as is
+        }
+    }
+
     // Initialize Supabase Client with Anon Key
     // OG bots (Slack, FB) are unauthenticated, so this relies on public RLS policies.
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -91,11 +102,24 @@ serve(async (req) => {
 
     // Determine Description
     let description = event.description || "";
+    const cleanMarkdown = (text: string) => {
+        return text
+            // Remove images: ![alt](url)
+            .replace(/!\[.*?\]\(.*?\)/g, "")
+            // Remove links but keep text: [text](url) -> text
+            .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+            // Remove bold/italic/code markers: #, *, _, `, ~, >
+            .replace(/[#*`_~>]/g, "")
+            // Collapse whitespace
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 200) + "...";
+    };
+
     if (tab === "recap" && event.recap_markdown) {
-        // Strip markdown chars for simple description
-        description = event.recap_markdown.replace(/[#*`_\[\]]/g, "").slice(0, 200) + "...";
+        description = cleanMarkdown(event.recap_markdown);
     } else if (tab === "plan" && event.plan_markdown) {
-        description = event.plan_markdown.replace(/[#*`_\[\]]/g, "").slice(0, 200) + "...";
+        description = cleanMarkdown(event.plan_markdown);
     }
 
     // Construct HTML response
@@ -108,6 +132,7 @@ serve(async (req) => {
             <meta name="description" content="${description}">
             
             <!-- Open Graph / Facebook -->
+            <meta property="og:site_name" content="Vaibaamo Calendar">
             <meta property="og:type" content="website">
             <meta property="og:url" content="${redirectUrl}">
             <meta property="og:title" content="${event.title}">

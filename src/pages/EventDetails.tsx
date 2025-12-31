@@ -186,21 +186,15 @@ export default function EventDetails() {
     }, [])
 
     const copyLink = (tab: string) => {
-        // 1. Construct the direct deep link to the app (for the redirect)
-        const directUrl = new URL(window.location.href)
-        directUrl.searchParams.set('tab', tab)
-        const redirectParam = encodeURIComponent(directUrl.toString())
-
-        // 2. Construct the Sharing Proxy URL (Supabase Edge Function)
-        // This URL returns HTML with Open Graph tags + JS Redirect
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        let finalUrl = directUrl.toString()
-
-        if (supabaseUrl) {
-            finalUrl = `${supabaseUrl}/functions/v1/event-og-share?id=${id}&tab=${tab}&redirect=${redirectParam}`
+        // Construct a clean sharing URL using the /s/ prefix
+        // In production (Vercel), this path is rewritten to the Supabase Edge Function for OG tags
+        const origin = window.location.origin
+        const shareUrl = new URL(`/s/events/${id}`, origin)
+        if (tab !== 'info') {
+            shareUrl.searchParams.set('tab', tab)
         }
-
-        navigator.clipboard.writeText(finalUrl)
+        
+        navigator.clipboard.writeText(shareUrl.toString())
         setCopyFeedback(tab)
         setTimeout(() => setCopyFeedback(null), 2000)
     }
