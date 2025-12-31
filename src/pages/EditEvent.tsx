@@ -403,7 +403,7 @@ export default function EditEvent() {
                                 {mediaAssets.filter(m => m.section === 'plan').map((asset, i) => (
                                     <div key={i} className="relative group">
                                         <img src={asset.url} alt={asset.caption} className="h-24 w-full object-cover rounded-md" />
-                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-md" />
+                                        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity rounded-md" />
                                         <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 type="button"
@@ -474,7 +474,7 @@ export default function EditEvent() {
                                 {mediaAssets.filter(m => m.section === 'recap').map((asset, i) => (
                                     <div key={i} className="relative group">
                                         <img src={asset.url} alt={asset.caption} className="h-24 w-full object-cover rounded-md border" />
-                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-md" />
+                                        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity rounded-md" />
                                         <div className="text-xs truncate mt-1">{asset.caption}</div>
                                         <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
