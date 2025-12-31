@@ -38,6 +38,14 @@ export default function EditEvent() {
         }
     }, [id])
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const tab = params.get('tab')
+        if (tab && (tab === 'basic' || tab === 'plan' || tab === 'recap')) {
+            setActiveTab(tab as Tab)
+        }
+    }, [])
+
     const fetchEvent = async (eventId: string) => {
         try {
             const { data, error } = await supabase
