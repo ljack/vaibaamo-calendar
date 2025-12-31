@@ -51,8 +51,12 @@ serve(async (req) => {
           - Intense/Danger? Use dissonant notes or fast changes (C3, C#3, F#3).
           - Just bored? Noodle around!
           Surprise the user with a soundtrack for their chat.
-
-        Keep responses concise (max 3 sentences) but engaging.
+        - ROUTE PLANNING: If the user asks for a route (e.g., "From [City A] to [City B]"), act as a travel planner.
+          - Output the route as a sequence of coordinates using this format: [[ROUTE: [Lat1, Lon1], [Lat2, Lon2], [Lat3, Lon3], ...]].
+          - Include the start, end, and 2-3 interesting STOPS or scenic waypoints in between.
+          - Use your internal knowledge to estimate the coordinates for these places.
+          - In your text response, explicitly mention the stops you chose and why they are interesting.
+          - Example: "Setting course for Tampere. I've added a stop at the old fortress. [[ROUTE: [60.16, 24.93], [60.99, 24.46], [61.49, 23.78]]]"
 
         Keep responses concise (max 3 sentences) but engaging.
         `;

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -57,6 +57,7 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }
     const [loading, setLoading] = useState(false);
     const [selectedPoint, setSelectedPoint] = useState<L.LatLng | null>(null);
     const [mapFocus, setMapFocus] = useState<L.LatLng | null>(null); // State for AI-driven map movement
+    const [routePath, setRoutePath] = useState<L.LatLng[] | null>(null); // State for AI-driven route
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -137,6 +138,32 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }
                     replyContent = replyContent.replace(musicMatch[0], '').trim();
                 }
 
+                // Parse for route [[ROUTE: [Lat1, Lon1], [Lat2, Lon2], ...]]
+                const routeMatch = replyContent.match(/\[\[\s*ROUTE:\s*((?:\[\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\]\s*,?\s*)+)\]\]/);
+                if (routeMatch) {
+                    try {
+                        // Parse the array string. wrapping in [] to make it valid JSON array of arrays logic
+                        // The regex captures inner content like "[60.1, 24.9], [61.5, 23.8]"
+                        // We can parse it by wrapping in brackets and using JSON.parse
+                        const routeStr = `[${routeMatch[1]}]`;
+                        const rawCoords = JSON.parse(routeStr);
+
+                        if (Array.isArray(rawCoords) && rawCoords.length > 0) {
+                            const path = rawCoords.map((c: any) => new L.LatLng(c[0], c[1]));
+                            setRoutePath(path);
+
+                            // Focus on the start of the route or fit bounds (future enhancement)
+                            // For now, fly to the first point
+                            if (path.length > 0) {
+                                setMapFocus(path[0]);
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse route", e);
+                    }
+                    replyContent = replyContent.replace(routeMatch[0], '').trim();
+                }
+
                 setMessages(prev => [...prev, { role: 'assistant', content: replyContent }]);
             }
 
@@ -186,6 +213,7 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }
                     <LocationPicker onSelect={handleMapClick} />
                     <MapController center={mapFocus} />
                     {selectedPoint && <Marker position={selectedPoint} />}
+                    {routePath && <Polyline positions={routePath} color="red" weight={4} dashArray="10, 10" />}
                 </MapContainer>
             </div>
 
