@@ -162,16 +162,27 @@ export default function EventDetails() {
         }
     }
 
-    const [activeTab, setActiveTab] = useState<'info' | 'plan' | 'recap'>('info')
+    const [activeTab, setActiveTabState] = useState<'info' | 'plan' | 'recap'>('info')
     const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+
+    const setActiveTab = (tab: 'info' | 'plan' | 'recap') => {
+        setActiveTabState(tab)
+        const url = new URL(window.location.href)
+        if (tab === 'info') {
+            url.searchParams.delete('tab')
+        } else {
+            url.searchParams.set('tab', tab)
+        }
+        window.history.pushState({}, '', url.toString())
+    }
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search)
         const tab = params.get('tab')
         if (tab === 'plan' || tab === 'recap') {
-            setActiveTab(tab)
+            setActiveTabState(tab)
         }
-    }, [window.location.search])
+    }, [])
 
     const copyLink = (tab: string) => {
         const url = `${window.location.origin}/events/${id}?tab=${tab}`
