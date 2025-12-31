@@ -163,7 +163,7 @@
             "attachmentsPlan": "Liitteet (Suunnitelma)",
             "attachmentsRecap": "Kuvat & Videot (Jälkilöylyt)",
             "uploading": "Ladataan...",
-            "aiEdit": "✨ AI Edit",
+            "aiEdit": "AI-muokkaus (uusi kuva)",
             "copyMarkdown": "📋",
             "noImages": "Ei kuvia vielä.",
             "promptTitle": "Syötä kehote AI-muokkausta varten (Gemini/Nano Banana):",
@@ -171,10 +171,12 @@
             "uploadError": "Lataus epäonnistui! Varmista että \"event-media\" bucket on olemassa.",
             "deleteAsset": "Poista tiedosto",
             "confirmDeleteAsset": "Haluatko varmasti poistaa tämän tiedoston?",
-            "aiEdit": "AI-muokkaus (uusi kuva)",
             "markdownCopied": "Markdown kopioitu leikepöydälle!",
             "fetchError": "Virhe tapahtuman haussa",
-            "errorSave": "Virhe tallennuksessa"
+            "errorSave": "Virhe tallennuksessa",
+            "pastedImageCaption": "Liitattu kuva",
+            "aiGenerateSuccess": "AI-kuva luotu onnistuneesti!",
+            "confirmAIGenerate": "Luodaanko uusi kuva kehotteella: \"{{prompt}}\"? Tämä saattaa kestää hetken."
         }
     }
 }

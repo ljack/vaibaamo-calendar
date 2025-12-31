@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
@@ -79,7 +79,6 @@ export default function EditEvent() {
             setMediaAssets(event.media_assets || [])
         } catch (error) {
             console.error('Error fetching event:', error)
-            console.error('Error fetching event:', error)
             alert(t('events.edit.fetchError'))
             navigate('/')
         } finally {
@@ -114,7 +113,6 @@ export default function EditEvent() {
             navigate(`/events/${id}`)
         } catch (error: any) {
             console.error('Error updating event:', error)
-            console.error('Error updating event:', error)
             alert(t('events.edit.errorSave') + ' ' + error.message)
         } finally {
             setSaving(false)
@@ -129,11 +127,24 @@ export default function EditEvent() {
     }
 
     const uploadFile = async (file: File, section: 'plan' | 'recap') => {
+        // Validate file type
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+            alert(t('events.edit.uploadError') + ' Invalid file type.')
+            return
+        }
+
+        // Validate file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024
+        if (file.size > maxSize) {
+            alert(t('events.edit.uploadError') + ' File size exceeds 5MB.')
+            return
+        }
+
         setUploading(true)
-        const fileExt = file.name.split('.').pop()
+        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : undefined
         // If file doesn't have an extension (e.g. pasted image), default to png
         const ext = fileExt || 'png'
-        const fileName = `${Math.random().toString(36).substring(2)}.${ext}`
+        const fileName = `${crypto.randomUUID()}.${ext}`
         const filePath = `events/${id}/${fileName}`
 
         try {
@@ -150,13 +161,12 @@ export default function EditEvent() {
             const newAsset: MediaAsset = {
                 url: publicUrl,
                 type: file.type.startsWith('video') ? 'video' : 'image',
-                caption: file.name || 'Pasted Image',
+                caption: file.name || t('events.edit.pastedImageCaption'),
                 section
             }
 
             setMediaAssets(prev => [...prev, newAsset])
         } catch (error: any) {
-            console.error('Upload error:', error)
             console.error('Upload error:', error)
             alert(t('events.edit.uploadError'))
         } finally {
@@ -169,7 +179,7 @@ export default function EditEvent() {
         await uploadFile(e.target.files[0], section)
     }
 
-    const handlePaste = async (e: ClipboardEvent) => {
+    const handlePaste = useCallback(async (e: ClipboardEvent) => {
         if (activeTab === 'basic') return; // Only allow paste in Plan or Recap tabs
 
         if (e.clipboardData && e.clipboardData.files.length > 0) {
@@ -179,21 +189,26 @@ export default function EditEvent() {
                 await uploadFile(file, activeTab as 'plan' | 'recap');
             }
         }
-    }
+    }, [activeTab, id])
 
     useEffect(() => {
         window.addEventListener('paste', handlePaste);
         return () => {
             window.removeEventListener('paste', handlePaste);
         }
-    }, [activeTab, id]) // Re-bind when activeTab changes so we know where to upload
+    }, [handlePaste])
 
     const handleAIEdit = async (assetIndex: number) => {
         const asset = mediaAssets[assetIndex];
-        const userPrompt = prompt(t('events.edit.promptTitle'), t('events.edit.promptDefault'));
+        const userPrompt = prompt(
+            t('events.edit.promptTitle') + ' This might take a moment.',
+            t('events.edit.promptDefault')
+        );
         if (!userPrompt) return;
 
-        const confirmGen = window.confirm(`Generate new image with prompt: "${userPrompt}"? This might take a moment.`);
+        const confirmGen = window.confirm(
+            t('events.edit.confirmAIGenerate', { prompt: userPrompt })
+        );
         if (!confirmGen) return;
 
         setUploading(true);
@@ -208,16 +223,11 @@ export default function EditEvent() {
 
             // 2. Process Base64 to Blob
             const b64 = data.image_b64;
-            const byteCharacters = atob(b64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
+            const byteArray = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
             const blob = new Blob([byteArray], { type: 'image/png' });
 
             // 3. Upload to Storage
-            const fileName = `ai-gen-${Math.random().toString(36).substring(2)}.png`;
+            const fileName = `ai-gen-${crypto.randomUUID()}.png`;
             const filePath = `events/${id}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
@@ -237,10 +247,10 @@ export default function EditEvent() {
                 type: 'image',
                 caption: `AI: ${userPrompt}`,
                 section: asset.section
-            }
+            };
             setMediaAssets(prev => [...prev, newAsset]);
 
-            alert("AI Image generated successfully!");
+            alert(t('events.edit.aiGenerateSuccess'));
 
         } catch (e: any) {
             console.error(e);
@@ -264,7 +274,8 @@ export default function EditEvent() {
 
                 if (error) {
                     console.error('Error deleting file:', error)
-                    // We interpret this as a warning but still remove from state so user isn't blocked
+                    alert(t('common.error') + ' Failed to delete file from storage.')
+                    return
                 }
             }
         }
