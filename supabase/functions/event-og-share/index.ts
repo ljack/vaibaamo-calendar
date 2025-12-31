@@ -22,10 +22,13 @@ const corsHeaders = {
 
 // ... existing helper functions ...
 
+// Fetch a font for Satori (Inter Bold)
 async function fetchFont() {
-    // ...
-    const fontUrl = "https://github.com/google/fonts/raw/main/ofl/inter/Inter-Bold.ttf";
+    const fontUrl = "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff";
     const res = await fetch(fontUrl);
+    if (!res.ok) {
+        throw new Error(`Failed to fetch font: ${res.statusText}`);
+    }
     return await res.arrayBuffer();
 }
 
