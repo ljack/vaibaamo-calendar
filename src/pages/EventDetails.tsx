@@ -7,6 +7,7 @@ import EventsMap from '../components/EventsMap'
 import { createMapLink } from '../lib/geocode'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
+import rehypeSanitize from 'rehype-sanitize'
 
 type ParticipantEmail = {
     user_id: string
@@ -374,7 +375,7 @@ export default function EventDetails() {
                     <div className="space-y-6">
                         <div className="flex justify-between items-start">
                             <div className="prose max-w-none">
-                                <ReactMarkdown>
+                                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
                                     {event.plan_markdown || `*${t('events.details.noPlan')}*`}
                                 </ReactMarkdown>
                             </div>
@@ -408,7 +409,7 @@ export default function EventDetails() {
                     <div className="space-y-6">
                         <div className="flex justify-between items-start">
                             <div className="prose max-w-none">
-                                <ReactMarkdown>
+                                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
                                     {event.recap_markdown || `*${t('events.details.noRecap')}*`}
                                 </ReactMarkdown>
                             </div>

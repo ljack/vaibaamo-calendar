@@ -30,6 +30,7 @@
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.10.1",
+    "rehype-sanitize": "^6.0.0",
     "supakeys": "^0.1.7"
   },
   "devDependencies": {

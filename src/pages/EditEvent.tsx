@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
+import rehypeSanitize from 'rehype-sanitize'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import type { Event, MediaAsset } from '../types'
@@ -385,7 +386,7 @@ export default function EditEvent() {
                                     placeholder={t('events.edit.planPlaceholder')}
                                 />
                                 <div className="border rounded-md p-4 overflow-auto prose prose-sm bg-gray-50 h-full">
-                                    <ReactMarkdown>{formData.plan_markdown || `*${t('events.edit.preview')}*`}</ReactMarkdown>
+                                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{formData.plan_markdown || `*${t('events.edit.preview')}*`}</ReactMarkdown>
                                 </div>
                             </div>
                         </div>
@@ -454,7 +455,7 @@ export default function EditEvent() {
                                     placeholder={t('events.edit.recapPlaceholder')}
                                 />
                                 <div className="border rounded-md p-4 overflow-auto prose prose-sm bg-gray-50 h-full">
-                                    <ReactMarkdown>{formData.recap_markdown || `*${t('events.edit.preview')}*`}</ReactMarkdown>
+                                    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{formData.recap_markdown || `*${t('events.edit.preview')}*`}</ReactMarkdown>
                                 </div>
                             </div>
                         </div>
