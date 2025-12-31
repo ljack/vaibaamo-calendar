@@ -4,7 +4,7 @@
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0",
     "openai": "https://esm.sh/openai@4.24.1",
     "satori": "https://esm.sh/satori@0.10.11?no-dts",
-    "resvg": "https://esm.sh/@resvg/resvg-js@2.6.0",
+    "resvg": "https://esm.sh/@resvg/resvg-js@2.4.1",
     "react": "https://esm.sh/react@18.2.0?no-dts",
     "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime?no-dts"
   }
