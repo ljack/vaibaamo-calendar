@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -40,11 +40,22 @@ const LocationPicker = ({ onSelect }: { onSelect: (latlng: L.LatLng) => void }) 
     return null;
 };
 
+const MapController = ({ center }: { center: L.LatLng | null }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.flyTo(center, 8, { duration: 2 });
+        }
+    }, [center, map]);
+    return null;
+};
+
 export const JourneyChat: React.FC<JourneyChatProps> = ({ context }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedPoint, setSelectedPoint] = useState<L.LatLng | null>(null);
+    const [mapFocus, setMapFocus] = useState<L.LatLng | null>(null); // State for AI-driven map movement
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -102,7 +113,23 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context }) => {
             if (error) throw error;
 
             if (data?.reply) {
-                setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+                let replyContent = data.reply;
+                // Parse for coordinates [[LAT, LON]] with permissive whitespace
+                const coordMatch = replyContent.match(/\[\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]\]/);
+
+                if (coordMatch) {
+                    const lat = parseFloat(coordMatch[1]);
+                    const lng = parseFloat(coordMatch[2]);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        const newFocus = new L.LatLng(lat, lng);
+                        setMapFocus(newFocus); // Fly to AI suggested location
+                        setSelectedPoint(newFocus); // Also mark it
+                    }
+                    // Remove the coordinates tag from the visible message
+                    replyContent = replyContent.replace(coordMatch[0], '').trim();
+                }
+
+                setMessages(prev => [...prev, { role: 'assistant', content: replyContent }]);
             }
 
         } catch (err) {
@@ -149,6 +176,7 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context }) => {
                         .leaflet-tile { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
                     `}</style>
                     <LocationPicker onSelect={handleMapClick} />
+                    <MapController center={mapFocus} />
                     {selectedPoint && <Marker position={selectedPoint} />}
                 </MapContainer>
             </div>
