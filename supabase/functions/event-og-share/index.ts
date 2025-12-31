@@ -237,11 +237,12 @@ serve(async (req) => {
         const description = cleanMarkdown(descriptionRaw);
         
         // Use SELF as the image source (Dynamic Image)
-        // We append type=image to the current URL params
-        const ogImageUrl = new URL(req.url);
-        ogImageUrl.protocol = "https:"; // Force HTTPS
+        // Explicitly construct the public URL to ensure /functions/v1/ path is present
+        const ogImageUrl = new URL(`${supabaseUrl}/functions/v1/event-og-share`);
+        
+        // Copy relevant params from current request
+        ogImageUrl.searchParams.set("id", eventId); // Must ensure ID is passed!
         ogImageUrl.searchParams.set("type", "image");
-        // Ensure we pass tab to image generation so it picks correct background
         ogImageUrl.searchParams.set("tab", tab); 
         const finalOgImageUrl = ogImageUrl.toString();
 
@@ -266,7 +267,9 @@ serve(async (req) => {
                 const rUrl = new URL(redirectUrl);
                 rUrl.searchParams.set("tab", tab);
                 redirectUrl = rUrl.toString();
-            } catch {}
+            } catch {
+                // Ignore invalid URL
+            }
         }
 
         // Generate Meta Tags
