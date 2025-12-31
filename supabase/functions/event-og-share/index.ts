@@ -32,24 +32,36 @@ async function fetchFont() {
     return await res.arrayBuffer();
 }
 
-async function getEventCTA(description: string, apiKey: string): Promise<string> {
-    // ... (keep logic) ...
-    if (!apiKey) return "Join the Event";
+async function getAIContent(event: any, apiKey: string): Promise<{ title: string; cta: string }> {
+    const defaultTitle = `${event.title} | Vaibaamo Calendar`;
+    const defaultCTA = "Join the Event";
+
+    if (!apiKey) return { title: defaultTitle, cta: defaultCTA };
+
     try {
         const openai = new OpenAI({ apiKey });
         const completion = await openai.chat.completions.create({
             messages: [
-                { role: "system", content: "You are a marketing expert. Generate a very short, exciting, 2-5 word Call to Action (CTA) for an event based on the description. Examples: 'Join the Party', 'Register Now', 'Don't Miss Out'. Output only the CTA." },
-                { role: "user", content: `Description: ${description.slice(0, 500)}` }
+                { 
+                    role: "system", 
+                    content: `You are a social media marketing expert. 
+1. Generate an engaging SEO Title (50-60 characters) for this event. It MUST include the event name "${event.title}".
+2. Generate a very short, exciting CTA (2-4 words) for the button. e.g. "Join Now", "RSVP Today".
+Return strictly valid JSON: { "title": "string", "cta": "string" }` 
+                },
+                { role: "user", content: `Description: ${event.description?.slice(0, 500) || "Join us at Vaibaamo!"}` }
             ],
             model: "gpt-3.5-turbo",
-            max_tokens: 10,
+            response_format: { type: "json_object" },
         });
-        const cta = completion.choices[0].message.content?.trim();
-        return cta ? cta.replace(/["']/g, "") : "Join the Event";
+        const content = JSON.parse(completion.choices[0].message.content || "{}");
+        return {
+            title: content.title || defaultTitle,
+            cta: content.cta || defaultCTA
+        };
     } catch (e) {
         console.error("OpenAI Error:", e);
-        return "Join the Vaibaamo";
+        return { title: defaultTitle, cta: defaultCTA };
     }
 }
 
@@ -123,8 +135,12 @@ serve(async (req) => {
                 if (match) bgImageUrl = match[1];
             }
 
-            // 2. Generate CTA using AI (if key exists)
-            const ctaText = await getEventCTA(descriptionRaw, openaiApiKey);
+            // 2. Generate CTA using AI (fallback) or get from Param
+            let ctaText = url.searchParams.get("cta");
+            if (!ctaText) {
+                const ai = await getAIContent(event, openaiApiKey);
+                ctaText = ai.cta;
+            }
 
             // 3. Render Image with Satori
             const fontData = await fetchFont();
@@ -238,6 +254,20 @@ serve(async (req) => {
         };
 
         const description = cleanMarkdown(descriptionRaw);
+
+        // Fetch AI Metadata (Title + CTA)
+        let pageTitle = `${event.title} | Vaibaamo Calendar`;
+        let aiCta = "";
+        // Only fetch AI if we have a key
+        if (openaiApiKey) {
+            try {
+                const ai = await getAIContent(event, openaiApiKey);
+                pageTitle = ai.title;
+                aiCta = ai.cta;
+            } catch (e) {
+                console.warn("AI Fetch failed", e);
+            }
+        }
         
         // Use SELF as the image source (Dynamic Image)
         // Explicitly construct the public URL to ensure /functions/v1/ path is present
@@ -247,9 +277,10 @@ serve(async (req) => {
         ogImageUrl.searchParams.set("id", eventId); // Must ensure ID is passed!
         ogImageUrl.searchParams.set("type", "image");
         ogImageUrl.searchParams.set("tab", tab); 
+        if (aiCta) ogImageUrl.searchParams.set("cta", aiCta); // Pass generated CTA to image
         const finalOgImageUrl = ogImageUrl.toString();
 
-        const pageTitle = `${event.title} | Vaibaamo Calendar`;
+
 
         // Redirect Logic
         let redirectUrl = url.searchParams.get("redirect");
