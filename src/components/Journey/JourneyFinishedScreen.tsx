@@ -79,6 +79,9 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
         }
     }, [finalStats, story, loadingStory]);
 
+    // Track AI playback timers to allow interruption
+    const melodyTimersRef = useRef<number[]>([]);
+
     const playMelody = (notes: string[]) => {
         // Stop background theme if playing
         if (stopMusicRef) {
@@ -86,15 +89,20 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
             setStopMusicRef(undefined); // Clear ref so we don't try to stop again
         }
 
+        // Clear any previous melody timers
+        melodyTimersRef.current.forEach(timer => window.clearTimeout(timer));
+        melodyTimersRef.current = [];
+
         let delay = 0;
         notes.forEach(note => {
             const keyConfig = PIANO_KEYS.find(k => k.note === note);
             if (keyConfig) {
-                setTimeout(() => {
+                const timerId = window.setTimeout(() => {
                     playNote(keyConfig.freq, 0.4);
                     setActiveFreq(keyConfig.freq);
                     setTimeout(() => setActiveFreq(0), 300);
                 }, delay);
+                melodyTimersRef.current.push(timerId);
                 delay += 500; // Half second spacing
             }
         });
@@ -106,6 +114,13 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
     const chatRef = useRef<JourneyChatRef>(null);
 
     const handlePianoPlay = (freq: number) => {
+        // If user starts playing, STOP the AI's current jamming immediately
+        if (melodyTimersRef.current.length > 0) {
+            melodyTimersRef.current.forEach(timer => window.clearTimeout(timer));
+            melodyTimersRef.current = [];
+            setActiveFreq(0); // Reset visual key press
+        }
+
         // Play the sound (now with space-synth default)
         playNote(freq, 0.5);
         setActiveFreq(freq);
