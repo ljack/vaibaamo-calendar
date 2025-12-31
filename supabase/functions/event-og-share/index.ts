@@ -1,11 +1,42 @@
 
 import { serve } from "std/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
+import satori from "satori";
+import { Resvg } from "resvg";
+import React from "react";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Fetch a font for Satori (Inter Bold)
+async function fetchFont() {
+    const fontUrl = "https://github.com/google/fonts/raw/main/ofl/inter/Inter-Bold.ttf";
+    const res = await fetch(fontUrl);
+    return await res.arrayBuffer();
+}
+
+async function getEventCTA(description: string, apiKey: string): Promise<string> {
+    if (!apiKey) return "Join the Event";
+    try {
+        const openai = new OpenAI({ apiKey });
+        const completion = await openai.chat.completions.create({
+            messages: [
+                { role: "system", content: "You are a marketing expert. Generate a very short, exciting, 2-5 word Call to Action (CTA) for an event based on the description. Examples: 'Join the Party', 'Register Now', 'Don't Miss Out'. Output only the CTA." },
+                { role: "user", content: `Description: ${description.slice(0, 500)}` }
+            ],
+            model: "gpt-3.5-turbo",
+            max_tokens: 10,
+        });
+        const cta = completion.choices[0].message.content?.trim();
+        return cta ? cta.replace(/["']/g, "") : "Join the Event";
+    } catch (e) {
+        console.error("OpenAI Error:", e);
+        return "Join the Vaibaamo";
+    }
+}
 
 serve(async (req) => {
     // Handle CORS preflight requests
@@ -14,221 +45,274 @@ serve(async (req) => {
     }
 
     try {
-    // Input Validation & Allowlisting
-    const url = new URL(req.url);
-    const eventId = url.searchParams.get("id");
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
-    if (!eventId || !UUID_REGEX.test(eventId)) {
-        return new Response("Invalid Event ID", { status: 400 });
-    }
+        const url = new URL(req.url);
+        const eventId = url.searchParams.get("id");
+        const type = url.searchParams.get("type"); // "image" for OG Image generation
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    const tabParam = url.searchParams.get("tab") || "info";
-    const ALLOWED_TABS = ["info", "plan", "recap"];
-    const tab = ALLOWED_TABS.includes(tabParam) ? tabParam : "info";
-
-    // Validate Redirect URL to prevent Open Redirect vulnerabilities
-    let redirectUrl = url.searchParams.get("redirect");
-    const ALLOWED_DOMAINS = ["vaibaamo.com", "vaibaamo-calendar.vercel.app", "localhost"];
-    
-    let isRedirectValid = false;
-    if (redirectUrl) {
-        try {
-            const parsed = new URL(redirectUrl);
-            isRedirectValid = ALLOWED_DOMAINS.some(domain => 
-                parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`)
-            );
-        } catch {
-            isRedirectValid = false;
-        }
-    }
-
-    if (!isRedirectValid) {
-        // Fallback to a safe default if redirect param is missing or malicious
-        redirectUrl = "https://vaibaamo-calendar.vercel.app";
-    }
-
-    // Append tab to redirect URL so the user lands on the correct tab
-    if (tab !== "info" && redirectUrl) {
-        try {
-            const rUrl = new URL(redirectUrl);
-            rUrl.searchParams.set("tab", tab);
-            redirectUrl = rUrl.toString();
-        } catch {
-            // If parsing fails (unlikely given validation), leave as is
-        }
-    }
-
-    // Initialize Supabase Client with Anon Key
-    // OG bots (Slack, FB) are unauthenticated, so this relies on public RLS policies.
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-            console.error("Missing Supabase configuration");
-            return new Response("Server Configuration Error", { status: 500 });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Fetch Event Data (Read-Only)
-    const { data: event, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", eventId)
-        .single();
-
-    if (error || !event) {
-        console.error("Event fetch error:", error);
-        return new Response(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${redirectUrl}"></head></html>`, {
-            headers: { "Content-Type": "text/html" },
-        });
-    }
-
-    // Determine Image
-    let imageUrl = "";
-    const assets = event.media_assets || [];
-    
-    // Priority 1: Structured Asset from the requested section
-    const sectionImage = assets.find((a: any) => a.section === tab && a.type === "image");
-    if (sectionImage) {
-        imageUrl = sectionImage.url;
-    } else {
-            // Priority 2: Any Structured Asset
-            const anyImage = assets.find((a: any) => a.type === "image");
-            if (anyImage) imageUrl = anyImage.url;
-    }
-
-    // Priority 3 (Fallback): Extract from Markdown content
-    if (!imageUrl) {
-        const extractImage = (md: string) => {
-            if (!md) return null;
-            const match = md.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/); // Capture https? URLs only
-            return match ? match[1] : null;
+        if (!eventId || !UUID_REGEX.test(eventId)) {
+            return new Response("Invalid Event ID", { status: 400 });
         }
 
-        // Check current tab first, then others
-        const currentMarkdown = tab === 'recap' ? event.recap_markdown : (tab === 'plan' ? event.plan_markdown : "");
-        imageUrl = extractImage(currentMarkdown) || 
-                   extractImage(event.recap_markdown) || 
-                   extractImage(event.plan_markdown) || "";
-    }
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+        const openaiApiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
 
-    // Determine Description
-    let description = event.description || "";
-    const cleanMarkdown = (text: string) => {
-        const cleaned = text
-            // Remove images: ![alt](url)
-            .replace(/!\[.*?\]\(.*?\)/g, "")
-            // Remove links but keep text: [text](url) -> text
-            .replace(/\[(.*?)\]\(.*?\)/g, "$1")
-            // Remove bold/italic/code markers: #, *, _, `, ~, >
-            .replace(/[#*`_~>]/g, "")
-            // Collapse whitespace
-            .replace(/\s+/g, " ")
-            .trim();
-        
-        // Smart Truncate to ~150 chars (Optimal 110-160)
-        const MAX_LEN = 150;
-        if (cleaned.length <= MAX_LEN) return cleaned;
-        
-        // Cut at max length
-        let truncated = cleaned.slice(0, MAX_LEN);
-        // Track back to last space to avoid cutting words
-        const lastSpace = truncated.lastIndexOf(" ");
-        if (lastSpace > 0) {
-            truncated = truncated.slice(0, lastSpace);
+        if (!supabaseUrl || !supabaseAnonKey) {
+            return new Response("Server Config Error", { status: 500 });
         }
-        return truncated + "...";
-    };
 
-    if (tab === "recap" && event.recap_markdown) {
-        description = cleanMarkdown(event.recap_markdown);
-    } else if (tab === "plan" && event.plan_markdown) {
-        description = cleanMarkdown(event.plan_markdown);
-    }
-    
-    // enhance Title with Branding (Optimal 50-60 chars)
-    // E.g. "Vaibaamo Meeting at Ainoa | Vaibaamo Calendar"
-    const pageTitle = `${event.title} | Vaibaamo Calendar`;
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Construct HTML response
-    // Generate Meta Tags
-    const metaTags = `
-        <title>${pageTitle}</title>
-        <meta name="description" content="${description}">
-        
-        <!-- Open Graph / Facebook -->
-        <meta property="og:site_name" content="Vaibaamo Calendar">
-        <meta property="og:type" content="website">
-        <meta property="og:url" content="${redirectUrl}">
-        <meta property="og:title" content="${pageTitle}">
-        <meta property="og:description" content="${description}">
-        ${imageUrl ? `<meta property="og:image" content="${imageUrl}">` : ""}
+        // Fetch Event Data (Public RLS)
+        const { data: event, error } = await supabase
+            .from("events")
+            .select("*")
+            .eq("id", eventId)
+            .single();
 
-        <!-- Twitter -->
-        <meta property="twitter:card" content="summary_large_image">
-        <meta property="twitter:url" content="${redirectUrl}">
-        <meta property="twitter:title" content="${pageTitle}">
-        <meta property="twitter:description" content="${description}">
-        ${imageUrl ? `<meta property="twitter:image" content="${imageUrl}">` : ""}
-    `;
+        if (error || !event) {
+            return new Response("Event not found", { status: 404 });
+        }
 
-    // Attempt to inject into App Shell (Masking) to show the actual app content
-    let finalHtml = "";
-    const canInject = redirectUrl && !redirectUrl.includes("localhost");
+        // Determine Tab and Markdown
+        const tabParam = url.searchParams.get("tab") || "info";
+        const ALLOWED_TABS = ["info", "plan", "recap"];
+        const tab = ALLOWED_TABS.includes(tabParam) ? tabParam : "info";
 
-    if (canInject) {
-        try {
-            const appOrigin = new URL(redirectUrl!).origin;
-            // Fetch the App Shell (index.html)
-            const resp = await fetch(appOrigin);
-            if (resp.ok) {
-                const appHtml = await resp.text();
-                // Inject tags: Remove existing title and append new tags to head
-                finalHtml = appHtml
-                    .replace(/<title>.*?<\/title>/i, "")
-                    .replace(/<\/head>/i, `${metaTags}</head>`);
+        let descriptionRaw = event.description || "";
+        if (tab === "recap" && event.recap_markdown) descriptionRaw = event.recap_markdown;
+        else if (tab === "plan" && event.plan_markdown) descriptionRaw = event.plan_markdown;
+
+        // --- IMAGE GENERATION MODE ---
+        if (type === "image") {
+            // 1. Determine Background Image URL (Reuse logic)
+            let bgImageUrl = "";
+            const assets = event.media_assets || [];
+            const sectionImage = assets.find((a: any) => a.section === tab && a.type === "image");
+            if (sectionImage) bgImageUrl = sectionImage.url;
+            else {
+                const anyImage = assets.find((a: any) => a.type === "image");
+                if (anyImage) bgImageUrl = anyImage.url;
             }
-        } catch (e: any) {
-            console.error("App shell injection failed:", e);
+            if (!bgImageUrl) {
+                // Markdown extraction fallback
+                const match = descriptionRaw.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/);
+                if (match) bgImageUrl = match[1];
+            }
+
+            // 2. Generate CTA using AI (if key exists)
+            const ctaText = await getEventCTA(descriptionRaw, openaiApiKey);
+
+            // 3. Render Image with Satori
+            const fontData = await fetchFont();
+            
+            // Standard generic background if none
+             const bgStyle: any = bgImageUrl 
+                ? { backgroundImage: `url(${bgImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                : { background: 'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)' };
+
+            const svg = await satori(
+                React.createElement(
+                    "div",
+                    {
+                        style: {
+                            display: "flex",
+                            height: "100%",
+                            width: "100%",
+                            flexDirection: "column",
+                            justifyContent: "flex-end",
+                            fontFamily: "Inter",
+                            color: "white",
+                            ...bgStyle,
+                        },
+                    },
+                    React.createElement(
+                        "div",
+                        {
+                            style: {
+                                display: "flex",
+                                flexDirection: "column",
+                                background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%)",
+                                padding: "40px 60px",
+                                width: "100%",
+                            },
+                        },
+                        React.createElement("div", {
+                            style: {
+                                display: "flex",
+                                alignItems: "center",
+                                backgroundColor: "#FBBF24", // Amber button
+                                color: "#111827", // Dark text
+                                padding: "12px 24px",
+                                borderRadius: "12px",
+                                fontSize: "24px",
+                                fontWeight: "bold",
+                                textTransform: "uppercase",
+                                marginBottom: "20px",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                                letterSpacing: "1px",
+                            },
+                        }, ctaText + " →"), // Visual cue arrow
+                        React.createElement("div", {
+                            style: {
+                                fontSize: "64px",
+                                fontWeight: "900", // Extra bold
+                                lineHeight: "1.1",
+                                textShadow: "0px 4px 20px rgba(0,0,0,0.6)",
+                                letterSpacing: "-1px",
+                            },
+                        }, event.title)
+                    )
+                ),
+                {
+                    width: 1200,
+                    height: 630,
+                    fonts: [
+                        {
+                            name: "Inter",
+                            data: fontData,
+                            style: "normal",
+                            weight: 700,
+                        },
+                    ],
+                }
+            );
+
+            // 4. Convert SVG to PNG
+            const resvg = new Resvg(svg);
+            const pngData = resvg.render();
+            const pngBuffer = pngData.asPng();
+
+            return new Response(pngBuffer, {
+                headers: {
+                    ...corsHeaders,
+                    "Content-Type": "image/png",
+                    // Cache generated image aggressively (24h)
+                    "Cache-Control": "public, max-age=86400, s-maxage=86400",
+                },
+            });
         }
-    }
 
-    // Fallback: Minimal JS Redirect (for localhost or fetch failure)
-    if (!finalHtml) {
-        finalHtml = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                ${metaTags}
-                <!-- Redirect to App -->
-                <meta http-equiv="refresh" content="0;url=${redirectUrl}">
-            </head>
-            <body>
-                <script>window.location.href = "${redirectUrl}";</script>
-                <p>Redirecting to <a href="${redirectUrl}">${event.title}</a>...</p>
-            </body>
-            </html>
+        // --- HTML MODE (Existing Logic) ---
+
+        // Clean Description
+        const cleanMarkdown = (text: string) => {
+            const cleaned = text
+                .replace(/!\[.*?\]\(.*?\)/g, "")
+                .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+                .replace(/[#*`_~>]/g, "")
+                .replace(/\s+/g, " ")
+                .trim();
+            
+            const MAX_LEN = 150;
+            if (cleaned.length <= MAX_LEN) return cleaned;
+            let truncated = cleaned.slice(0, MAX_LEN);
+            const lastSpace = truncated.lastIndexOf(" ");
+            if (lastSpace > 0) truncated = truncated.slice(0, lastSpace);
+            return truncated + "...";
+        };
+
+        const description = cleanMarkdown(descriptionRaw);
+        
+        // Use SELF as the image source (Dynamic Image)
+        // We append type=image to the current URL params
+        const ogImageUrl = new URL(req.url);
+        ogImageUrl.searchParams.set("type", "image");
+        // Ensure we pass tab to image generation so it picks correct background
+        ogImageUrl.searchParams.set("tab", tab); 
+        const finalOgImageUrl = ogImageUrl.toString();
+
+        const pageTitle = `${event.title} | Vaibaamo Calendar`;
+
+        // Redirect Logic
+        let redirectUrl = url.searchParams.get("redirect");
+        const ALLOWED_DOMAINS = ["vaibaamo.com", "vaibaamo-calendar.vercel.app", "localhost"];
+        let isRedirectValid = false;
+        if (redirectUrl) {
+            try {
+                const parsed = new URL(redirectUrl);
+                isRedirectValid = ALLOWED_DOMAINS.some(domain => 
+                    parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`)
+                );
+            } catch { isRedirectValid = false; }
+        }
+        if (!isRedirectValid) redirectUrl = "https://vaibaamo-calendar.vercel.app";
+
+        if (tab !== "info" && redirectUrl) {
+            try {
+                const rUrl = new URL(redirectUrl);
+                rUrl.searchParams.set("tab", tab);
+                redirectUrl = rUrl.toString();
+            } catch {}
+        }
+
+        // Generate Meta Tags
+        const metaTags = `
+            <title>${pageTitle}</title>
+            <meta name="description" content="${description}">
+            
+            <meta property="og:site_name" content="Vaibaamo Calendar">
+            <meta property="og:type" content="website">
+            <meta property="og:url" content="${redirectUrl}">
+            <meta property="og:title" content="${pageTitle}">
+            <meta property="og:description" content="${description}">
+            <meta property="og:image" content="${finalOgImageUrl}">
+
+            <meta property="twitter:card" content="summary_large_image">
+            <meta property="twitter:url" content="${redirectUrl}">
+            <meta property="twitter:title" content="${pageTitle}">
+            <meta property="twitter:description" content="${description}">
+            <meta property="twitter:image" content="${finalOgImageUrl}">
         `;
-    }
 
-    // Cache Aggressively: Public content, cache for 1 hour (CDN 24 hours)
-    // This acts as a rate limit by offloading requests to the edge cache.
-    const cacheHeaders = {
-        "Cache-Control": "public, max-age=3600, s-maxage=86400",
-        ...corsHeaders,
-        "Content-Type": "text/html"
-    };
+        // Inject into App Shell
+        let finalHtml = "";
+        const canInject = redirectUrl && !redirectUrl.includes("localhost");
 
-    return new Response(finalHtml, {
-        headers: cacheHeaders,
-    });
+        if (canInject) {
+            try {
+                const appOrigin = new URL(redirectUrl!).origin;
+                const resp = await fetch(appOrigin);
+                if (resp.ok) {
+                    const appHtml = await resp.text();
+                    finalHtml = appHtml
+                        .replace(/<title>.*?<\/title>/i, "")
+                        .replace(/<\/head>/i, `${metaTags}</head>`);
+                }
+            } catch (e: any) {
+                console.error("App shell injection failed:", e);
+            }
+        }
+
+        if (!finalHtml) {
+            finalHtml = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    ${metaTags}
+                    <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+                </head>
+                <body>
+                    <script>window.location.href = "${redirectUrl}";</script>
+                    <p>Redirecting to <a href="${redirectUrl}">${event.title}</a>...</p>
+                </body>
+                </html>
+            `;
+        }
+
+        return new Response(finalHtml, {
+            headers: {
+                "Cache-Control": "public, max-age=3600, s-maxage=86400",
+                ...corsHeaders,
+                "Content-Type": "text/html"
+            },
+        });
 
     } catch (error: any) {
-        console.error("Edge function error:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("Error:", error);
+         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
