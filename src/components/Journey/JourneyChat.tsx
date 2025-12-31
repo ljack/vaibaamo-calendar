@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { initAudio } from '../../lib/audioUtils';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -78,6 +79,11 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }
 
     const sendMessage = async (text: string, isSystemInit = false) => {
         if (!text.trim() && !isSystemInit) return;
+
+        // Initialize audio context on user interaction to ensure playback works later
+        if (!isSystemInit) {
+            initAudio();
+        }
 
         const newMsg: ChatMessage = { role: 'user', content: text };
 

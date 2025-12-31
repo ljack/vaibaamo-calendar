@@ -1,8 +1,31 @@
+// Shared AudioContext to prevent autoplay restriction issues and overhead
+let sharedAudioCtx: AudioContext | null = null;
+
+const getAudioContext = (): AudioContext | null => {
+    const AudioContextStr = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextStr) return null;
+
+    if (!sharedAudioCtx) {
+        sharedAudioCtx = new AudioContextStr();
+    }
+
+    // Always try to resume if suspended (browsers auto-suspend contexts created without gesture)
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume().catch(err => console.error("Failed to resume AudioContext", err));
+    }
+
+    return sharedAudioCtx;
+};
+
+// Explicitly initialize/resume audio (call this on user interaction)
+export const initAudio = () => {
+    getAudioContext();
+};
+
 // Helper to play a single note
 export const playNote = (freq: number, duration: number = 0.5, type: OscillatorType = 'sawtooth') => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext(); // Or reuse a global one if preferred, but new is fine for sparse events
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -27,17 +50,14 @@ export const playNote = (freq: number, duration: number = 0.5, type: OscillatorT
     osc.start(now);
     osc.stop(now + duration);
 
-    // Cleanup
-    setTimeout(() => {
-        if (ctx.state !== 'closed') ctx.close();
-    }, (duration * 1000) + 100);
+    // Nodes are garbage collected automatically when disconnected and stopped, 
+    // no need to close context (since it's shared now)
 };
 
 export const playSpaceTheme = (onNotePlay?: (freq: number) => void) => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return () => { };
+    const ctx = getAudioContext();
+    if (!ctx) return () => { };
 
-    const ctx = new AudioContext();
     let isPlaying = true;
     let nextNoteTime = ctx.currentTime;
     let timeoutId: any = null;
@@ -137,6 +157,7 @@ export const playSpaceTheme = (onNotePlay?: (freq: number) => void) => {
         isPlaying = false;
         if (timeoutId) clearTimeout(timeoutId);
         boxTimeouts.forEach(t => clearTimeout(t));
-        if (ctx.state !== 'closed') ctx.close().catch(() => { });
+        // Do NOT close shared context
+        // if (ctx.state !== 'closed') ctx.close().catch(() => { });
     };
 };
