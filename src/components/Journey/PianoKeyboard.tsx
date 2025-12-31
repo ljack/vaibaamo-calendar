@@ -1,33 +1,8 @@
 
 import React from 'react';
 
-interface KeyConfig {
-    note: string;
-    freq: number;
-    type: 'white' | 'black';
-}
+import { PIANO_KEYS } from './PianoConfig';
 
-// Range: C3 to F4 to cover the song's notes
-const KEYS: KeyConfig[] = [
-    { note: 'C3', freq: 130.81, type: 'white' },
-    { note: 'C#3', freq: 138.59, type: 'black' },
-    { note: 'D3', freq: 146.83, type: 'white' },
-    { note: 'Eb3', freq: 155.56, type: 'black' },
-    { note: 'E3', freq: 164.81, type: 'white' },
-    { note: 'F3', freq: 174.61, type: 'white' },
-    { note: 'Gb3', freq: 185.00, type: 'black' },
-    { note: 'G3', freq: 196.00, type: 'white' },
-    { note: 'Ab3', freq: 207.65, type: 'black' },
-    { note: 'A3', freq: 220.00, type: 'white' },
-    { note: 'Bb3', freq: 233.08, type: 'black' },
-    { note: 'B3', freq: 246.94, type: 'white' },
-    { note: 'C4', freq: 261.63, type: 'white' },
-    { note: 'C#4', freq: 277.18, type: 'black' },
-    { note: 'D4', freq: 293.66, type: 'white' },
-    { note: 'Eb4', freq: 311.13, type: 'black' },
-    { note: 'E4', freq: 329.63, type: 'white' },
-    { note: 'F4', freq: 349.23, type: 'white' }
-];
 
 interface PianoKeyboardProps {
     activeFreq: number;
@@ -81,7 +56,7 @@ export const PianoKeyboard: React.FC<PianoKeyboardProps> = ({ activeFreq, onPlay
                 }
             `}</style>
             <div style={{ position: 'relative', height: '140px', width: 'auto', display: 'flex' }}>
-                {KEYS.map((key) => {
+                {PIANO_KEYS.map((key) => {
                     const isActive = Math.abs(key.freq - activeFreq) < 1;
 
                     if (key.type === 'white') {
@@ -100,12 +75,12 @@ export const PianoKeyboard: React.FC<PianoKeyboardProps> = ({ activeFreq, onPlay
                 })}
 
                 {/* Render Black Keys Overlay */}
-                {KEYS.map((key, index) => {
+                {PIANO_KEYS.map((key, index) => {
                     if (key.type === 'black') {
                         const isActive = Math.abs(key.freq - activeFreq) < 1;
 
                         // Determine position. C# is between C and D.
-                        const whiteKeysBefore = KEYS.slice(0, index).filter(k => k.type === 'white').length;
+                        const whiteKeysBefore = PIANO_KEYS.slice(0, index).filter(k => k.type === 'white').length;
 
                         // Each white key is 40px (+2px border approx? No standard is 42 here).
                         // 40px width + 2px border = 42px per key block? 

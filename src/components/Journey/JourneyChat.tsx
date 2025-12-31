@@ -29,6 +29,7 @@ interface JourneyChatProps {
         events: any[];
         stats: any;
     };
+    onPlayMusic?: (notes: string[]) => void;
 }
 
 const LocationPicker = ({ onSelect }: { onSelect: (latlng: L.LatLng) => void }) => {
@@ -50,7 +51,7 @@ const MapController = ({ center }: { center: L.LatLng | null }) => {
     return null;
 };
 
-export const JourneyChat: React.FC<JourneyChatProps> = ({ context }) => {
+export const JourneyChat: React.FC<JourneyChatProps> = ({ context, onPlayMusic }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -125,8 +126,15 @@ export const JourneyChat: React.FC<JourneyChatProps> = ({ context }) => {
                         setMapFocus(newFocus); // Fly to AI suggested location
                         setSelectedPoint(newFocus); // Also mark it
                     }
-                    // Remove the coordinates tag from the visible message
                     replyContent = replyContent.replace(coordMatch[0], '').trim();
+                }
+
+                // Parse for music [[MUSIC: NOTE1, NOTE2]]
+                const musicMatch = replyContent.match(/\[\[\s*MUSIC:\s*([\w\s,#]+)\]\]/);
+                if (musicMatch && onPlayMusic) {
+                    const notes = musicMatch[1].split(/[,\s]+/).filter((n: string) => n.length > 0);
+                    onPlayMusic(notes);
+                    replyContent = replyContent.replace(musicMatch[0], '').trim();
                 }
 
                 setMessages(prev => [...prev, { role: 'assistant', content: replyContent }]);

@@ -3,7 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { PoiType } from '../../lib/journeyUtils';
 import { playSpaceTheme, playNote } from '../../lib/audioUtils';
+
 import { PianoKeyboard } from './PianoKeyboard';
+import { PIANO_KEYS } from './PianoConfig';
 import { JourneyChat } from './JourneyChat';
 
 export interface FinalStats {
@@ -65,6 +67,22 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
             fetchStory();
         }
     }, [finalStats, story, loadingStory]);
+
+    // Music playback from AI
+    const playMelody = (notes: string[]) => {
+        let delay = 0;
+        notes.forEach(note => {
+            const keyConfig = PIANO_KEYS.find(k => k.note === note);
+            if (keyConfig) {
+                setTimeout(() => {
+                    playNote(keyConfig.freq, 0.4);
+                    setActiveFreq(keyConfig.freq);
+                    setTimeout(() => setActiveFreq(0), 300);
+                }, delay);
+                delay += 500; // Half second spacing
+            }
+        });
+    };
 
     const handlePianoPlay = (freq: number) => {
         playNote(freq, 0.5);
@@ -267,11 +285,14 @@ export const JourneyFinishedScreen: React.FC<JourneyFinishedScreenProps> = ({ fi
                                     Back to Stats
                                 </button>
                             </div>
-                            <JourneyChat context={{
-                                route: finalStats.routePlaces || [],
-                                events: finalStats.collectedEvents || [],
-                                stats: { distance: finalStats.distance, score: finalStats.score }
-                            }} />
+                            <JourneyChat
+                                context={{
+                                    route: finalStats.routePlaces || [],
+                                    events: finalStats.collectedEvents || [],
+                                    stats: { distance: finalStats.distance, score: finalStats.score }
+                                }}
+                                onPlayMusic={playMelody}
+                            />
                             <div style={{ marginTop: '20px' }}>
                                 <PianoKeyboard activeFreq={activeFreq} onPlayNote={handlePianoPlay} />
                             </div>
