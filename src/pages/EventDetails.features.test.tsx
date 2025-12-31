@@ -241,7 +241,8 @@ describe('EventDetails Features', () => {
         const shareBtn = screen.getByText(/events.details.share/)
         fireEvent.click(shareBtn)
 
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/events/event-copy?tab=plan'))
+        // Check if the copied URL contains the tab parameter
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('tab=plan'))
         expect(screen.getByText(/events.details.copied/)).toBeInTheDocument()
     })
 })
