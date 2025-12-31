@@ -114,7 +114,7 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "text/html" },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Edge function error:", error);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
