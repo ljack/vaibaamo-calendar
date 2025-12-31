@@ -401,7 +401,7 @@ export default function EditEvent() {
                                                 type="button"
                                                 onClick={() => handleAIEdit(mediaAssets.indexOf(asset))}
                                                 className="bg-purple-600 text-white p-1 px-2 rounded text-xs shadow-sm hover:bg-purple-700"
-                                                title="AI Edit"
+                                                title={t('events.edit.aiEdit')}
                                             >
                                                 ✨
                                             </button>
@@ -473,7 +473,7 @@ export default function EditEvent() {
                                                 type="button"
                                                 onClick={() => handleAIEdit(mediaAssets.indexOf(asset))}
                                                 className="bg-purple-600 text-white p-1 px-2 rounded text-xs shadow-sm hover:bg-purple-700"
-                                                title="AI Edit"
+                                                title={t('events.edit.aiEdit')}
                                             >
                                                 ✨
                                             </button>

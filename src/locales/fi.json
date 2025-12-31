@@ -171,6 +171,7 @@
             "uploadError": "Lataus epäonnistui! Varmista että \"event-media\" bucket on olemassa.",
             "deleteAsset": "Poista tiedosto",
             "confirmDeleteAsset": "Haluatko varmasti poistaa tämän tiedoston?",
+            "aiEdit": "AI-muokkaus (uusi kuva)",
             "markdownCopied": "Markdown kopioitu leikepöydälle!",
             "fetchError": "Virhe tapahtuman haussa",
             "errorSave": "Virhe tallennuksessa"

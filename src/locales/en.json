@@ -171,6 +171,7 @@
             "uploadError": "Upload failed! Ensure \"event-media\" bucket exists.",
             "deleteAsset": "Delete file",
             "confirmDeleteAsset": "Are you sure you want to delete this file?",
+            "aiEdit": "AI Edit (Generate New)",
             "markdownCopied": "Markdown copied to clipboard!",
             "fetchError": "Error fetching event",
             "errorSave": "Error saving"
