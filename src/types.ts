@@ -6,6 +6,13 @@ export interface Profile {
     updated_at: string | null
 }
 
+export interface MediaAsset {
+    url: string
+    type: 'image' | 'video'
+    caption?: string
+    section: 'plan' | 'recap'
+}
+
 export interface Event {
     id: string
     title: string
@@ -16,6 +23,9 @@ export interface Event {
     max_participants: number | null
     created_at: string
     creator_id?: string | null
+    plan_markdown?: string | null
+    recap_markdown?: string | null
+    media_assets?: MediaAsset[]
 }
 
 export interface Participant {
