@@ -8,6 +8,7 @@ import { createMapLink } from '../lib/geocode'
 import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
+import remarkBreaks from 'remark-breaks'
 
 type ParticipantEmail = {
     user_id: string
@@ -186,15 +187,21 @@ export default function EventDetails() {
     }, [])
 
     const copyLink = (tab: string) => {
-        // Construct a clean sharing URL using the /s/ prefix
-        // In production (Vercel), this path is rewritten to the Supabase Edge Function for OG tags
-        const origin = window.location.origin
-        const shareUrl = new URL(`/s/events/${id}`, origin)
-        if (tab !== 'info') {
-            shareUrl.searchParams.set('tab', tab)
+        // 1. Construct the direct deep link to the app (for the redirect)
+        const directUrl = new URL(window.location.href)
+        directUrl.searchParams.set('tab', tab)
+        const redirectParam = encodeURIComponent(directUrl.toString())
+
+        // 2. Construct the Sharing Proxy URL (Supabase Edge Function)
+        // This URL returns HTML with Open Graph tags + JS Redirect
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        let finalUrl = directUrl.toString()
+
+        if (supabaseUrl) {
+            finalUrl = `${supabaseUrl}/functions/v1/event-og-share?id=${id}&tab=${tab}&redirect=${redirectParam}`
         }
-        
-        navigator.clipboard.writeText(shareUrl.toString())
+
+        navigator.clipboard.writeText(finalUrl)
         setCopyFeedback(tab)
         setTimeout(() => setCopyFeedback(null), 2000)
     }
@@ -382,7 +389,7 @@ export default function EventDetails() {
                     <div className="space-y-6">
                         <div className="flex justify-between items-start">
                             <div className="prose max-w-none">
-                                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+                                <ReactMarkdown remarkPlugins={[remarkBreaks]} rehypePlugins={[rehypeSanitize]}>
                                     {event.plan_markdown || `*${t('events.details.noPlan')}*`}
                                 </ReactMarkdown>
                             </div>
@@ -416,7 +423,7 @@ export default function EventDetails() {
                     <div className="space-y-6">
                         <div className="flex justify-between items-start">
                             <div className="prose max-w-none">
-                                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+                                <ReactMarkdown remarkPlugins={[remarkBreaks]} rehypePlugins={[rehypeSanitize]}>
                                     {event.recap_markdown || `*${t('events.details.noRecap')}*`}
                                 </ReactMarkdown>
                             </div>
