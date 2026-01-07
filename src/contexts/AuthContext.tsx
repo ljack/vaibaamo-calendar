@@ -147,7 +147,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setSession(null)
                 setUser(null)
             } finally {
-                if (mounted) setLoading(false)
+                if (mounted) {
+                    console.log('[AuthContext] Bootstrap finally, loading set to false');
+                    setLoading(false);
+                }
             }
         }
 

@@ -185,35 +185,69 @@ export function useEditEvent(id: string | undefined) {
             if (error) throw error
 
             if (schedulerMode) {
-                // Delete old options and insert new ones
-                await supabase.from('event_options').delete().eq('event_id', id)
+                // Fetch existing options to see what we can keep
+                const { data: existingOptions, error: fetchOptionsError } = await supabase
+                    .from('event_options')
+                    .select('*')
+                    .eq('event_id', id)
                 
-                const options = proposedDates.filter(pd => pd.start_time && pd.end_time).map(pd => ({
-                    event_id: id,
-                    start_time: pd.start_time ? new Date(pd.start_time).toISOString() : '',
-                    end_time: pd.end_time ? new Date(pd.end_time).toISOString() : '',
-                    time_type: formData.time_type
-                }))
+                if (fetchOptionsError) throw fetchOptionsError
 
-                // Normalize option times
-                options.forEach(opt => {
+                const newOptions = proposedDates.filter(pd => pd.start_time && pd.end_time).map(pd => {
+                    const opt = {
+                        event_id: id,
+                        start_time: pd.start_time ? new Date(pd.start_time).toISOString() : '',
+                        end_time: pd.end_time ? new Date(pd.end_time).toISOString() : '',
+                        time_type: formData.time_type
+                    }
+
+                    // Normalize option times
                     if (opt.time_type === 'all_day' && opt.start_time) {
                         const date = new Date(opt.start_time)
-                        opt.start_time = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString()
-                        opt.end_time = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59).toISOString()
+                        const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0)
+                        const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59)
+                        opt.start_time = start.toISOString()
+                        opt.end_time = end.toISOString()
                     } else if (opt.time_type === 'all_day_multi' && opt.start_time && opt.end_time) {
                         const startDate = new Date(opt.start_time)
                         const endDate = new Date(opt.end_time)
-                        opt.start_time = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0).toISOString()
-                        opt.end_time = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59).toISOString()
+                        const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0)
+                        const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59)
+                        opt.start_time = start.toISOString()
+                        opt.end_time = end.toISOString()
                     }
+                    return opt
                 })
 
-                if (options.length > 0) {
-                    const { error: optionsError } = await supabase
+                // Find options to delete (present in DB but not in our new list)
+                const toDelete = (existingOptions || []).filter(eo => 
+                    !newOptions.some(no => 
+                        no.start_time === eo.start_time && 
+                        no.end_time === eo.end_time
+                    )
+                )
+
+                // Find options to insert (in our new list but not in DB)
+                const toInsert = newOptions.filter(no => 
+                    !(existingOptions || []).some(eo => 
+                        eo.start_time === no.start_time && 
+                        eo.end_time === no.end_time
+                    )
+                )
+
+                if (toDelete.length > 0) {
+                    const { error: deleteError } = await supabase
                         .from('event_options')
-                        .insert(options)
-                    if (optionsError) throw optionsError
+                        .delete()
+                        .in('id', toDelete.map(o => o.id))
+                    if (deleteError) throw deleteError
+                }
+
+                if (toInsert.length > 0) {
+                    const { error: insertError } = await supabase
+                        .from('event_options')
+                        .insert(toInsert)
+                    if (insertError) throw insertError
                 }
             } else {
                 await supabase.from('event_options').delete().eq('event_id', id)
