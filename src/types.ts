@@ -59,3 +59,14 @@ export interface Participant {
     display_name: string | null
     created_at: string
 }
+export interface EventOwner {
+    id: string
+    event_id: string
+    user_id: string
+    created_at: string
+    profiles?: {
+        full_name: string | null
+        display_name: string | null
+        avatar_url: string | null
+    } | null
+}

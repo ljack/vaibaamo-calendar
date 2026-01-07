@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { Event, MediaAsset } from '../types'
+import type { Event, MediaAsset, EventOwner } from '../types'
 import { generateRandomCode } from '../lib/random'
 
-type Tab = 'basic' | 'plan' | 'recap'
+type Tab = 'basic' | 'plan' | 'recap' | 'admins'
 
 export function useEditEvent(id: string | undefined) {
     const { user } = useAuth()
@@ -38,6 +38,20 @@ export function useEditEvent(id: string | undefined) {
 
     const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([])
     const [uploading, setUploading] = useState(false)
+    const [owners, setOwners] = useState<EventOwner[]>([])
+
+    const fetchOwners = async (eventId: string) => {
+        const { data, error } = await supabase
+            .from('event_owners')
+            .select('*, profiles(full_name, display_name, avatar_url)')
+            .eq('event_id', eventId)
+        
+        if (error) {
+            console.error('Error fetching owners:', error)
+            return
+        }
+        setOwners(data as unknown as EventOwner[])
+    }
 
     const fetchEvent = async (eventId: string) => {
         try {
@@ -90,6 +104,7 @@ export function useEditEvent(id: string | undefined) {
             }
 
             setMediaAssets(event.media_assets || [])
+            await fetchOwners(eventId)
         } catch (error) {
             console.error('Error fetching event:', error)
             alert(t('events.edit.fetchError'))
@@ -108,7 +123,7 @@ export function useEditEvent(id: string | undefined) {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search)
         const tab = params.get('tab')
-        if (tab && (tab === 'basic' || tab === 'plan' || tab === 'recap')) {
+        if (tab && (tab === 'basic' || tab === 'plan' || tab === 'recap' || tab === 'admins')) {
             setActiveTab(tab as Tab)
         }
     }, [])
@@ -349,6 +364,36 @@ export function useEditEvent(id: string | undefined) {
         setMediaAssets(prev => prev.filter(a => a !== asset))
     }
 
+    const addOwner = async (userId: string) => {
+        if (!id) return
+        const { error } = await supabase
+            .from('event_owners')
+            .insert({ event_id: id, user_id: userId })
+        
+        if (error) {
+            console.error('Error adding owner:', error)
+            alert(t('events.edit.errorAddOwner') || 'Virhe lisättäessä vastuuhenkilöä.')
+            return
+        }
+        await fetchOwners(id)
+    }
+
+    const removeOwner = async (ownerId: string) => {
+        if (!window.confirm(t('events.edit.confirmRemoveOwner') || 'Haluatko varmasti poistaa tämän vastuuhenkilön?')) return
+        
+        const { error } = await supabase
+            .from('event_owners')
+            .delete()
+            .eq('id', ownerId)
+        
+        if (error) {
+            console.error('Error removing owner:', error)
+            alert(t('events.edit.errorRemoveOwner') || 'Virhe poistettaessa vastuuhenkilöä.')
+            return
+        }
+        if (id) await fetchOwners(id)
+    }
+
     return {
         id,
         loading,
@@ -361,12 +406,15 @@ export function useEditEvent(id: string | undefined) {
         proposedDates,
         setProposedDates,
         mediaAssets,
+        owners,
         uploading,
         handleChange,
         handleSubmit,
         handleFileUpload,
         handleAIEdit,
         handleDeleteAsset,
+        addOwner,
+        removeOwner,
         t,
         navigate
     }

@@ -44,6 +44,7 @@ export default function EventDetails() {
     const [showCodePrompt, setShowCodePrompt] = useState(false)
     const [accessDenied, setAccessDenied] = useState(false)
     const [joinDisplayName, setJoinDisplayName] = useState('')
+    const [eventOwners, setEventOwners] = useState<string[]>([])
 
     useEffect(() => {
         if (id) {
@@ -81,6 +82,14 @@ export default function EventDetails() {
             }))
 
             setVotes(votesWithParticipantNames as EventVoteWithProfile[])
+            
+            // Fetch event owners
+            const { data: ownersData } = await supabase
+                .from('event_owners')
+                .select('user_id')
+                .eq('event_id', eventId)
+            
+            setEventOwners(ownersData?.map(o => o.user_id) || [])
         } catch (error) {
             console.error('Error fetching voting data:', error)
         }
@@ -109,7 +118,7 @@ export default function EventDetails() {
                 const storedCode = localStorage.getItem(storageKey)
                 const effectiveCode = urlCode || storedCode
                 
-                const isCreatorOrAdmin = isAdmin || (user && user.id === data.creator_id)
+                const isCreatorOrAdmin = isAdmin || (user && (user.id === data.creator_id || eventOwners.includes(user.id)))
                 
                 if (isCreatorOrAdmin || effectiveCode === data.access_code) {
                     setShowCodePrompt(false)
@@ -443,6 +452,8 @@ export default function EventDetails() {
     // Determine locale for dates (default to fi-FI if not set or en-US)
     const dateLocale = i18n.language || 'fi-FI'
 
+    const isCreatorOrAdmin = isAdmin || (user && (user.id === event.creator_id || eventOwners.includes(user.id)))
+
     return (
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-start sm:items-center flex-col sm:flex-row gap-4">
@@ -470,7 +481,7 @@ export default function EventDetails() {
                         </Link>
                     ) : (
                         <>
-                            {(isAdmin || user.id === (event as any).creator_id) && (
+                            {isCreatorOrAdmin && (
                                 <Link
                                     to={`/events/${event.id}/edit?tab=${activeTab === 'info' ? 'basic' : activeTab}`}
                                     className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
