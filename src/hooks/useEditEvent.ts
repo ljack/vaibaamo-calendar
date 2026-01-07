@@ -130,6 +130,47 @@ export function useEditEvent(id: string | undefined) {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
+
+        if (name === 'time_type') {
+            const newType = value as 'timestamp' | 'all_day' | 'all_day_multi'
+            const normalize = (v: string) => {
+                if (!v) return v
+                if ((newType === 'all_day' || newType === 'all_day_multi') && v.includes('T')) {
+                    return v.split('T')[0]
+                }
+                if (newType === 'timestamp' && v.length === 10) {
+                    return `${v}T12:00`
+                }
+                return v
+            }
+
+            setFormData(prev => {
+                const next = { 
+                    ...prev, 
+                    time_type: newType,
+                    start_time: normalize(prev.start_time),
+                    end_time: normalize(prev.end_time)
+                }
+                if (newType === 'all_day_multi' && !next.end_time && next.start_time) {
+                    next.end_time = next.start_time
+                }
+                return next
+            })
+
+            setProposedDates(prevDates => prevDates.map(pd => {
+                const normStart = normalize(pd.start_time)
+                let normEnd = normalize(pd.end_time)
+                if (newType === 'all_day_multi' && !normEnd && normStart) {
+                    normEnd = normStart
+                }
+                return {
+                    start_time: normStart,
+                    end_time: normEnd
+                }
+            }))
+            return
+        }
+
         setFormData(prev => {
             const next = { ...prev, [name]: value }
             

@@ -188,4 +188,43 @@ describe('CreateEvent', () => {
         })
         alertSpy.mockRestore()
     })
+
+    it('normalizes dates when switching time types', async () => {
+        vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
+            user: { id: 'admin' } as any,
+            isAdmin: true,
+            loading: false,
+            signOut: vi.fn()
+        } as any)
+
+        render(
+            <BrowserRouter>
+                <CreateEvent />
+            </BrowserRouter>
+        )
+
+        // Initial state is 'timestamp' by default. Set Alkaa.
+        const startTimeInput = screen.getByLabelText(/Alkaa/i) as HTMLInputElement
+        fireEvent.change(startTimeInput, { target: { value: '2025-10-10T10:00' } })
+        expect(startTimeInput.value).toBe('2025-10-10T10:00')
+
+        // Switch time_type to 'all_day'
+        const timeTypeSelect = screen.getByText('events.edit.timeType').nextElementSibling as HTMLSelectElement
+        fireEvent.change(timeTypeSelect, { target: { value: 'all_day' } })
+
+        // Input should now be normalized to '2025-10-10' (and type is 'date')
+        await waitFor(() => {
+            expect(startTimeInput.value).toBe('2025-10-10')
+            expect(startTimeInput.type).toBe('date')
+        })
+
+        // Switch back to 'timestamp'
+        fireEvent.change(timeTypeSelect, { target: { value: 'timestamp' } })
+
+        // Value should be normalized back to '2025-10-10T12:00'
+        await waitFor(() => {
+            expect(startTimeInput.value).toBe('2025-10-10T12:00')
+            expect(startTimeInput.type).toBe('datetime-local')
+        })
+    })
 })

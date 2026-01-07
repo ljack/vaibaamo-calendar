@@ -303,4 +303,76 @@ describe('EditEvent Vote Preservation', () => {
             expect(mockedNavigate).toHaveBeenCalledWith('/events/event-123')
         })
     })
+
+    it('preserves and normalizes dates when switching time types', async () => {
+        const event = {
+            id: 'event-123',
+            title: 'Time Type Switch Test',
+            start_time: '2025-10-10T10:00:00.000Z',
+            end_time: '2025-10-10T12:00:00.000Z',
+            scheduling_status: 'voting',
+            time_type: 'timestamp'
+        }
+
+        const fromMock = vi.mocked(supabase.from)
+        
+        const eventsBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: event, error: null }),
+        }
+
+        const optionsBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            then: (resolve: (val: unknown) => void) => resolve({ 
+                data: [{
+                    id: 'opt-1',
+                    start_time: '2025-10-10T10:00:00+00:00',
+                    end_time: '2025-10-10T12:00:00+00:00',
+                    time_type: 'timestamp'
+                }], 
+                error: null 
+            })
+        }
+
+        fromMock.mockImplementation((table: string) => {
+            if (table === 'events') return eventsBuilder as any
+            if (table === 'event_options') return optionsBuilder as any
+            return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), then: (r: any) => r({ data: [] }) } as any
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/events/event-123/edit']}>
+                <Routes>
+                    <Route path="/events/:id/edit" element={<EditEvent />} />
+                </Routes>
+            </MemoryRouter>
+        )
+
+        await waitFor(() => expect(screen.getByDisplayValue('Time Type Switch Test')).toBeInTheDocument())
+
+        // Initial state should start with '2025-10-10T' (timestamp: start and end)
+        expect(screen.getAllByDisplayValue(/^2025-10-10T/).length).toBe(2)
+
+        // Switch to 'all_day'
+        const timeTypeSelect = screen.getByDisplayValue('events.edit.timeTimestamp')
+        fireEvent.change(timeTypeSelect, { target: { value: 'all_day' } })
+
+        // Value should be normalized to '2025-10-10' (all_day: only start)
+        await waitFor(() => {
+            expect(screen.getAllByDisplayValue('2025-10-10').length).toBe(1)
+            expect(screen.queryByDisplayValue(/^2025-10-10T/)).not.toBeInTheDocument()
+        })
+
+        // Switch back to 'timestamp'
+        fireEvent.change(timeTypeSelect, { target: { value: 'timestamp' } })
+
+        // Value should be normalized back to '2025-10-10T12:00' (timestamp: start and end set to noon)
+        await waitFor(() => {
+            expect(screen.getAllByDisplayValue('2025-10-10T12:00').length).toBe(2)
+            expect(screen.queryByDisplayValue('2025-10-10')).not.toBeInTheDocument()
+        })
+    })
 })

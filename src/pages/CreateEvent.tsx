@@ -90,7 +90,6 @@ export default function CreateEvent() {
                 payload.start_time = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0).toISOString()
                 payload.end_time = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59).toISOString()
             }
-            console.log('Payload:', payload)
 
             const { data, error } = await supabase
                 .from('events')
@@ -129,20 +128,59 @@ export default function CreateEvent() {
                 if (optionsError) throw optionsError
             }
 
-            console.log('Event created successfully, navigating...')
             navigate('/')
         } catch (error) {
             console.error('Error creating event:', error)
             const message = error instanceof Error ? error.message : 'Tuntematon virhe'
             alert('Virhe tapahtuman luonnissa: ' + message)
         } finally {
-            console.log('Setting loading to false')
             setLoading(false)
         }
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
+
+        if (name === 'time_type') {
+            const newType = value as 'timestamp' | 'all_day' | 'all_day_multi'
+            const normalize = (v: string) => {
+                if (!v) return v
+                if ((newType === 'all_day' || newType === 'all_day_multi') && v.includes('T')) {
+                    return v.split('T')[0]
+                }
+                if (newType === 'timestamp' && v.length === 10) {
+                    return `${v}T12:00`
+                }
+                return v
+            }
+
+            setFormData(prev => {
+                const next = { 
+                    ...prev, 
+                    time_type: newType,
+                    start_time: normalize(prev.start_time),
+                    end_time: normalize(prev.end_time)
+                }
+                if (newType === 'all_day_multi' && !next.end_time && next.start_time) {
+                    next.end_time = next.start_time
+                }
+                return next
+            })
+
+            setProposedDates(prevDates => prevDates.map(pd => {
+                const normStart = normalize(pd.start_time)
+                let normEnd = normalize(pd.end_time)
+                if (newType === 'all_day_multi' && !normEnd && normStart) {
+                    normEnd = normStart
+                }
+                return {
+                    start_time: normStart,
+                    end_time: normEnd
+                }
+            }))
+            return
+        }
+
         setFormData((prev) => {
             const next = { ...prev, [name]: value }
             
