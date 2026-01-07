@@ -74,7 +74,8 @@ describe('CreateEvent', () => {
 
         // Mock insert to return an object with select
         const insertMock = vi.fn().mockReturnValue({
-            select: vi.fn().mockResolvedValue({ data: null, error: null }),
+            select: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: { id: 'new-id' }, error: null }),
         })
 
         const fromMock = vi.fn((table) => {
@@ -156,7 +157,8 @@ describe('CreateEvent', () => {
         const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => { })
 
         const insertMock = vi.fn().mockReturnValue({
-            select: vi.fn().mockResolvedValue({ data: null, error: new Error('nope') }),
+            select: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null, error: new Error('nope') }),
         })
 
         vi.mocked(supabase.from).mockImplementation((table) => {

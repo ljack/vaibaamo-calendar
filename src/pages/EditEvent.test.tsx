@@ -258,7 +258,7 @@ describe('EditEvent', () => {
         fireEvent.click(submitBtn)
 
         await waitFor(() => {
-            expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('fail'))
+            expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('common.unknownError'))
         })
 
         alertSpy.mockRestore()

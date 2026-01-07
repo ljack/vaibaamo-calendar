@@ -2,19 +2,40 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from 'react-i18next'
+import SchedulerModeInput from '../components/SchedulerModeInput'
+import { generateRandomCode } from '../lib/random'
 
 export default function CreateEvent() {
+    const { t } = useTranslation()
     const { user, isAdmin } = useAuth()
     const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
 
-    const [formData, setFormData] = useState({
+    const [schedulerMode, setSchedulerMode] = useState(false)
+    const [proposedDates, setProposedDates] = useState([{ start_time: '', end_time: '' }])
+    interface FormData {
+        title: string
+        description: string
+        start_time: string
+        end_time: string
+        location: string
+        max_participants: string
+        event_type: 'public' | 'hidden' | 'invite'
+        access_code: string
+        time_type: 'timestamp' | 'all_day' | 'all_day_multi'
+    }
+
+    const [formData, setFormData] = useState<FormData>({
         title: '',
         description: '',
         start_time: '',
         end_time: '',
         location: '',
-        max_participants: ''
+        max_participants: '',
+        event_type: 'public',
+        access_code: '',
+        time_type: 'timestamp'
     })
 
     if (!isAdmin) {
@@ -35,6 +56,11 @@ export default function CreateEvent() {
             return
         }
 
+        if (formData.event_type === 'hidden' && (!formData.access_code || formData.access_code.length < 4)) {
+            window.alert(t('events.edit.accessCodeTooShort') || 'Pääsykoodin on oltava vähintään 4 merkkiä pitkä.')
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -42,11 +68,27 @@ export default function CreateEvent() {
             const payload = {
                 title: formData.title,
                 description: formData.description,
-                start_time: new Date(formData.start_time).toISOString(),
-                end_time: new Date(formData.end_time).toISOString(),
+                start_time: schedulerMode ? new Date(proposedDates[0].start_time).toISOString() : new Date(formData.start_time).toISOString(),
+                end_time: schedulerMode ? new Date(proposedDates[0].end_time).toISOString() : new Date(formData.end_time).toISOString(),
                 location: formData.location,
                 max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
-                creator_id: user.id
+                creator_id: user.id,
+                scheduling_status: schedulerMode ? 'voting' : null,
+                event_type: formData.event_type,
+                access_code: formData.event_type === 'hidden' ? formData.access_code : null,
+                time_type: formData.time_type
+            }
+
+            // Normalize times for all-day events
+            if (payload.time_type === 'all_day') {
+                const date = new Date(formData.start_time)
+                payload.start_time = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString()
+                payload.end_time = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59).toISOString()
+            } else if (payload.time_type === 'all_day_multi') {
+                const startDate = new Date(formData.start_time)
+                const endDate = new Date(formData.end_time)
+                payload.start_time = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0).toISOString()
+                payload.end_time = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59).toISOString()
             }
             console.log('Payload:', payload)
 
@@ -54,27 +96,63 @@ export default function CreateEvent() {
                 .from('events')
                 .insert(payload)
                 .select()
-
-            console.log('Supabase response:', { data, error })
+                .single()
 
             if (error) throw error
 
+            if (schedulerMode && data) {
+                const options = proposedDates.map((pd: { start_time: string; end_time: string }) => ({
+                    event_id: data.id,
+                    start_time: pd.start_time ? new Date(pd.start_time).toISOString() : '',
+                    end_time: pd.end_time ? new Date(pd.end_time).toISOString() : '',
+                    time_type: formData.time_type
+                }))
+
+                // Normalize option times
+                options.forEach(opt => {
+                    if (opt.time_type === 'all_day' && opt.start_time) {
+                        const date = new Date(opt.start_time)
+                        opt.start_time = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString()
+                        opt.end_time = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59).toISOString()
+                    } else if (opt.time_type === 'all_day_multi' && opt.start_time && opt.end_time) {
+                        const startDate = new Date(opt.start_time)
+                        const endDate = new Date(opt.end_time)
+                        opt.start_time = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0).toISOString()
+                        opt.end_time = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59).toISOString()
+                    }
+                })
+
+                const { error: optionsError } = await supabase
+                    .from('event_options')
+                    .insert(options)
+
+                if (optionsError) throw optionsError
+            }
+
             console.log('Event created successfully, navigating...')
             navigate('/')
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error creating event:', error)
-            alert('Virhe tapahtuman luonnissa: ' + (error.message || 'Tuntematon virhe'))
+            const message = error instanceof Error ? error.message : 'Tuntematon virhe'
+            alert('Virhe tapahtuman luonnissa: ' + message)
         } finally {
             console.log('Setting loading to false')
             setLoading(false)
         }
     }
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData(prev => ({
-            ...prev,
-            [e.target.name]: e.target.value
-        }))
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target
+        setFormData((prev) => {
+            const next = { ...prev, [name]: value }
+            
+            // Auto-generate code if switching to hidden and no code exists
+            if (name === 'event_type' && value === 'hidden' && !prev.access_code) {
+                next.access_code = generateRandomCode(10)
+            }
+            
+            return next as FormData
+        })
     }
 
     return (
@@ -107,34 +185,63 @@ export default function CreateEvent() {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div>
-                        <label htmlFor="start_time" className="block text-sm font-medium text-gray-700">Alkaa</label>
-                        <input
-                            id="start_time"
-                            type="datetime-local"
-                            name="start_time"
-                            required
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                            value={formData.start_time}
-                            onChange={handleChange}
-                        />
-                    </div>
+                <SchedulerModeInput
+                    schedulerMode={schedulerMode}
+                    setSchedulerMode={setSchedulerMode}
+                    proposedDates={proposedDates}
+                    setProposedDates={setProposedDates}
+                    timeType={formData.time_type}
+                />
 
-                    <div>
-                        <label htmlFor="end_time" className="block text-sm font-medium text-gray-700">Päättyy</label>
-                        <input
-                            id="end_time"
-                            type="datetime-local"
-                            name="end_time"
-                            required
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                            value={formData.end_time}
-                            onChange={handleChange}
-                        />
-                    </div>
+                <div className="border-t pt-6">
+                    <label className="block text-sm font-medium text-gray-700">{t('events.edit.timeType')}</label>
+                    <select
+                        name="time_type"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        value={formData.time_type}
+                        onChange={handleChange}
+                    >
+                        <option value="timestamp">{t('events.edit.timeTimestamp')}</option>
+                        <option value="all_day">{t('events.edit.timeAllDay')}</option>
+                        <option value="all_day_multi">{t('events.edit.timeAllDayMulti')}</option>
+                    </select>
                 </div>
 
+                {!schedulerMode && (
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label htmlFor="start_time" className="block text-sm font-medium text-gray-700">
+                                {formData.time_type === 'timestamp' || !formData.time_type ? 'Alkaa' : t('common.date') + ' (Alkaa)'}
+                            </label>
+                            <input
+                                id="start_time"
+                                type={formData.time_type === 'timestamp' ? 'datetime-local' : 'date'}
+                                name="start_time"
+                                required={!schedulerMode}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                                value={formData.start_time}
+                                onChange={handleChange}
+                            />
+                        </div>
+
+                        {formData.time_type !== 'all_day' && (
+                            <div>
+                                <label htmlFor="end_time" className="block text-sm font-medium text-gray-700">
+                                    {formData.time_type === 'timestamp' || !formData.time_type ? 'Päättyy' : t('common.date') + ' (Päättyy)'}
+                                </label>
+                                <input
+                                    id="end_time"
+                                    type={formData.time_type === 'timestamp' ? 'datetime-local' : 'date'}
+                                    name="end_time"
+                                    required={!schedulerMode}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                                    value={formData.end_time}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div>
                     <label htmlFor="location" className="block text-sm font-medium text-gray-700">Sijainti</label>
                     <input
@@ -158,6 +265,34 @@ export default function CreateEvent() {
                         onChange={handleChange}
                     />
                 </div>
+
+                <div className="border-t pt-6">
+                    <label className="block text-sm font-medium text-gray-700">{t('events.edit.eventType')}</label>
+                    <select
+                        name="event_type"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        value={formData.event_type}
+                        onChange={handleChange}
+                    >
+                        <option value="public">{t('events.edit.typePublic')}</option>
+                        <option value="hidden">{t('events.edit.typeHidden')}</option>
+                        <option value="invite">{t('events.edit.typeInvite')}</option>
+                    </select>
+                </div>
+
+                {formData.event_type === 'hidden' && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('events.edit.accessCode')}</label>
+                        <input
+                            type="text"
+                            name="access_code"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            value={formData.access_code}
+                            onChange={handleChange}
+                            placeholder="e.g. secret123"
+                        />
+                    </div>
+                )}
 
                 <div className="flex justify-end">
                     <button

@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Navigate, useParams, useLocation } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -7,13 +7,7 @@ import EventDetails from './pages/EventDetails'
 import CreateEvent from './pages/CreateEvent'
 import EditEvent from './pages/EditEvent'
 import Concept from './pages/Concept'
-
-
-const RedirectToEvent = () => {
-    const { id } = useParams()
-    const location = useLocation()
-    return <Navigate to={`/events/${id}${location.search}`} replace />
-}
+import Profile from './pages/Profile'
 
 
 function App() {
@@ -26,8 +20,8 @@ function App() {
             <Route path="events/new" element={<CreateEvent />} />
             <Route path="events/:id" element={<EventDetails />} />
             <Route path="events/:id/edit" element={<EditEvent />} />
-            <Route path="s/events/:id" element={<RedirectToEvent />} />
             <Route path="login" element={<Login />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="concept" element={<Concept />} />
           </Route>
         </Routes>

@@ -79,7 +79,9 @@ describe('EditEvent Features', () => {
         const selectBuilder = {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({ data: event, error: null }),
+            then: vi.fn().mockImplementation((resolve: any) => resolve({ data: event, error: null }))
         }
         vi.mocked(supabase.from).mockReturnValue(selectBuilder as any)
 

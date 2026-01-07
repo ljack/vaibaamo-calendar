@@ -144,8 +144,8 @@ describe('EventDetails Features', () => {
         // Verify markdown content
         expect(screen.getByTestId('markdown')).toHaveTextContent('# The Plan')
 
-        // Verify Share button
-        expect(screen.getByText(/events.details.share/)).toBeInTheDocument()
+        // Verify Share buttons (one in header, one in tab)
+        expect(screen.getAllByText(/events.details.share/)).toHaveLength(2)
     })
 
     it('renders Recap tab when recap content exists', async () => {
@@ -238,8 +238,13 @@ describe('EventDetails Features', () => {
 
         fireEvent.click(screen.getByText('events.details.tabPlan'))
 
-        const shareBtn = screen.getByText(/events.details.share/)
-        fireEvent.click(shareBtn)
+        // Find the tab-specific share button (the header one also exists)
+        const shareButtons = screen.getAllByText(/events.details.share/)
+        // Let's just use data-testid to be sure
+        const headerShareBtn = screen.getByTestId('header-share-button')
+        const planShareBtn = shareButtons.find(btn => btn !== headerShareBtn)
+        
+        fireEvent.click(planShareBtn!)
 
         // Check if the copied URL contains the tab parameter
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('tab=plan'))

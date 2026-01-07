@@ -2,7 +2,8 @@
     "common": {
         "loading": "Ladataan...",
         "error": "Virhe",
-        "dateLocale": "fi-FI"
+        "dateLocale": "fi-FI",
+        "anonymous": "Anonyymi"
     },
     "layout": {
         "concept": "Konsepti",
@@ -79,6 +80,19 @@
         "minimize": "Pienennä",
         "expand": "Laajenna"
     },
+    "profile": {
+        "title": "Käyttäjäprofiili",
+        "handle": "Julkinen nimimerkki",
+        "handleHint": "Tämä näkyy julkisesti äänestyksissä.",
+        "firstName": "Etunimi",
+        "lastName": "Sukunimi",
+        "email": "Sähköposti",
+        "save": "Tallenna profiili",
+        "saving": "Tallennetaan...",
+        "success": "Profiili päivitetty!",
+        "error": "Profiilin päivitys epäonnistui",
+        "handleReserved": "Tämä nimimerkki on jo varattu"
+    },
     "concept": {
         "hero": {
             "title": "Vaibaamo",
@@ -145,7 +159,12 @@
             "noPlan": "Ei suunnitelmaa vielä.",
             "noRecap": "Ei jälkilöylyjä vielä.",
             "galleryPlan": "Galleria (Suunnitelma)",
-            "galleryRecap": "Galleria (Jälkilöylyt)"
+            "galleryRecap": "Galleria (Jälkilöylyt)",
+            "noAccess": "Pääsy kielletty",
+            "inputCode": "Syötä pääsykoodi",
+            "verifyCode": "Vahvista koodi",
+            "wrongCode": "Väärä pääsykoodi",
+            "inviteOnly": "Tämä tapahtuma on vain kutsutuille osallistujille."
         },
         "edit": {
             "title": "Muokkaa tapahtumaa",
@@ -163,7 +182,7 @@
             "attachmentsPlan": "Liitteet (Suunnitelma)",
             "attachmentsRecap": "Kuvat & Videot (Jälkilöylyt)",
             "uploading": "Ladataan...",
-            "aiEdit": "✨ AI Edit",
+            "aiEdit": "AI-muokkaus",
             "copyMarkdown": "📋",
             "noImages": "Ei kuvia vielä.",
             "promptTitle": "Syötä kehote AI-muokkausta varten (Gemini/Nano Banana):",
@@ -172,10 +191,36 @@
             "uploadError": "Lataus epäonnistui! Varmista että \"event-media\" bucket on olemassa.",
             "deleteAsset": "Poista tiedosto",
             "confirmDeleteAsset": "Haluatko varmasti poistaa tämän tiedoston?",
-            "aiEdit": "AI-muokkaus (uusi kuva)",
             "markdownCopied": "Markdown kopioitu leikepöydälle!",
             "fetchError": "Virhe tapahtuman haussa",
-            "errorSave": "Virhe tallennuksessa"
+            "errorSave": "Virhe tallennuksessa",
+            "schedulerTab": "Aikataulutus",
+            "eventType": "Tapahtuman tyyppi",
+            "typePublic": "Julkinen (kaikki näkevät)",
+            "typeHidden": "Piilotettu (vain linkillä)",
+            "typeInvite": "Kutsu (vain kutsutuille)",
+            "timeType": "Ajan tyyppi",
+            "timeTimestamp": "Tarkka kellonaika",
+            "timeAllDay": "Koko päivä (1 pv)",
+            "timeAllDayMulti": "Koko päivä (monipäiväinen)",
+            "accessCode": "Pääsykoodi",
+            "copyLink": "Kopioi jaettu linkki",
+            "linkCopied": "Linkki kopioitu!"
+        },
+        "scheduler": {
+            "enable": "Ota aikataulutusavustaja käyttöön (monivalinta + äänestys)",
+            "addDate": "+ Lisää päivävaihtoehto",
+            "removeDate": "Poista",
+            "description": "Ehdotu useita päiviä, joista ihmiset voivat äänestää sopivimman.",
+            "votingTitle": "Äänestä sopivinta päivää",
+            "vote": "Äänestä",
+            "unvote": "Poista ääni",
+            "votes": "ääntä",
+            "statusVoting": "Äänestys käynnissä",
+            "statusLocked": "Päivä lukittu",
+            "lockDate": "Lukitse tämä päivä",
+            "restartVoting": "Avaa äänestys uudelleen",
+            "noOptions": "Ei ehdotettuja päiviä vielä."
         }
     }
 }
