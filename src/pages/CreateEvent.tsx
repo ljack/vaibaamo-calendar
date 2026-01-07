@@ -56,6 +56,11 @@ export default function CreateEvent() {
             return
         }
 
+        if (formData.event_type === 'hidden' && (!formData.access_code || formData.access_code.length < 4)) {
+            window.alert(t('events.edit.accessCodeTooShort') || 'Pääsykoodin on oltava vähintään 4 merkkiä pitkä.')
+            return
+        }
+
         setLoading(true)
 
         try {

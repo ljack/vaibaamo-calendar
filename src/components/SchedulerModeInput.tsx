@@ -36,7 +36,8 @@ export default function SchedulerModeInput({
         setProposedDates(newDates)
     }
 
-    const inputType = timeType === 'timestamp' ? 'datetime-local' : 'date'
+    const normalizedTimeType = timeType === null ? 'timestamp' : timeType
+    const inputType = normalizedTimeType === 'timestamp' ? 'datetime-local' : 'date'
 
     return (
         <div className="space-y-4">

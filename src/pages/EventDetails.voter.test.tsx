@@ -306,4 +306,37 @@ describe('EventDetails Voter & Auth', () => {
         await waitFor(() => expect(screen.queryByPlaceholderText('Access Code')).not.toBeInTheDocument())
         expect(screen.getByText('Voter Test')).toBeInTheDocument()
     })
+
+    it('shows an alert when voting fails', async () => {
+        setupMocks({ id: 'user-1' }, event, [])
+        
+        // Mock error during vote insert
+        vi.mocked(supabase.from).mockImplementation((table: string) => {
+            if (table === 'events') return createBaseQueryBuilder(event) as any
+            if (table === 'event_options') return createBaseQueryBuilder(event.scheduler_options) as any
+            if (table === 'event_votes') {
+                const builder = createBaseQueryBuilder([])
+                builder.insert = vi.fn().mockResolvedValue({ error: new Error('DB Error') })
+                return builder as any
+            }
+            if (table === 'participants') return createBaseQueryBuilder({ id: 'p1', user_id: 'user-1' }) as any
+            if (table === 'profiles') return createBaseQueryBuilder({ id: 'user-1' }) as any
+            return createBaseQueryBuilder() as any
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/events/event-voters']}>
+                <Routes>
+                    <Route path="/events/:id" element={<EventDetails />} />
+                </Routes>
+            </MemoryRouter>
+        )
+
+        const voteBtn = await screen.findByText('events.scheduler.vote')
+        fireEvent.click(voteBtn)
+
+        await waitFor(() => {
+            expect(alertSpy).toHaveBeenCalledWith('events.details.voteError')
+        })
+    })
 })

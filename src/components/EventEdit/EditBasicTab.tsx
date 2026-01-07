@@ -36,12 +36,19 @@ export default function EditBasicTab({
 
     const handleCopyLink = () => {
         if (!eventId) return
-        const url = new URL(window.location.origin)
-        url.pathname = `/events/${eventId}`
-        url.searchParams.set('code', formData.access_code)
-        navigator.clipboard.writeText(url.toString())
-        setCopyFeedback(true)
-        setTimeout(() => setCopyFeedback(false), 2000)
+        try {
+            const url = new URL(window.location.origin)
+            url.pathname = `/events/${eventId}`
+            url.searchParams.set('code', formData.access_code)
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url.toString())
+                setCopyFeedback(true)
+                setTimeout(() => setCopyFeedback(false), 2000)
+            }
+        } catch (error) {
+            console.error('Failed to construct event URL or copy link to clipboard', error)
+        }
     }
 
     return (

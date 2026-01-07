@@ -217,13 +217,16 @@ export default function EventDetails() {
         try {
             const existingVote = votes.find(v => v.option_id === optionId && v.user_id === user.id)
             if (existingVote) {
-                await supabase.from('event_votes').delete().eq('id', existingVote.id)
+                const { error } = await supabase.from('event_votes').delete().eq('id', existingVote.id)
+                if (error) throw error
             } else {
-                await supabase.from('event_votes').insert({ option_id: optionId, user_id: user.id })
+                const { error } = await supabase.from('event_votes').insert({ option_id: optionId, user_id: user.id })
+                if (error) throw error
             }
             if (id) await fetchVotingData(id)
         } catch (error) {
             console.error('Error voting:', error)
+            window.alert(t('events.details.voteError') || 'Virhe äänestettäessä. Yritä uudelleen.')
         } finally {
             setVotingLoading(false)
         }
@@ -248,6 +251,7 @@ export default function EventDetails() {
             await fetchEvent(event.id)
         } catch (error) {
             console.error('Error locking date:', error)
+            window.alert(t('events.scheduler.lockError') || 'Virhe päivän lukitsemisessa.')
         }
     }
 
@@ -356,7 +360,7 @@ export default function EventDetails() {
     const copyLink = (tab?: string) => {
         if (!event) return
         // 1. Construct the direct deep link to the app (for the redirect)
-        const directUrl = new URL(window.location.href.split('?')[0])
+        const directUrl = new URL(window.location.pathname, window.location.origin)
         if (tab) directUrl.searchParams.set('tab', tab)
         
         // Add access code for hidden events if not already there
