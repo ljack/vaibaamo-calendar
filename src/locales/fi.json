@@ -164,7 +164,11 @@
             "inputCode": "Syötä pääsykoodi",
             "verifyCode": "Vahvista koodi",
             "wrongCode": "Väärä pääsykoodi",
-            "inviteOnly": "Tämä tapahtuma on vain kutsutuille osallistujille."
+            "inviteOnly": "Tämä tapahtuma on vain kutsutuille osallistujille.",
+            "title": "Otsikko",
+            "description": "Kuvaus",
+            "maxParticipants": "Osallistujamäärä (max)",
+            "voteError": "Virhe äänestettäessä. Yritä uudelleen."
         },
         "edit": {
             "title": "Muokkaa tapahtumaa",
@@ -205,7 +209,8 @@
             "timeAllDayMulti": "Koko päivä (monipäiväinen)",
             "accessCode": "Pääsykoodi",
             "copyLink": "Kopioi jaettu linkki",
-            "linkCopied": "Linkki kopioitu!"
+            "linkCopied": "Linkki kopioitu!",
+            "accessCodeTooShort": "Pääsykoodin on oltava vähintään 4 merkkiä pitkä."
         },
         "scheduler": {
             "enable": "Ota aikataulutusavustaja käyttöön (monivalinta + äänestys)",
@@ -220,7 +225,8 @@
             "statusLocked": "Päivä lukittu",
             "lockDate": "Lukitse tämä päivä",
             "restartVoting": "Avaa äänestys uudelleen",
-            "noOptions": "Ei ehdotettuja päiviä vielä."
+            "noOptions": "Ei ehdotettuja päiviä vielä.",
+            "lockError": "Virhe päivän lukitsemisessa."
         }
     }
 }

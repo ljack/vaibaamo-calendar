@@ -164,7 +164,11 @@
             "inputCode": "Enter access code",
             "verifyCode": "Verify Code",
             "wrongCode": "Wrong access code",
-            "inviteOnly": "This event is for invited participants only."
+            "inviteOnly": "This event is for invited participants only.",
+            "title": "Title",
+            "description": "Description",
+            "maxParticipants": "Max Participants",
+            "voteError": "Error voting. Please try again."
         },
         "edit": {
             "title": "Edit Event",
@@ -205,7 +209,8 @@
             "timeAllDayMulti": "All Day (Multiple Days)",
             "accessCode": "Access Code",
             "copyLink": "Copy Shared Link",
-            "linkCopied": "Link copied!"
+            "linkCopied": "Link copied!",
+            "accessCodeTooShort": "Access code must be at least 4 characters long."
         },
         "scheduler": {
             "enable": "Enable Scheduler Mode (Multi-date voting)",
@@ -220,7 +225,8 @@
             "statusLocked": "Date locked",
             "lockDate": "Lock this date",
             "restartVoting": "Restart Voting",
-            "noOptions": "No date options proposed yet."
+            "noOptions": "No date options proposed yet.",
+            "lockError": "Error locking date."
         }
     }
 }
