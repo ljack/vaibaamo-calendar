@@ -117,9 +117,9 @@ export default function EventsList() {
             }
             hasFetchedRef.current = true
             console.log(`Events fetched in ${Date.now() - startTime}ms`)
-        } catch (err: any) {
-            const isAbort = err?.name === 'AbortError' || /aborted without reason/i.test(err?.message || '')
-            const isTimeout = timeoutController.signal.aborted || err?.message?.includes('timed out')
+        } catch (err) {
+            const isAbort = (err as any)?.name === 'AbortError' || /aborted without reason/i.test((err as any)?.message || '')
+            const isTimeout = timeoutController.signal.aborted || (err as any)?.message?.includes('timed out')
 
             if (isAbort && !isTimeout) {
                 if (DEBUG_AUTH) console.log('[EventsList] Request aborted, skipping error UI')
@@ -242,7 +242,13 @@ export default function EventsList() {
                         <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
                             <div className="flex items-center">
                                 <span className="mr-1.5">📅</span>
-                                {new Date(event.start_time).toLocaleDateString(t('common.dateLocale', { defaultValue: 'fi-FI' }))}
+                                {event.time_type === 'all_day' ? (
+                                    new Date(event.start_time).toLocaleDateString(t('common.dateLocale', { defaultValue: 'fi-FI' }))
+                                ) : event.time_type === 'all_day_multi' ? (
+                                    `${new Date(event.start_time).toLocaleDateString(t('common.dateLocale', { defaultValue: 'fi-FI' }))} - ${new Date(event.end_time).toLocaleDateString(t('common.dateLocale', { defaultValue: 'fi-FI' }))}`
+                                ) : (
+                                    new Date(event.start_time).toLocaleDateString(t('common.dateLocale', { defaultValue: 'fi-FI' }))
+                                )}
                             </div>
                             <div className="flex items-center">
                                 <span className="mr-1.5">📍</span>

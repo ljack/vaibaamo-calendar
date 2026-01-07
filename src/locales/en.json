@@ -145,7 +145,12 @@
             "noPlan": "No plan yet.",
             "noRecap": "No recap yet.",
             "galleryPlan": "Gallery (Plan)",
-            "galleryRecap": "Gallery (Recap)"
+            "galleryRecap": "Gallery (Recap)",
+            "noAccess": "Access Denied",
+            "inputCode": "Enter access code",
+            "verifyCode": "Verify Code",
+            "wrongCode": "Wrong access code",
+            "inviteOnly": "This event is for invited participants only."
         },
         "edit": {
             "title": "Edit Event",
@@ -163,7 +168,7 @@
             "attachmentsPlan": "Attachments (Plan)",
             "attachmentsRecap": "Images & Videos (Recap)",
             "uploading": "Uploading...",
-            "aiEdit": "✨ AI Edit",
+            "aiEdit": "AI Edit",
             "copyMarkdown": "📋",
             "noImages": "No images yet.",
             "promptTitle": "Enter prompt for AI editing (Gemini/Nano Banana):",
@@ -172,10 +177,36 @@
             "uploadError": "Upload failed! Ensure \"event-media\" bucket exists.",
             "deleteAsset": "Delete file",
             "confirmDeleteAsset": "Are you sure you want to delete this file?",
-            "aiEdit": "AI Edit (Generate New)",
             "markdownCopied": "Markdown copied to clipboard!",
             "fetchError": "Error fetching event",
-            "errorSave": "Error saving"
+            "errorSave": "Error saving",
+            "schedulerTab": "Scheduler",
+            "eventType": "Event Type",
+            "typePublic": "Public (visible to all)",
+            "typeHidden": "Hidden (link only)",
+            "typeInvite": "Invite (invited only)",
+            "timeType": "Time Format",
+            "timeTimestamp": "Exact Time",
+            "timeAllDay": "All Day (Single)",
+            "timeAllDayMulti": "All Day (Multiple Days)",
+            "accessCode": "Access Code",
+            "copyLink": "Copy Shared Link",
+            "linkCopied": "Link copied!"
+        },
+        "scheduler": {
+            "enable": "Enable Scheduler Mode (Multi-date voting)",
+            "addDate": "+ Add Date Option",
+            "removeDate": "Remove",
+            "description": "Propose multiple dates for people to vote on.",
+            "votingTitle": "Vote for suitable date",
+            "vote": "Vote",
+            "unvote": "Remove Vote",
+            "votes": "votes",
+            "statusVoting": "Voting in progress",
+            "statusLocked": "Date locked",
+            "lockDate": "Lock this date",
+            "restartVoting": "Restart Voting",
+            "noOptions": "No date options proposed yet."
         }
     }
 }
