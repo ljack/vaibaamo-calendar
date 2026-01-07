@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null)
             } finally {
                 if (mounted) {
-                    console.log('[AuthContext] Bootstrap finally, loading set to false');
+                    if (DEBUG_AUTH) console.log('[AuthContext] Bootstrap finally, loading set to false');
                     setLoading(false);
                 }
             }
