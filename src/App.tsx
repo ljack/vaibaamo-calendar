@@ -7,6 +7,7 @@ import EventDetails from './pages/EventDetails'
 import CreateEvent from './pages/CreateEvent'
 import EditEvent from './pages/EditEvent'
 import Concept from './pages/Concept'
+import Profile from './pages/Profile'
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="events/:id" element={<EventDetails />} />
             <Route path="events/:id/edit" element={<EditEvent />} />
             <Route path="login" element={<Login />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="concept" element={<Concept />} />
           </Route>
         </Routes>

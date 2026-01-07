@@ -18,7 +18,9 @@ type ParticipantEmail = {
 interface EventVoteWithProfile extends EventVote {
     profiles: {
         full_name: string | null
+        display_name: string | null
     } | null
+    participant_display_name?: string | null
 }
 
 export default function EventDetails() {
@@ -41,6 +43,7 @@ export default function EventDetails() {
     const [accessCodeInput, setAccessCodeInput] = useState('')
     const [showCodePrompt, setShowCodePrompt] = useState(false)
     const [accessDenied, setAccessDenied] = useState(false)
+    const [joinDisplayName, setJoinDisplayName] = useState('')
 
     useEffect(() => {
         if (id) {
@@ -61,10 +64,23 @@ export default function EventDetails() {
 
             const { data: votesData } = await supabase
                 .from('event_votes')
-                .select('*, profiles(full_name)')
+                .select('*, profiles(full_name, display_name)')
                 .in('option_id', (optionsData || []).map(o => o.id))
 
-            setVotes(votesData || [])
+            // Fetch participants to get event-specific display names
+            const { data: participantsData } = await supabase
+                .from('participants')
+                .select('user_id, display_name')
+                .eq('event_id', eventId)
+
+            const participantMap = new Map(participantsData?.map(p => [p.user_id, p.display_name]) || [])
+
+            const votesWithParticipantNames = (votesData || []).map(v => ({
+                ...v,
+                participant_display_name: participantMap.get(v.user_id)
+            }))
+
+            setVotes(votesWithParticipantNames as EventVoteWithProfile[])
         } catch (error) {
             console.error('Error fetching voting data:', error)
         }
@@ -89,10 +105,24 @@ export default function EventDetails() {
             if (data.event_type === 'hidden') {
                 const params = new URLSearchParams(window.location.search)
                 const urlCode = params.get('code')
+                const storageKey = `event_access_code_${eventId}`
+                const storedCode = localStorage.getItem(storageKey)
+                const effectiveCode = urlCode || storedCode
+                
                 const isCreatorOrAdmin = isAdmin || (user && user.id === data.creator_id)
                 
-                if (isCreatorOrAdmin || urlCode === data.access_code) {
+                if (isCreatorOrAdmin || effectiveCode === data.access_code) {
                     setShowCodePrompt(false)
+                    // Persist the code if it's correct
+                    if (effectiveCode && effectiveCode === data.access_code) {
+                        localStorage.setItem(storageKey, effectiveCode)
+                        // Clean up URL if code was in it
+                        if (urlCode) {
+                            const newUrl = new URL(window.location.href)
+                            newUrl.searchParams.delete('code')
+                            window.history.replaceState({}, '', newUrl.toString())
+                        }
+                    }
                 } else {
                     setShowCodePrompt(true)
                 }
@@ -124,6 +154,17 @@ export default function EventDetails() {
                     .single()
 
                 setParticipant(partData)
+
+                // Pre-fill Join Display Name if profile has one and we haven't typed anything yet
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('display_name')
+                    .eq('id', user.id)
+                    .single()
+                
+                if (profile?.display_name && !joinDisplayName) {
+                    setJoinDisplayName(profile.display_name)
+                }
 
                 const canViewEmails = isAdmin || user.id === data.creator_id
                 if (canViewEmails) {
@@ -159,17 +200,19 @@ export default function EventDetails() {
         e.preventDefault()
         if (event && accessCodeInput === event.access_code) {
             setShowCodePrompt(false)
-            // Add code to URL for future refreshes
-            const url = new URL(window.location.href)
-            url.searchParams.set('code', accessCodeInput)
-            window.history.pushState({}, '', url.toString())
+            // Persist the code
+            localStorage.setItem(`event_access_code_${event.id}`, accessCodeInput)
         } else {
-            alert(t('events.details.wrongCode'))
+            window.alert(t('events.details.wrongCode'))
         }
     }
 
     const handleVote = async (optionId: string) => {
-        if (!user) return
+        if (!user) {
+            window.alert(t('events.details.loginToJoin'))
+            navigate('/login')
+            return
+        }
         setVotingLoading(true)
         try {
             const existingVote = votes.find(v => v.option_id === optionId && v.user_id === user.id)
@@ -233,13 +276,14 @@ export default function EventDetails() {
                 .insert({
                     event_id: event.id,
                     user_id: user.id,
-                    status: 'registered'
+                    status: 'registered',
+                    display_name: joinDisplayName || null
                 })
 
             if (error) throw error
             await fetchEvent(event.id)
         } catch (error: any) {
-            alert(t('events.details.registerError') + ' ' + error.message)
+            window.alert(t('events.details.registerError') + ' ' + error.message)
         } finally {
             setRegistering(false)
         }
@@ -258,7 +302,7 @@ export default function EventDetails() {
             if (error) throw error
             setParticipant(null)
         } catch (error: any) {
-            alert(t('events.details.cancelError') + ' ' + error.message)
+            window.alert(t('events.details.cancelError') + ' ' + error.message)
         } finally {
             setRegistering(false)
         }
@@ -455,13 +499,22 @@ export default function EventDetails() {
                                     {registering ? t('events.details.leaving') : t('events.details.leave')}
                                 </button>
                             ) : (
-                                <button
-                                    onClick={handleRegister}
-                                    disabled={registering}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                >
-                                    {registering ? t('events.details.joining') : t('events.details.join')}
-                                </button>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        value={joinDisplayName}
+                                        onChange={(e) => setJoinDisplayName(e.target.value)}
+                                        placeholder={t('profile.displayName')}
+                                        className="block w-40 sm:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                    <button
+                                        onClick={handleRegister}
+                                        disabled={registering}
+                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                        {registering ? t('events.details.joining') : t('events.details.join')}
+                                    </button>
+                                </div>
                             )}
                         </>
                     )}
@@ -586,24 +639,22 @@ export default function EventDetails() {
                                                         {optionVotes.length} {t('events.scheduler.votes')}
                                                         {optionVotes.length > 0 && (
                                                             <div className="text-gray-400 font-normal mt-0.5">
-                                                                {optionVotes.map((v) => v.profiles?.full_name || t('common.anonymous')).join(', ')}
+                                                                {optionVotes.map((v) => (user ? (v.participant_display_name || v.profiles?.display_name || v.profiles?.full_name || t('common.anonymous')) : t('common.anonymous'))).join(', ')}
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    {user && (
-                                                        <button
-                                                            onClick={() => handleVote(option.id)}
-                                                            disabled={votingLoading}
-                                                            className={`px-3 py-1 text-xs font-medium rounded-md border ${hasVoted
-                                                                ? 'bg-indigo-600 text-white border-transparent'
-                                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                                                }`}
-                                                        >
-                                                            {hasVoted ? t('events.scheduler.unvote') : t('events.scheduler.vote')}
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        onClick={() => handleVote(option.id)}
+                                                        disabled={votingLoading}
+                                                        className={`px-3 py-1 text-xs font-medium rounded-md border ${hasVoted
+                                                            ? 'bg-indigo-600 text-white border-transparent'
+                                                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        {hasVoted ? t('events.scheduler.unvote') : t('events.scheduler.vote')}
+                                                    </button>
                                                     {isAdmin && (
                                                         <button
                                                             onClick={() => handleLockDate(option)}

@@ -1,6 +1,9 @@
 export interface Profile {
     id: string
     full_name: string | null
+    display_name: string | null
+    first_name: string | null
+    last_name: string | null
     avatar_url: string | null
     role: 'admin' | 'user'
     updated_at: string | null
@@ -53,5 +56,6 @@ export interface Participant {
     event_id: string
     user_id: string
     status: 'registered' | 'waitlist' | 'cancelled'
+    display_name: string | null
     created_at: string
 }

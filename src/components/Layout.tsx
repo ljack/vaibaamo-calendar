@@ -93,9 +93,12 @@ export default function Layout() {
                             )}
                             {user ? (
                                 <>
-                                    <span className="text-sm text-gray-700 hidden sm:block">
+                                    <Link
+                                        to="/profile"
+                                        className="text-sm text-gray-700 hover:text-indigo-600 hidden sm:block"
+                                    >
                                         {user.email}
-                                    </span>
+                                    </Link>
                                     <button
                                         onClick={async () => {
                                             try {

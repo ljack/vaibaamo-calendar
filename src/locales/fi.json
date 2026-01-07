@@ -2,7 +2,8 @@
     "common": {
         "loading": "Ladataan...",
         "error": "Virhe",
-        "dateLocale": "fi-FI"
+        "dateLocale": "fi-FI",
+        "anonymous": "Anonyymi"
     },
     "layout": {
         "concept": "Konsepti",
@@ -78,6 +79,19 @@
         "errorDelete": "Virhe poistettaessa",
         "minimize": "Pienennä",
         "expand": "Laajenna"
+    },
+    "profile": {
+        "title": "Käyttäjäprofiili",
+        "handle": "Julkinen nimimerkki",
+        "handleHint": "Tämä näkyy julkisesti äänestyksissä.",
+        "firstName": "Etunimi",
+        "lastName": "Sukunimi",
+        "email": "Sähköposti",
+        "save": "Tallenna profiili",
+        "saving": "Tallennetaan...",
+        "success": "Profiili päivitetty!",
+        "error": "Profiilin päivitys epäonnistui",
+        "handleReserved": "Tämä nimimerkki on jo varattu"
     },
     "concept": {
         "hero": {

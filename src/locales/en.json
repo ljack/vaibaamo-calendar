@@ -2,7 +2,8 @@
     "common": {
         "loading": "Loading...",
         "error": "Error",
-        "dateLocale": "en-US"
+        "dateLocale": "en-US",
+        "anonymous": "Anonymous"
     },
     "layout": {
         "concept": "Concept",
@@ -78,6 +79,19 @@
         "errorDelete": "Failed to delete passkey",
         "minimize": "Minimize",
         "expand": "Expand"
+    },
+    "profile": {
+        "title": "User Profile",
+        "handle": "Public Handle / Name",
+        "handleHint": "This will be displayed publicly in votes.",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "save": "Save Profile",
+        "saving": "Saving...",
+        "success": "Profile updated!",
+        "error": "Failed to update profile",
+        "handleReserved": "This handle is already taken"
     },
     "concept": {
         "hero": {
