@@ -233,4 +233,74 @@ describe('EditEvent Vote Preservation', () => {
             ]))
         })
     })
+
+    it('preserves existing options when string formats differ (e.g. +00:00 vs Z)', async () => {
+        // Supabase format
+        const supabaseStart = '2025-10-10T10:00:00+00:00'
+        const supabaseEnd = '2025-10-10T12:00:00+00:00'
+        
+        const event = {
+            id: 'event-123',
+            title: 'Format Test',
+            start_time: supabaseStart,
+            end_time: supabaseEnd,
+            scheduling_status: 'voting',
+            time_type: 'timestamp'
+        }
+
+        const existingOption = {
+            id: 'opt-1',
+            event_id: 'event-123',
+            start_time: supabaseStart, // Different format than JS .toISOString()
+            end_time: supabaseEnd,
+            time_type: 'timestamp'
+        }
+
+        const fromMock = vi.mocked(supabase.from)
+        
+        const eventsBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: event, error: null }),
+            update: vi.fn().mockReturnThis(),
+            then: (resolve: (val: unknown) => void) => resolve({ data: event, error: null })
+        }
+
+        const optionsBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            delete: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(),
+            insert: vi.fn().mockReturnThis(),
+            then: (resolve: (val: unknown) => void) => resolve({ data: [existingOption], error: null })
+        }
+
+        fromMock.mockImplementation((table: string) => {
+            if (table === 'events') return eventsBuilder as any
+            if (table === 'event_options') return optionsBuilder as any
+            return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), then: (r: any) => r({ data: [] }) } as any
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/events/event-123/edit']}>
+                <Routes>
+                    <Route path="/events/:id/edit" element={<EditEvent />} />
+                </Routes>
+            </MemoryRouter>
+        )
+
+        await waitFor(() => expect(screen.getByDisplayValue('Format Test')).toBeInTheDocument())
+
+        const submitBtn = screen.getByText('events.edit.save')
+        fireEvent.click(submitBtn)
+
+        await waitFor(() => {
+            // If it fails, delete will have been called because
+            // '2025-10-10T10:00:00+00:00' !== '2025-10-10T10:00:00.000Z'
+            expect(optionsBuilder.delete).not.toHaveBeenCalled()
+            expect(optionsBuilder.insert).not.toHaveBeenCalled()
+            expect(mockedNavigate).toHaveBeenCalledWith('/events/event-123')
+        })
+    })
 })

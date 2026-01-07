@@ -222,16 +222,16 @@ export function useEditEvent(id: string | undefined) {
                 // Find options to delete (present in DB but not in our new list)
                 const toDelete = (existingOptions || []).filter(eo => 
                     !newOptions.some(no => 
-                        no.start_time === eo.start_time && 
-                        no.end_time === eo.end_time
+                        new Date(no.start_time).getTime() === new Date(eo.start_time).getTime() && 
+                        new Date(no.end_time).getTime() === new Date(eo.end_time).getTime()
                     )
                 )
 
                 // Find options to insert (in our new list but not in DB)
                 const toInsert = newOptions.filter(no => 
                     !(existingOptions || []).some(eo => 
-                        eo.start_time === no.start_time && 
-                        eo.end_time === no.end_time
+                        new Date(eo.start_time).getTime() === new Date(no.start_time).getTime() && 
+                        new Date(eo.end_time).getTime() === new Date(no.end_time).getTime()
                     )
                 )
 
