@@ -72,17 +72,22 @@ export function useEditEvent(id: string | undefined) {
                 .eq('event_id', eventId)
                 .order('start_time', { ascending: true })
 
-            const formatForInput = (dateString: string) => {
+            const formatForInput = (dateString: string, timeType?: string | null) => {
+                if (!dateString) return ''
                 const date = new Date(dateString)
                 date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-                return date.toISOString().slice(0, 16)
+                const iso = date.toISOString()
+                if (timeType === 'all_day' || timeType === 'all_day_multi') {
+                    return iso.split('T')[0]
+                }
+                return iso.slice(0, 16)
             }
 
             setFormData({
                 title: event.title,
                 description: event.description || '',
-                start_time: formatForInput(event.start_time),
-                end_time: formatForInput(event.end_time),
+                start_time: formatForInput(event.start_time, event.time_type),
+                end_time: formatForInput(event.end_time, event.time_type),
                 location: event.location || '',
                 max_participants: event.max_participants ? event.max_participants.toString() : '',
                 plan_markdown: event.plan_markdown || '',
@@ -96,8 +101,8 @@ export function useEditEvent(id: string | undefined) {
             if (optionsData && optionsData.length > 0) {
                 setSchedulerMode(true)
                 setProposedDates(optionsData.map(o => ({
-                    start_time: formatForInput(o.start_time),
-                    end_time: formatForInput(o.end_time)
+                    start_time: formatForInput(o.start_time, o.time_type),
+                    end_time: formatForInput(o.end_time, o.time_type)
                 })))
             } else if (event.scheduling_status === 'voting') {
                 setSchedulerMode(true)

@@ -375,4 +375,45 @@ describe('EditEvent Vote Preservation', () => {
             expect(screen.queryByDisplayValue('2025-10-10')).not.toBeInTheDocument()
         })
     })
+
+    it('correctly formats and displays all_day event dates on initial load', async () => {
+        const event = {
+            id: 'event-all-day',
+            title: 'All Day Load Test',
+            start_time: '2025-10-10T00:00:00.000Z',
+            end_time: '2025-10-10T23:59:59.000Z',
+            scheduling_status: null,
+            time_type: 'all_day'
+        }
+
+        const fromMock = vi.mocked(supabase.from)
+        
+        const eventsBuilder = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: event, error: null }),
+        }
+
+        fromMock.mockImplementation((table: string) => {
+            if (table === 'events') return eventsBuilder as any
+            return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), then: (r: any) => r({ data: [] }) } as any
+        })
+
+        render(
+            <MemoryRouter initialEntries={['/events/event-all-day/edit']}>
+                <Routes>
+                    <Route path="/events/:id/edit" element={<EditEvent />} />
+                </Routes>
+            </MemoryRouter>
+        )
+
+        // Wait for load and verify date specifically formatted as YYYY-MM-DD
+        await waitFor(() => {
+            expect(screen.getByDisplayValue('All Day Load Test')).toBeInTheDocument()
+            // Should find the date part only
+            expect(screen.getByDisplayValue('2025-10-10')).toBeInTheDocument()
+            // Should NOT find the timestamp format which breaks <input type="date">
+            expect(screen.queryByDisplayValue('2025-10-10T00:00')).not.toBeInTheDocument()
+        })
+    })
 })
