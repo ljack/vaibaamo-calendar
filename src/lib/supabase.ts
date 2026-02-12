@@ -1,16 +1,17 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient } from "@supabase/ssr";
 
-function mustGetEnv(name: string): string {
-    const v = import.meta.env[name];
+function getEnv(primary: string, fallback: string): string {
+    const v = import.meta.env[primary] || import.meta.env[fallback];
     if (!v || typeof v !== "string") {
-        throw new Error(`Missing env var: ${name}`);
+        console.warn(`Missing env var: ${primary} (fallback: ${fallback})`);
+        return "";
     }
     return v;
 }
 
-const SUPABASE_URL = mustGetEnv("VITE_SUPABASE_URL");
-const SUPABASE_ANON_KEY = mustGetEnv("VITE_PUBLIC_SUPABASE_ANON_KEY");
+const SUPABASE_URL = getEnv("VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
+const SUPABASE_ANON_KEY = getEnv("VITE_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY");
 const DEBUG_AUTH = String(import.meta.env.VITE_SUPABASE_DEBUG_AUTH) === "true";
 
 /**
